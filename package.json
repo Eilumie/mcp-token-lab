@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && npx @chagee/cdn-cli upload -t W486e21e6 -p ./dist --refresh-cdn  -e prod",
     "preview": "vite preview",
     "test": "node --test src/*.test.js"
   },
