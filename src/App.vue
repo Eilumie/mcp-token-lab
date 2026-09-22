@@ -112,6 +112,10 @@ const fullSchemaText = computed(() => {
   if (Object.keys(errors.value).length || hasNumericOverflow.value) return "—";
   return `${state.values.tools_total} × ${state.values.single_tool_schema}K = ${token(parameters.value.full_tools_schema)}`;
 });
+const skillsDiscoveryText = computed(() => {
+  if (Object.keys(errors.value).length || hasNumericOverflow.value) return "—";
+  return `${state.values.skills_total} × ${state.values.single_skill_discovery}K = ${token(parameters.value.skills_discovery_list)}`;
+});
 const rateInfo = computed(() => {
   const rate = selectedRate.value;
   return {
@@ -405,8 +409,8 @@ function buildSourceChartOption(data) {
     animationDuration: 250,
     tooltip: {
       trigger: "item",
-      formatter: ({ seriesName, name, value, percent: share }) =>
-        `${seriesName}<br/>${name}：${money(value)}（${share}%）`,
+      formatter: ({ name, value, percent: share }) =>
+        `${name}：${money(value)}（${share}%）`,
     },
     title: titles,
     series: pies,
@@ -479,12 +483,15 @@ function exportCsv(kind) {
             <small class="error">{{ errors[field[0]] }}</small>
           </label>
           <div v-if="groupIndex === 1" class="field">
+            <span>Skills Discovery List · 自动计算</span><output>{{ skillsDiscoveryText }}</output>
+          </div>
+          <div v-if="groupIndex === 1" class="field">
             <span>全量 Tools Schema · 自动计算</span><output>{{ fullSchemaText }}</output>
           </div>
         </div>
       </details>
 
-      <p class="hint">1K = 1,000 Token。全量 Tools Schema = Tools 总数 × 单个 Tool Schema。小数表示每轮平均使用量。</p>
+      <p class="hint">1K = 1,000 Token。Skills Discovery List = Skills 总数 × 单个 Skill 索引；全量 Tools Schema = Tools 总数 × 单个 Tool Schema。小数表示每轮平均使用量。</p>
       <label class="toggle"><input v-model="state.cold" type="checkbox" /><span>冷启动<small>首请求初始上下文不命中缓存</small></span></label>
 
       <div class="param-group">
@@ -503,7 +510,7 @@ function exportCsv(kind) {
           </template>
         </p>
         <div class="fields rates">
-          <label v-for="item in [['hit', '输入 · 缓存命中'], ['miss', '输入 · 未命中'], ['output', '输出']]" :key="item[0]" class="field">
+          <label v-for="item in [['hit', '输入-缓存'], ['miss', '输入-未缓存'], ['output', '输出']]" :key="item[0]" class="field">
             <span>{{ item[1] }}</span>
             <div class="input-wrap"><input type="number" min="0" step="any" :value="selectedRate[item[0]]" @input="updateRate(item[0], $event)" /><em>{{ selectedRate.currency === 'CNY' ? '¥' : '$' }}/M</em></div>
             <small class="error">{{ errors[item[0]] }}</small>
@@ -529,10 +536,10 @@ function exportCsv(kind) {
             <div><strong>{{ selectedRate.name }}</strong><span class="fixed-price">{{ selectedRate.modified ? "自定义费率" : "固定价格" }}</span><small>实际模型 {{ selectedRate.actual }}</small></div>
           </div>
           <div class="model-pricing-values">
-            <span><i class="pricing-icon"><CircleDollarSign /></i><small>命中输入</small><b>{{ summaryMoney(selectedRate.hit) }}</b></span>
-            <span><i class="pricing-icon"><FileText /></i><small>未命中输入</small><b>{{ summaryMoney(selectedRate.miss) }}</b></span>
+            <span><i class="pricing-icon"><CircleDollarSign /></i><small>输入-缓存</small><b>{{ summaryMoney(selectedRate.hit) }}</b></span>
+            <span><i class="pricing-icon"><FileText /></i><small>输入-未缓存</small><b>{{ summaryMoney(selectedRate.miss) }}</b></span>
             <span><i class="pricing-icon"><Upload /></i><small>输出</small><b>{{ summaryMoney(selectedRate.output) }}</b></span>
-            <span class="cache-price-ratio" title="缓存费率 = 命中输入单价 ÷ 未命中输入单价；不是 Token 缓存命中率"><i class="pricing-icon"><Zap /></i><small>缓存费率</small><b>{{ percent(results[0].cachePriceRatio) }}</b><em>命中 / 未命中单价</em></span>
+            <span class="cache-price-ratio" title="缓存费率 = 输入-缓存单价 ÷ 输入-未缓存单价；不是 Token 缓存命中率"><i class="pricing-icon"><Zap /></i><small>缓存费率</small><b>{{ percent(results[0].cachePriceRatio) }}</b><em>缓存 / 未缓存单价</em></span>
             <span class="pricing-unit">{{ selectedRate.currency }} / 1M Token</span>
           </div>
         </div>
@@ -540,22 +547,22 @@ function exportCsv(kind) {
         <div class="comparison">
           <section v-for="(result, index) in results" :key="planNames[index]" class="plan" :class="`plan-${index}`">
             <div class="plan-head"><span class="label">方案 0{{ index + 1 }}</span><span class="tag"><Crown v-if="index" aria-hidden="true" /><Search v-else aria-hidden="true" />{{ index ? "全部 Schema 常驻" : "按需发现 Schema" }}</span></div>
-            <div class="plan-title"><h2>{{ planNames[index] }}</h2><span>{{ index ? "一次性加载上下文，适合稳定的大规模任务" : "按需调用，弹性灵活，适合波动业务场景" }}</span></div>
+            <div class="plan-title"><h2>{{ planNames[index] }}</h2><span>{{ index ? `一次性加载${state.values.tools_total}个Tools Schema` : "按需加载Tools Schema" }}</span></div>
             <div class="price">{{ summaryMoney(result.cost.total) }}<small>{{ selectedRate.currency }} / 会话</small></div>
             <div class="plan-sub"><span><Bot aria-hidden="true" />{{ result.requests.length }} 次 LLM 请求</span><span><Database aria-hidden="true" />初始上下文 {{ token(result.initial_context) }}</span></div>
             <div class="metric-section-title">核心指标</div>
             <div class="metric-grid">
-              <div class="metric cached"><span><i><ArrowUp /></i>输入 · 缓存</span><strong>{{ token(result.total_in_cache) }}</strong><small class="metric-subtext" title="按费用折算，不改变实际上下文长度">{{ result.equivalent === null ? "折算未命中 —（未命中单价为 0）" : `折算未命中 ${token(result.equivalent)}` }}</small></div>
-              <div class="metric fresh"><span><i><Sparkles /></i>输入 · 非缓存</span><strong>{{ token(result.total_in_new) }}</strong></div>
+              <div class="metric cached"><span><i><ArrowUp /></i>输入-缓存</span><strong>{{ token(result.total_in_cache) }}</strong><small class="metric-subtext" title="按费用折算，不改变实际上下文长度">{{ result.equivalent === null ? "折算未命中 —（未命中单价为 0）" : `折算未命中 ${token(result.equivalent)}` }}</small></div>
+              <div class="metric fresh"><span><i><Sparkles /></i>输入-非缓存</span><strong>{{ token(result.total_in_new) }}</strong></div>
               <div class="metric output"><span><i><Database /></i>输出</span><strong>{{ token(result.total_out) }}</strong></div>
               <div class="metric-progress context"><span><i><Target /></i>最终 context</span><strong>{{ token(result.context) }}</strong><div role="progressbar" aria-label="Context 使用率" :aria-valuenow="Math.min(CONTEXT_PROGRESS_MAX, result.context)" aria-valuemin="0" :aria-valuemax="CONTEXT_PROGRESS_MAX"><b :style="{ width: `${Math.min(100, result.context / CONTEXT_PROGRESS_MAX * 100)}%` }"></b></div></div>
               <div class="metric-progress hit-rate"><span><i><Clock3 /></i>缓存命中率</span><strong>{{ percent(result.hitRate) }}</strong><div><b :style="{ width: `${result.hitRate * 100}%` }"></b></div></div>
             </div>
             <div class="cost-breakdown">
               <div class="cost-breakdown-head"><span>累计费用构成</span><small>金额（{{ selectedRate.currency }}）　　　　　　　占总费用</small></div>
+              <span class="cost-row cached"><em>输入-缓存</em><b>{{ summaryMoney(result.cost.cached) }}</b><i><u :style="{ width: `${result.costShare.cached * 100}%` }"></u></i><small>{{ percent(result.costShare.cached) }}</small></span>
+              <span class="cost-row fresh"><em>输入-未缓存</em><b>{{ summaryMoney(result.cost.fresh) }}</b><i><u :style="{ width: `${result.costShare.fresh * 100}%` }"></u></i><small>{{ percent(result.costShare.fresh) }}</small></span>
               <span class="cost-row output"><em>输出</em><b>{{ summaryMoney(result.cost.generated) }}</b><i><u :style="{ width: `${result.costShare.output * 100}%` }"></u></i><small>{{ percent(result.costShare.output) }}</small></span>
-              <span class="cost-row cached"><em>命中输入</em><b>{{ summaryMoney(result.cost.cached) }}</b><i><u :style="{ width: `${result.costShare.cached * 100}%` }"></u></i><small>{{ percent(result.costShare.cached) }}</small></span>
-              <span class="cost-row fresh"><em>未命中输入</em><b>{{ summaryMoney(result.cost.fresh) }}</b><i><u :style="{ width: `${result.costShare.fresh * 100}%` }"></u></i><small>{{ percent(result.costShare.fresh) }}</small></span>
             </div>
           </section>
         </div>

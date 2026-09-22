@@ -1,10 +1,12 @@
 import { modelPresets } from "./model-pricing.js";
 // Token 参数以 K 展示，进入计算器时统一转为 Token。
+// Tools Discovery List 是固定的协议开销，不开放给实验参数配置。
+export const toolsDiscoveryList = 1.2;
 export const groups = [
   [
     "会话规模",
     [
-      ["rounds", "会话轮次", 10, "轮"],
+      ["rounds", "单会话轮次", 10, "轮"],
       ["skills_total", "Skills 总数", 30, "个"],
       ["tools_total", "Tools 总数", 90, "个"],
       ["skills_per_round", "每轮平均 Skills", 0.33, "个"],
@@ -15,8 +17,7 @@ export const groups = [
     "初始上下文",
     [
       ["agent_prompt", "Agent Prompt", 2, "K"],
-      ["tools_discovery_list", "Tools Discovery List", 1.2, "K"],
-      ["skills_discovery_list", "Skills Discovery List", 3, "K"],
+      ["single_skill_discovery", "单个 Skill 索引", 0.1, "K"],
       ["single_tool_schema", "单个 Tool Schema", 0.51, "K"],
     ],
   ],
@@ -37,6 +38,8 @@ export const fields = groups.flatMap(([, fields]) => fields);
 export const defaults = Object.fromEntries(
   fields.map(([id, , value]) => [id, value]),
 );
+// 保留在配置中以兼容导入和零值模拟，但不在初始上下文的参数面板展示。
+defaults.tools_discovery_list = toolsDiscoveryList;
 export const presets = modelPresets;
 
 // 官方预设始终以代码中的价格为准；仅保留 ID 不属于预设的自定义模型。
@@ -90,6 +93,9 @@ export function toTokens(values) {
       Number(values[id]) * (unit === "K" ? 1000 : 1),
     ]),
   );
+  tokens.tools_discovery_list = Number(values.tools_discovery_list) * 1000;
+  tokens.skills_discovery_list =
+    tokens.skills_total * tokens.single_skill_discovery;
   tokens.full_tools_schema = tokens.tools_total * tokens.single_tool_schema;
   return tokens;
 }
@@ -103,9 +109,10 @@ export function readConfig(data) {
     typeof data.cold !== "boolean"
   )
     throw Error("配置格式不正确");
-  if (new Set(data.rates.map((r) => r.id)).size !== data.rates.length)
+  const normalized = { ...data, values: { ...defaults, ...data.values } };
+  if (new Set(normalized.rates.map((r) => r.id)).size !== normalized.rates.length)
     throw Error("模型 ID 重复");
-  for (const rate of data.rates) {
+  for (const rate of normalized.rates) {
     if (
       ["id", "name", "actual", "period", "currency", "source", "verified"].some(
         (k) => typeof rate[k] !== "string",
@@ -115,10 +122,10 @@ export function readConfig(data) {
       !rate.name
     )
       throw Error("模型信息不完整");
-    if (Object.keys(validate(data.values, rate)).length)
+    if (Object.keys(validate(normalized.values, rate)).length)
       throw Error("参数或费率不合法");
   }
-  if (!data.rates.some((r) => r.id === data.selected))
+  if (!normalized.rates.some((r) => r.id === normalized.selected))
     throw Error("所选模型不存在");
-  return data;
+  return normalized;
 }

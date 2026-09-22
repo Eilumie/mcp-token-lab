@@ -9,6 +9,7 @@ const close = (a, b) =>
     `${a} != ${b}`,
   );
 const calculators = [calculateOnDemand, calculateFullLoad];
+const referenceRate = presets.find((rate) => rate.id === "flash-off");
 const expected = [
   [1, 0, 28145, 6655, 1300, 13855, 0.0124179],
   [1, 1, 153990, 5790, 1200, 57690, 0.0136698],
@@ -19,7 +20,7 @@ const expected = [
 ];
 for (const [rounds, i, hit, miss, out, context, cost] of expected)
   test(`验收：方案 ${i + 1} / ${rounds} 轮`, () => {
-    const r = calculators[i](toTokens({ ...defaults, rounds }), presets[0]);
+    const r = calculators[i](toTokens({ ...defaults, rounds }), referenceRate);
     for (const [a, b] of [
       [r.total_in_cache, hit],
       [r.total_in_new, miss],
@@ -48,8 +49,8 @@ for (const [rounds, i, hit, miss, out, context, cost] of expected)
         );
   });
 test("来源独立归因与末次回复不回传", () => {
-  const a = calculateOnDemand(toTokens({ ...defaults, rounds: 1 }), presets[0]);
-  const b = calculateFullLoad(toTokens({ ...defaults, rounds: 1 }), presets[0]);
+  const a = calculateOnDemand(toTokens({ ...defaults, rounds: 1 }), referenceRate);
+  const b = calculateFullLoad(toTokens({ ...defaults, rounds: 1 }), referenceRate);
   close(a.sources.find((s) => s.source === "Tools List").hit, 4800);
   close(b.sources.find((s) => s.source === "Tools Schema").hit, 137700);
   const tool = a.sources.find((s) => s.source === "Tools Result");
@@ -62,7 +63,7 @@ test("来源独立归因与末次回复不回传", () => {
 test("冷启动只改变初始上下文缓存计费", () => {
   calculators.forEach((calc) => {
     const p = toTokens(defaults),
-      warm = calc(p, presets[0]),
+      warm = calc(p, referenceRate),
       cold = calc(p, presets[0], true);
     close(warm.total_in_cache - cold.total_in_cache, warm.initial_context);
     close(cold.total_in_new - warm.total_in_new, warm.initial_context);
@@ -77,8 +78,8 @@ test("冷启动只改变初始上下文缓存计费", () => {
 test("高峰翻倍、零费率", () => {
   const p = toTokens(defaults);
   calculators.forEach((calc) => {
-    const off = calc(p, presets[0]),
-      peak = calc(p, presets[1]);
+    const off = calc(p, referenceRate),
+      peak = calc(p, presets.find((rate) => rate.id === "flash-peak"));
     close(peak.cost.total, off.cost.total * 2);
     close(peak.total_in_cache, off.total_in_cache);
     const zero = calc(p, { hit: 0, miss: 0, output: 0 });
@@ -90,7 +91,7 @@ test("零内容仍保留阶段、小数平均与非法参数", () => {
     Object.keys(defaults).map((k) => [k, k === "rounds" ? 1 : 0]),
   );
   calculators.forEach((calc, i) => {
-    const r = calc(toTokens(values), presets[0]);
+    const r = calc(toTokens(values), referenceRate);
     assert.equal(r.requests.length, i ? 3 : 4);
     assert.equal(r.cost.total, 0);
   });
@@ -108,7 +109,7 @@ test("零内容仍保留阶段、小数平均与非法参数", () => {
     skills_per_round: 0.1234,
     tools_per_round: 0.5678,
   });
-  const r = calculateOnDemand(p, presets[0]);
+  const r = calculateOnDemand(p, referenceRate);
   close(
     r.sources.reduce((n, s) => n + s.cost.total, 0),
     r.cost.total,
@@ -152,7 +153,7 @@ test("配置 JSON 往返与损坏配置拒绝", async () => {
 test("缓存费率及命中输入折算跟随单价，零分母不可折算", () => {
   for (const calc of calculators) {
     const p = toTokens(defaults);
-    const standard = calc(p, presets[0]);
+    const standard = calc(p, referenceRate);
     close(standard.cachePriceRatio, 0.02);
     close(standard.equivalent, standard.total_in_cache * 0.02);
     const custom = calc(p, { hit: 0.015, miss: 0.15, output: 0.6 });
@@ -168,7 +169,7 @@ test("缓存费率及命中输入折算跟随单价，零分母不可折算", ()
 
 test("累计费用构成金额与占比守恒，零费用占比为空", () => {
   for (const calc of calculators) {
-    const result = calc(toTokens(defaults), presets[0]);
+    const result = calc(toTokens(defaults), referenceRate);
     close(result.cost.input, result.cost.cached + result.cost.fresh);
     close(result.costShare.input, result.cost.input / result.cost.total);
     close(result.costShare.output, result.cost.generated / result.cost.total);
@@ -229,7 +230,7 @@ test("DeepSeek 官方预设使用人民币价格且缓存中的修改会被重�
     modelPricingData,
     modelPresets,
   } = await import("./model-pricing.js");
-  const deepseek = presets.slice(0, 4);
+  const deepseek = presets.filter((rate) => rate.provider === "deepseek");
   assert.equal(deepseekData.models.length, 2);
   assert.deepEqual(
     modelPricingData.map((source) => source.provider),
@@ -279,4 +280,18 @@ test("全量 Schema 由数量与单个长度派生，忽略旧的独立配置", 
       .full_tools_schema,
     0,
   );
+});
+
+test("Skills Discovery List 由 Skills 总数与单个索引派生，Tools List 不暴露为参数", () => {
+  assert.equal(defaults.tools_discovery_list, 1.2);
+  assert.equal("skills_discovery_list" in defaults, false);
+  assert.equal(toTokens(defaults).tools_discovery_list, 1200);
+  assert.equal(toTokens(defaults).skills_discovery_list, 3000);
+  const p = toTokens({
+    ...defaults,
+    skills_total: 12,
+    single_skill_discovery: 0.25,
+    skills_discovery_list: 999,
+  });
+  assert.equal(p.skills_discovery_list, 3000);
 });
