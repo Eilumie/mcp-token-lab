@@ -1,92 +1,33 @@
-# token-calculator
+# Token Lab
 
+按需求文档实现的 Vue 3 Agent Token 与费用对比页面。使用 Vite 开发与构建，Node.js 20.19+ 或 22.12+ 可运行。
 
-
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin http://gitlab.bwcjxt.com/chagee-basis/token-calculator.git
-git branch -M master
-git push -uf origin master
+```sh
+cd /Users/zhanghongen/Desktop/chagee/ai/token-calculator
+npm install
+npm run dev
 ```
 
-## Integrate with your tools
+打开终端显示的本地地址。运行测试：`npm test`，生产构建：`npm run build`。
 
-- [ ] [Set up project integrations](http://gitlab.bwcjxt.com/chagee-basis/token-calculator/-/settings/integrations)
+## 代码结构
 
-## Collaborate with your team
+- `src/config.js`：参数定义、默认值、费率快照、输入校验。
+- `src/on-demand.js`：按需方案，每轮四次请求，显式累计和更新上下文。
+- `src/full-load.js`：全量方案，每轮三次请求，显式累计和更新上下文。
+- `src/accounting.js`：固定长度来源账本、请求和轮次费用汇总。
+- `src/App.vue`：Vue 页面、响应式状态和业务交互。
+- `src/main.js`：Vue 应用入口。
+- `src/utils.js`：格式化、文件下载和 CSV 安全转义。
+- `src/style.css`：桌面和移动布局。
+- `src/calculator.test.js`：需求验收数据、费用归因守恒、冷启动、零费率和大轮次测试。
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+## 计算口径
 
-## Test and Deploy
+输入参数界面以 K 为 Token 单位，核心计算先转换为 Token，不在中间步骤取整。两个方案独立按需求中的原始顺序逐步执行，不使用闭式公式。费用使用双精度数值，中间不舍入，仅显示时格式化；测试以浮点容差验证归因守恒。本工具用于费用模拟，不作财务结算。
 
-Use the built-in continuous integration in GitLab.
+默认初始上下文已预热，首请求视为缓存命中，预热成本不包含。冷启动开关仅改变首请求初始上下文的计费类别。计划和最终回复在生成时计输出费用，随后回传时再计输入费用。工具返回只计输入费用。
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+模型费率是需求文档中 2026-09-21 核实的 USD 快照，不会自动联网更新。Flash 的兼容名称 deepseek-v4-flash 对应实际 V4.1 Flash。高峰/非高峰由用户手动选择。可增加自定义模型并编辑单价。
 
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+配置保存在浏览器 localStorage，导出 JSON 可用于备份并重新导入。CSV 包含两个方案的完整请求或来源明细、参数、费率快照和冷启动状态。所有计算发生在本地，无真实模型调用。
