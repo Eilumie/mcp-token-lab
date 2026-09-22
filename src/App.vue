@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import {
   defaults,
   groups,
@@ -71,6 +71,18 @@ const rateDialog = ref(null);
 const importInput = ref(null);
 const newModelName = ref("");
 const mobileParamsOpen = ref(false);
+const mobileChart = ref(false);
+let mobileChartQuery;
+const updateMobileChart = () => {
+  mobileChart.value = mobileChartQuery?.matches ?? false;
+};
+
+onMounted(() => {
+  mobileChartQuery = window.matchMedia("(max-width: 520px)");
+  updateMobileChart();
+  mobileChartQuery.addEventListener("change", updateMobileChart);
+});
+onBeforeUnmount(() => mobileChartQuery?.removeEventListener("change", updateMobileChart));
 
 const selectedRate = computed(() =>
   state.rates.find((item) => item.id === state.selected),
@@ -363,8 +375,10 @@ function buildSourceChartOption(data) {
     return {
       name: planNames[planIndex],
       type: "pie",
-      radius: ["44%", "68%"],
-      center: [planIndex === 0 ? "25%" : "75%", "46%"],
+      radius: mobileChart.value ? ["31%", "48%"] : ["44%", "68%"],
+      center: mobileChart.value
+        ? ["50%", planIndex === 0 ? "26%" : "74%"]
+        : [planIndex === 0 ? "25%" : "75%", "46%"],
       minAngle: 1,
       avoidLabelOverlap: true,
       itemStyle: { borderColor: "#fff", borderWidth: 2 },
@@ -378,6 +392,15 @@ function buildSourceChartOption(data) {
       data: slices,
     };
   });
+  const titles = data.map((result, index) => ({
+    text: planNames[index],
+    subtext: `${summaryMoney(result.cost.total)} · ${percent(ratio(result.cost.total, comparisonTotal))}`,
+    left: mobileChart.value ? "50%" : index === 0 ? "25%" : "75%",
+    top: mobileChart.value ? (index === 0 ? "22%" : "70%") : "41%",
+    textAlign: "center",
+    textStyle: { color: "#43516a", fontSize: 13, fontWeight: 600 },
+    subtextStyle: { color: "#8c98aa", fontSize: 10, lineHeight: 18 },
+  }));
   return {
     animationDuration: 250,
     tooltip: {
@@ -385,15 +408,7 @@ function buildSourceChartOption(data) {
       formatter: ({ seriesName, name, value, percent: share }) =>
         `${seriesName}<br/>${name}：${money(value)}（${share}%）`,
     },
-    title: data.map((result, index) => ({
-      text: planNames[index],
-      subtext: `${money(result.cost.total)} · ${percent(ratio(result.cost.total, comparisonTotal))}`,
-      left: index === 0 ? "25%" : "75%",
-      top: "41%",
-      textAlign: "center",
-      textStyle: { color: "#43516a", fontSize: 13, fontWeight: 600 },
-      subtextStyle: { color: "#8c98aa", fontSize: 10, lineHeight: 18 },
-    })),
+    title: titles,
     series: pies,
   };
 }
