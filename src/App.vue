@@ -14,6 +14,10 @@ import { calculateOnDemand } from "./on-demand.js";
 import { calculateFullLoad } from "./full-load.js";
 import EChart from "./components/EChart.vue";
 import {
+  ArrowDown, ArrowUp, Bot, Box, CircleDollarSign, Clock3, Crown, Database,
+  FileText, Scale, Search, Sparkles, Target, Upload, Zap,
+} from "lucide-vue-next";
+import {
   csvCell,
   downloadFile,
   formatMoney,
@@ -22,7 +26,8 @@ import {
 } from "./utils.js";
 
 const STORAGE_KEY = "token-lab-v1";
-const planNames = ["按需加载", "全量加载"];
+const CONTEXT_PROGRESS_MAX = 200_000;
+const planNames = ["按需 Tools", "全量 Tools"];
 const sourceColors = [
   "#71819b", "#ce9f54", "#7d94b8", "#7161d5", "#a991cd",
   "#529a90", "#dd8c63", "#b2b969", "#879fb0", "#d7a3a3", "#4358af",
@@ -159,6 +164,10 @@ function percent(value) {
 function money(value) {
   return formatMoney(value, selectedRate.value.currency);
 }
+function summaryMoney(value) {
+  const symbol = selectedRate.value.currency === "CNY" ? "¥" : "$";
+  return `${symbol}${value.toFixed(3)}`;
+}
 function updateValue(id, event) {
   state.values[id] = event.target.value === "" ? "" : Number(event.target.value);
 }
@@ -277,7 +286,13 @@ function buildTrendChartOption(data, metric) {
     legend: { top: 0, right: 0, itemWidth: 13, itemHeight: 7, textStyle: { color: "#8795ad", fontSize: 10 } },
     tooltip: {
       trigger: "axis",
-      valueFormatter: format,
+      formatter: (items) => {
+        const round = Math.round(Number(items[0]?.axisValue ?? 0));
+        const rows = items.map(
+          (item) => `${item.marker}${item.seriesName}<span style="float:right;margin-left:20px">${format(item.value[1])}</span>`,
+        );
+        return [`第 ${round} 轮`, ...rows].join("<br/>");
+      },
       axisPointer: { type: "line", lineStyle: { color: "#aab4c5" } },
     },
     xAxis: {
@@ -290,7 +305,7 @@ function buildTrendChartOption(data, metric) {
       axisLabel: {
         color: "#97a2b4",
         fontSize: 10,
-        formatter: (value) => Number.isInteger(value) ? `第 ${value} 轮` : "",
+        formatter: (value) => Number.isInteger(value) ? `第 ${Math.round(value)} 轮` : "",
       },
       axisLine: { lineStyle: { color: "#dfe4ec" } },
       splitLine: { show: false },
@@ -321,31 +336,64 @@ function buildTrendChartOption(data, metric) {
 
 function buildSourceChartOption(data) {
   if (!data) return {};
+  const totals = data.map((result) => result.cost.total);
+  const comparisonTotal = Math.max(...totals);
+  const colorBySource = new Map(
+    data[0].sources.map((source, index) => [source.source, sourceColors[index]]),
+  );
+  const differenceColor = "#e7eaf1";
+  const pies = data.map((result, planIndex) => {
+    const slices = result.sources
+      .map((source) => ({
+        name: source.source,
+        value: source.cost.total,
+        itemStyle: { color: colorBySource.get(source.source) },
+      }))
+      .filter((slice) => slice.value > 0);
+    const difference = comparisonTotal - result.cost.total;
+    if (difference > Math.max(comparisonTotal * Number.EPSILON, 1e-12)) {
+      slices.push({
+        name: "方案节省",
+        value: difference,
+        itemStyle: { color: differenceColor },
+      });
+    }
+    slices.sort((a, b) => b.value - a.value);
+    return {
+      name: planNames[planIndex],
+      type: "pie",
+      radius: ["44%", "68%"],
+      center: [planIndex === 0 ? "25%" : "75%", "46%"],
+      minAngle: 1,
+      avoidLabelOverlap: true,
+      itemStyle: { borderColor: "#fff", borderWidth: 2 },
+      label: {
+        color: "#65738a",
+        fontSize: 10,
+        formatter: ({ name, percent: share }) => `${name}  ${share}%`,
+      },
+      labelLine: { length: 9, length2: 7, lineStyle: { color: "#c7ced9" } },
+      emphasis: { scaleSize: 5 },
+      data: slices,
+    };
+  });
   return {
     animationDuration: 250,
-    color: sourceColors,
-    grid: { left: 0, right: 16, top: 4, bottom: 52, containLabel: true },
-    legend: { bottom: 0, left: 0, itemWidth: 8, itemHeight: 8, textStyle: { color: "#8893a6", fontSize: 9 } },
-    tooltip: { trigger: "item", valueFormatter: (value) => money(value) },
-    xAxis: { type: "value", show: false },
-    yAxis: {
-      type: "category",
-      data: planNames,
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: { color: "#8491a7", fontSize: 10 },
+    tooltip: {
+      trigger: "item",
+      formatter: ({ seriesName, name, value, percent: share }) =>
+        `${seriesName}<br/>${name}：${money(value)}（${share}%）`,
     },
-    series: data[0].sources.map((source, sourceIndex, sources) => ({
-      name: source.source,
-      type: "bar",
-      stack: "cost",
-      barWidth: 23,
-      emphasis: { focus: "series" },
-      data: data.map((result) => result.sources[sourceIndex].cost.total),
-      label: sourceIndex === sources.length - 1
-        ? { show: true, position: "right", color: "#60718b", fontSize: 10, formatter: ({ dataIndex }) => money(data[dataIndex].cost.total) }
-        : undefined,
+    title: data.map((result, index) => ({
+      text: planNames[index],
+      subtext: `${money(result.cost.total)} · ${percent(ratio(result.cost.total, comparisonTotal))}`,
+      left: index === 0 ? "25%" : "75%",
+      top: "41%",
+      textAlign: "center",
+      textStyle: { color: "#43516a", fontSize: 13, fontWeight: 600 },
+      subtextStyle: { color: "#8c98aa", fontSize: 10, lineHeight: 18 },
     })),
+    series: pies,
   };
 }
 
@@ -453,37 +501,55 @@ function exportCsv(kind) {
 
     <main>
       <div class="eyebrow">SCHEMA STRATEGY / COST SIMULATOR</div>
-      <div class="page-title"><div><h1>每一个 Token，都算清楚。</h1><p>按需发现，还是全量加载？用同一组参数，看完整会话的费用差异。</p></div><span class="pill">{{ state.values.rounds }} 轮会话 · {{ state.cold ? "冷启动" : "已预热缓存" }}</span></div>
+      <div class="page-title"><div><h1>每一个 Token，都算清楚。</h1><p>按需 Tools，还是全量 Tools？用同一组参数，看完整会话的费用差异。</p></div><span class="pill">{{ state.values.rounds }} 轮会话 · {{ state.cold ? "冷启动" : "已预热缓存" }}</span></div>
       <div id="notice" role="status">{{ notice }}</div>
       <div v-if="Object.keys(errors).length" class="empty">请修正左侧参数后继续计算。</div>
       <div v-else-if="hasNumericOverflow" class="empty">数值超出可计算范围，请减小参数。</div>
 
       <template v-else-if="results">
         <div class="model-pricing" aria-label="当前模型价格与费率">
-          <div class="model-pricing-title"><strong>{{ selectedRate.name }}</strong><span>实际模型 {{ selectedRate.actual }}{{ selectedRate.modified ? " · 自定义费率" : "" }}</span></div>
-          <div class="model-pricing-values"><span>命中输入 <b>{{ money(selectedRate.hit) }}</b></span><span>未命中输入 <b>{{ money(selectedRate.miss) }}</b></span><span>输出 <b>{{ money(selectedRate.output) }}</b></span><span class="pricing-unit">{{ selectedRate.currency }} / 1M Token</span><span class="cache-price-ratio" title="缓存费率 = 命中输入单价 ÷ 未命中输入单价；不是 Token 缓存命中率">缓存费率 <b>{{ percent(results[0].cachePriceRatio) }}</b> <small>命中 / 未命中单价</small></span></div>
+          <div class="model-pricing-title">
+            <span class="model-icon" aria-hidden="true"><Box /></span>
+            <div><strong>{{ selectedRate.name }}</strong><span class="fixed-price">{{ selectedRate.modified ? "自定义费率" : "固定价格" }}</span><small>实际模型 {{ selectedRate.actual }}</small></div>
+          </div>
+          <div class="model-pricing-values">
+            <span><i class="pricing-icon"><CircleDollarSign /></i><small>命中输入</small><b>{{ summaryMoney(selectedRate.hit) }}</b></span>
+            <span><i class="pricing-icon"><FileText /></i><small>未命中输入</small><b>{{ summaryMoney(selectedRate.miss) }}</b></span>
+            <span><i class="pricing-icon"><Upload /></i><small>输出</small><b>{{ summaryMoney(selectedRate.output) }}</b></span>
+            <span class="cache-price-ratio" title="缓存费率 = 命中输入单价 ÷ 未命中输入单价；不是 Token 缓存命中率"><i class="pricing-icon"><Zap /></i><small>缓存费率</small><b>{{ percent(results[0].cachePriceRatio) }}</b><em>命中 / 未命中单价</em></span>
+            <span class="pricing-unit">{{ selectedRate.currency }} / 1M Token</span>
+          </div>
         </div>
 
         <div class="comparison">
           <section v-for="(result, index) in results" :key="planNames[index]" class="plan" :class="`plan-${index}`">
-            <div class="plan-head"><span class="label">方案 0{{ index + 1 }}</span><span class="tag">{{ index ? "全部 Schema 常驻" : "按需发现 Schema" }}</span></div>
-            <h2>{{ planNames[index] }}</h2><div class="price">{{ money(result.cost.total) }}<small>{{ selectedRate.currency }} / 会话</small></div>
-            <div class="plan-sub">{{ result.requests.length }} 次 LLM 请求 <span>初始上下文 {{ token(result.initial_context) }}</span></div>
+            <div class="plan-head"><span class="label">方案 0{{ index + 1 }}</span><span class="tag"><Crown v-if="index" aria-hidden="true" /><Search v-else aria-hidden="true" />{{ index ? "全部 Schema 常驻" : "按需发现 Schema" }}</span></div>
+            <div class="plan-title"><h2>{{ planNames[index] }}</h2><span>{{ index ? "一次性加载上下文，适合稳定的大规模任务" : "按需调用，弹性灵活，适合波动业务场景" }}</span></div>
+            <div class="price">{{ summaryMoney(result.cost.total) }}<small>{{ selectedRate.currency }} / 会话</small></div>
+            <div class="plan-sub"><span><Bot aria-hidden="true" />{{ result.requests.length }} 次 LLM 请求</span><span><Database aria-hidden="true" />初始上下文 {{ token(result.initial_context) }}</span></div>
+            <div class="metric-section-title">核心指标</div>
             <div class="metric-grid">
-              <div><span>输出 Token</span><strong>{{ token(result.total_out) }}</strong></div>
-              <div><span>命中输入</span><strong>{{ token(result.total_in_cache) }}</strong><small class="metric-subtext" title="按费用折算，不改变实际上下文长度">{{ result.equivalent === null ? "折算未命中 —（未命中单价为 0）" : `折算未命中 ${token(result.equivalent)}` }}</small></div>
-              <div><span>未命中输入</span><strong>{{ token(result.total_in_new) }}</strong></div><div><span>最终 context</span><strong>{{ token(result.context) }}</strong></div><div><span>缓存命中率</span><strong>{{ percent(result.hitRate) }}</strong></div>
+              <div class="metric cached"><span><i><ArrowUp /></i>输入 · 缓存</span><strong>{{ token(result.total_in_cache) }}</strong><small class="metric-subtext" title="按费用折算，不改变实际上下文长度">{{ result.equivalent === null ? "折算未命中 —（未命中单价为 0）" : `折算未命中 ${token(result.equivalent)}` }}</small></div>
+              <div class="metric fresh"><span><i><Sparkles /></i>输入 · 非缓存</span><strong>{{ token(result.total_in_new) }}</strong></div>
+              <div class="metric output"><span><i><Database /></i>输出</span><strong>{{ token(result.total_out) }}</strong></div>
+              <div class="metric-progress context"><span><i><Target /></i>最终 context</span><strong>{{ token(result.context) }}</strong><div role="progressbar" aria-label="Context 使用率" :aria-valuenow="Math.min(CONTEXT_PROGRESS_MAX, result.context)" aria-valuemin="0" :aria-valuemax="CONTEXT_PROGRESS_MAX"><b :style="{ width: `${Math.min(100, result.context / CONTEXT_PROGRESS_MAX * 100)}%` }"></b></div></div>
+              <div class="metric-progress hit-rate"><span><i><Clock3 /></i>缓存命中率</span><strong>{{ percent(result.hitRate) }}</strong><div><b :style="{ width: `${result.hitRate * 100}%` }"></b></div></div>
             </div>
             <div class="cost-breakdown">
-              <div class="cost-breakdown-head"><span>累计费用构成</span><small>金额 / 占总费用</small></div>
-              <span>输出 <b>{{ money(result.cost.generated) }} <small>{{ percent(result.costShare.output) }}</small></b></span>
-              <span>命中输入 <b>{{ money(result.cost.cached) }} <small>{{ percent(result.costShare.cached) }}</small></b></span>
-              <span>未命中输入 <b>{{ money(result.cost.fresh) }} <small>{{ percent(result.costShare.fresh) }}</small></b></span>
+              <div class="cost-breakdown-head"><span>累计费用构成</span><small>金额（{{ selectedRate.currency }}）　　　　　　　占总费用</small></div>
+              <span class="cost-row output"><em>输出</em><b>{{ summaryMoney(result.cost.generated) }}</b><i><u :style="{ width: `${result.costShare.output * 100}%` }"></u></i><small>{{ percent(result.costShare.output) }}</small></span>
+              <span class="cost-row cached"><em>命中输入</em><b>{{ summaryMoney(result.cost.cached) }}</b><i><u :style="{ width: `${result.costShare.cached * 100}%` }"></u></i><small>{{ percent(result.costShare.cached) }}</small></span>
+              <span class="cost-row fresh"><em>未命中输入</em><b>{{ summaryMoney(result.cost.fresh) }}</b><i><u :style="{ width: `${result.costShare.fresh * 100}%` }"></u></i><small>{{ percent(result.costShare.fresh) }}</small></span>
             </div>
           </section>
         </div>
 
-        <div class="saving"><span class="saving-icon">↘</span><div>方案一{{ saving.delta < 0 ? "多花费" : "节省" }} <strong>{{ money(Math.abs(saving.delta)) }}</strong><small>相对全量加载 {{ percent(saving.percent) }}</small></div><span>同一模型 · 同一会话参数</span></div>
+        <div class="saving"><span class="saving-icon"><Scale /></span><div><small>按需 Tools 相比全量 Tools{{ saving.delta < 0 ? "多花费" : "节省" }}</small><strong>{{ summaryMoney(Math.abs(saving.delta)) }}</strong></div><b><ArrowUp v-if="saving.delta < 0" /><ArrowDown v-else />{{ percent(saving.percent) }}</b></div>
+
+        <section class="panel">
+          <div class="section-head"><div><h2>费用占比</h2><p>按费用从高到低排列；低费用方案的灰色区域表示方案节省</p></div><button @click="exportCsv('sources')">导出归因 CSV ↗</button></div>
+          <EChart id="source-pies" class="source-chart" :option="sourceChartOption" aria-label="两种方案按费用排序的费用占比饼图" />
+        </section>
 
         <section class="panel">
           <div class="section-head"><div><h2>会话越长，差异如何变化？</h2><p>完整逐轮计算 · 曲线最多展示 250 个采样点</p></div><select v-model="trend" aria-label="趋势指标"><option value="cumulativeCost">累计费用</option><option value="cost">当轮费用</option><option value="tokens">累计 Token</option><option value="context">Context 长度</option></select></div>
@@ -491,14 +557,8 @@ function exportCsv(kind) {
         </section>
 
         <section class="panel">
-          <div class="section-head"><div><h2>费用花在哪里</h2><p>含内容生成，以及后续每一次输入的费用</p></div><button @click="exportCsv('sources')">导出归因 CSV ↗</button></div>
-          <EChart id="source-bars" class="source-chart" :option="sourceChartOption" aria-label="两种方案的费用来源堆叠图" />
-          <div class="table-scroll"><table><thead><tr><th>内容来源 / 方案</th><th>首次内容</th><th>命中输入</th><th>未命中输入</th><th>输出</th><th>命中费用</th><th>未命中费用</th><th>输出费用</th><th>合计 {{ selectedRate.currency }}</th><th>占总费用</th></tr></thead><tbody><template v-for="(source, sourceIndex) in results[0].sources" :key="source.source"><tr v-for="(result, planIndex) in results" :key="planIndex"><td><i class="dot" :style="{ background: sourceColors[sourceIndex] }"></i>{{ result.sources[sourceIndex].source }}<small>{{ planNames[planIndex] }}</small></td><td>{{ token(result.sources[sourceIndex].first) }}</td><td>{{ token(result.sources[sourceIndex].hit) }}</td><td>{{ token(result.sources[sourceIndex].miss) }}</td><td>{{ token(result.sources[sourceIndex].output) }}</td><td>{{ money(result.sources[sourceIndex].cost.cached) }}</td><td>{{ money(result.sources[sourceIndex].cost.fresh) }}</td><td>{{ money(result.sources[sourceIndex].cost.generated) }}</td><td>{{ money(result.sources[sourceIndex].cost.total) }}</td><td>{{ percent(ratio(result.sources[sourceIndex].cost.total, result.cost.total)) }}</td></tr></template></tbody></table></div>
-        </section>
-
-        <section class="panel">
           <div class="section-head"><div><h2>逐步计算明细</h2><p>按原始公式展开，每一笔都可追溯 · Token 单位 K</p></div><button @click="exportCsv('requests')">导出请求 CSV ↗</button></div>
-          <div class="detail-toolbar"><div class="segmented"><button :class="{ active: detailPlan === 0 }" @click="detailPlan = 0">按需加载</button><button :class="{ active: detailPlan === 1 }" @click="detailPlan = 1">全量加载</button></div><div><button :disabled="detailPage === 1" @click="detailPage--">←</button><span id="page-label"> {{ detailPage }} / {{ detailPages }} </span><button :disabled="detailPage === detailPages" @click="detailPage++">→</button></div></div>
+          <div class="detail-toolbar"><div class="segmented"><button :class="{ active: detailPlan === 0 }" @click="detailPlan = 0">按需 Tools</button><button :class="{ active: detailPlan === 1 }" @click="detailPlan = 1">全量 Tools</button></div><div><button :disabled="detailPage === 1" @click="detailPage--">←</button><span id="page-label"> {{ detailPage }} / {{ detailPages }} </span><button :disabled="detailPage === detailPages" @click="detailPage++">→</button></div></div>
           <div id="details"><details v-for="round in currentDetails" :key="round.round" class="round-detail"><summary><span>第 {{ round.round }} 轮 <small>{{ detailPlan ? 3 : 4 }} 次请求</small></span><span>{{ money(round.cost) }}</span></summary><details v-for="request in requestRows(round)" :key="request.stage" class="request"><summary><span>{{ request.stage }}</span><span>命中 {{ token(request.in_cache) }} · 新增 {{ token(request.in_new) }} · 输出 {{ token(request.out) }}</span></summary><div class="request-body"><div>input：{{ token(request.input_before) }} → {{ token(request.input_after) }}　context：{{ token(request.context_before) }} → {{ token(request.context_after) }}<br/>工具结果 {{ token(request.tool_result) }} · 本次 {{ money(request.cost.total) }} · 累计 {{ money(request.cumulativeCost) }}<br/>累计命中 {{ token(request.total_in_cache) }} / 新增 {{ token(request.total_in_new) }} / 输出 {{ token(request.total_out) }}</div><pre>in_cache = {{ request.cold ? "0（冷启动）" : `input = ${token(request.input_before)}` }}
 in_new = {{ request.first ? `用户消息 + context - input = ${token(request.user_message)} + ` : "context - input = " }}{{ token(request.context_before) }} - {{ token(request.input_before) }}{{ request.cold ? ` + 初始上下文 ${token(results[detailPlan].initial_context)}` : "" }} = {{ token(request.in_new) }}
 out = {{ token(request.out) }}

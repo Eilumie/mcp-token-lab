@@ -1,3 +1,35 @@
+// 所有官方模型费率快照统一维护在此文件；数据不会自动联网更新。
+export const deepseekData = {
+  provider: "deepseek",
+  provider_name: "DeepSeek",
+  currency: "CNY",
+  price_unit: "per_1m_tokens",
+  source: "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+  verified_at: "2026-09-22",
+  models: [
+    {
+      id: "DeepSeek-V4.1-Flash",
+      name: "DeepSeek V4.1 Flash",
+      pricing_type: "time_based",
+      preset_ids: { off_peak: "flash-off", peak: "flash-peak" },
+      price_periods: {
+        off_peak: { input: 1, input_cache_hit: 0.02, output: 4 },
+        peak: { input: 2, input_cache_hit: 0.04, output: 8 },
+      },
+    },
+    {
+      id: "DeepSeek-V4-Pro-0813",
+      name: "DeepSeek V4 Pro",
+      pricing_type: "time_based",
+      preset_ids: { off_peak: "pro-off", peak: "pro-peak" },
+      price_periods: {
+        off_peak: { input: 4.5, input_cache_hit: 0.15, output: 13.5 },
+        peak: { input: 9, input_cache_hit: 0.3, output: 27 },
+      },
+    },
+  ],
+};
+
 // 用户提供的百炼北京区费率快照；不代表联网核实。
 export const bailianData = {
   provider: "aliyun-bailian",
@@ -268,3 +300,26 @@ export const bailianPresets = bailianData.models.flatMap((model) => {
         : "整个会话采用固定价格。",
   }));
 });
+
+const periodLabels = { off_peak: "非高峰", peak: "高峰" };
+
+export const deepseekPresets = deepseekData.models.flatMap((model) =>
+  Object.entries(model.price_periods).map(([period, prices]) => ({
+    id: model.preset_ids[period],
+    name: `${model.name} · ${periodLabels[period]}`,
+    actual: model.id,
+    provider: deepseekData.provider,
+    currency: deepseekData.currency,
+    period: periodLabels[period],
+    hit: prices.input_cache_hit,
+    miss: prices.input,
+    output: prices.output,
+    source: deepseekData.source,
+    verified: deepseekData.verified_at,
+  })),
+);
+
+export const modelPricingData = [deepseekData, bailianData];
+
+// DeepSeek 保持为默认选项，百炼模型随后展示。
+export const modelPresets = [...bailianPresets, ...deepseekPresets];

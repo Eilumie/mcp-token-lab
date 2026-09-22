@@ -189,7 +189,7 @@ test("累计费用构成金额与占比守恒，零费用占比为空", () => {
 });
 
 test("百炼预设完整、人民币配置可往返、旧配置自动补充", async () => {
-  const { bailianPresets } = await import("./bailian-pricing.js");
+  const { bailianPresets } = await import("./model-pricing.js");
   const { readConfig, mergePresets } = await import("./config.js");
   assert.equal(bailianPresets.length, 18);
   assert.ok(bailianPresets.every((r) => r.currency === "CNY"));
@@ -223,7 +223,20 @@ test("百炼预设完整、人民币配置可往返、旧配置自动补充", as
 
 test("DeepSeek 官方预设使用人民币价格且缓存中的修改会被重置", async () => {
   const { mergePresets } = await import("./config.js");
+  const {
+    deepseekData,
+    deepseekPresets,
+    modelPricingData,
+    modelPresets,
+  } = await import("./model-pricing.js");
   const deepseek = presets.slice(0, 4);
+  assert.equal(deepseekData.models.length, 2);
+  assert.deepEqual(
+    modelPricingData.map((source) => source.provider),
+    ["deepseek", "aliyun-bailian"],
+  );
+  assert.deepEqual(modelPresets, presets);
+  assert.deepEqual(deepseekPresets, deepseek);
   assert.ok(deepseek.every((rate) => rate.currency === "CNY"));
   assert.deepEqual(
     deepseek.map((rate) => [rate.hit, rate.miss, rate.output]),

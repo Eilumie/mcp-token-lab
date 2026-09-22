@@ -1,11 +1,24 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { BarChart, LineChart } from "echarts/charts";
-import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
+import { LineChart, PieChart } from "echarts/charts";
+import {
+  GridComponent,
+  LegendComponent,
+  TitleComponent,
+  TooltipComponent,
+} from "echarts/components";
 import { init, use } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 
-use([BarChart, LineChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
+use([
+  LineChart,
+  PieChart,
+  GridComponent,
+  LegendComponent,
+  TitleComponent,
+  TooltipComponent,
+  CanvasRenderer,
+]);
 
 const props = defineProps({ option: { type: Object, required: true } });
 const container = ref(null);

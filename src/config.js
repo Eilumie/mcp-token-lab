@@ -1,4 +1,4 @@
-import { bailianPresets } from "./bailian-pricing.js";
+import { modelPresets } from "./model-pricing.js";
 // Token 参数以 K 展示，进入计算器时统一转为 Token。
 export const groups = [
   [
@@ -37,50 +37,7 @@ export const fields = groups.flatMap(([, fields]) => fields);
 export const defaults = Object.fromEntries(
   fields.map(([id, , value]) => [id, value]),
 );
-const deepseekPresets = [
-  {
-    id: "flash-off",
-    name: "DeepSeek V4.1 Flash · 非高峰",
-    actual: "DeepSeek-V4.1-Flash",
-    period: "非高峰",
-    hit: 0.02,
-    miss: 1,
-    output: 4,
-  },
-  {
-    id: "flash-peak",
-    name: "DeepSeek V4.1 Flash · 高峰",
-    actual: "DeepSeek-V4.1-Flash",
-    period: "高峰",
-    hit: 0.04,
-    miss: 2,
-    output: 8,
-  },
-  {
-    id: "pro-off",
-    name: "DeepSeek V4 Pro · 非高峰",
-    actual: "DeepSeek-V4-Pro-0813",
-    period: "非高峰",
-    hit: 0.15,
-    miss: 4.5,
-    output: 13.5,
-  },
-  {
-    id: "pro-peak",
-    name: "DeepSeek V4 Pro · 高峰",
-    actual: "DeepSeek-V4-Pro-0813",
-    period: "高峰",
-    hit: 0.3,
-    miss: 9,
-    output: 27,
-  },
-].map((x) => ({
-  ...x,
-  currency: "CNY",
-  source: "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
-  verified: "2026-09-22",
-}));
-export const presets = [...bailianPresets, ...deepseekPresets];
+export const presets = modelPresets;
 
 // 官方预设始终以代码中的价格为准；仅保留 ID 不属于预设的自定义模型。
 export function mergePresets(config) {
