@@ -70,6 +70,7 @@ const notice = ref("");
 const rateDialog = ref(null);
 const importInput = ref(null);
 const newModelName = ref("");
+const mobileParamsOpen = ref(false);
 
 const selectedRate = computed(() =>
   state.rates.find((item) => item.id === state.selected),
@@ -447,8 +448,8 @@ function exportCsv(kind) {
   </header>
 
   <div class="layout">
-    <aside>
-      <div class="side-title"><h2>实验参数</h2><button class="text-button" @click="resetState">恢复默认</button></div>
+    <aside :class="{ 'mobile-params-open': mobileParamsOpen }">
+      <div class="side-title"><h2>实验参数</h2><div class="side-actions"><button class="mobile-params-toggle" :aria-expanded="mobileParamsOpen" @click="mobileParamsOpen = !mobileParamsOpen">{{ mobileParamsOpen ? "收起参数" : "展开参数" }}</button><button class="text-button" @click="resetState">恢复默认</button></div></div>
       <p class="muted">修改任意参数，实时对比两种方案。</p>
 
       <details v-for="(group, groupIndex) in groups" :key="group[0]" class="param-group" :open="groupIndex < 2">
