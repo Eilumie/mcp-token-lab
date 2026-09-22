@@ -1,6 +1,6 @@
 # Token Lab
 
-按需求文档实现的 Vue 3 Agent Token 与费用对比页面。使用 Vite 开发与构建，Node.js 20.19+ 或 22.12+ 可运行。
+按需求文档实现的 Vue 3 Agent Token 与费用对比页面。图表使用 Apache ECharts 开源组件，项目使用 Vite 开发与构建，Node.js 20.19+ 或 22.12+ 可运行。
 
 ```sh
 cd /Users/zhanghongen/Desktop/chagee/ai/token-calculator
@@ -17,6 +17,7 @@ npm run dev
 - `src/full-load.js`：全量方案，每轮三次请求，显式累计和更新上下文。
 - `src/accounting.js`：固定长度来源账本、请求和轮次费用汇总。
 - `src/App.vue`：Vue 页面、响应式状态和业务交互。
+- `src/components/EChart.vue`：ECharts 图表封装与响应式尺寸处理。
 - `src/main.js`：Vue 应用入口。
 - `src/utils.js`：格式化、文件下载和 CSV 安全转义。
 - `src/style.css`：桌面和移动布局。
@@ -28,6 +29,6 @@ npm run dev
 
 默认初始上下文已预热，首请求视为缓存命中，预热成本不包含。冷启动开关仅改变首请求初始上下文的计费类别。计划和最终回复在生成时计输出费用，随后回传时再计输入费用。工具返回只计输入费用。
 
-模型费率是需求文档中 2026-09-21 核实的 USD 快照，不会自动联网更新。Flash 的兼容名称 deepseek-v4-flash 对应实际 V4.1 Flash。高峰/非高峰由用户手动选择。可增加自定义模型并编辑单价。
+DeepSeek 模型费率是 2026-09-22 从官方中文定价页核实的人民币快照，不会自动联网更新。Flash 的兼容名称 deepseek-v4-flash 对应实际 V4.1 Flash。高峰/非高峰由用户手动选择。可增加自定义模型并编辑单价。
 
 配置保存在浏览器 localStorage，导出 JSON 可用于备份并重新导入。CSV 包含两个方案的完整请求或来源明细、参数、费率快照和冷启动状态。所有计算发生在本地，无真实模型调用。

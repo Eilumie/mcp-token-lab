@@ -86,6 +86,18 @@ export const bailianData = {
       },
     },
     {
+      id: "deepseek-v4-flash",
+      name: "DeepSeek V4 Flash",
+      vendor: "Alibaba Cloud",
+      context_window: 1000000,
+      pricing_type: "fixed",
+      prices: {
+        input: 1,
+        input_cache_hit: 0.2,
+        output: 2,
+      },
+    },
+    {
       id: "deepseek-v4-pro",
       name: "DeepSeek V4 Pro",
       vendor: "Alibaba Cloud",
@@ -114,18 +126,6 @@ export const bailianData = {
           input_cache_hit: 0.9,
           output: 27,
         },
-      },
-    },
-    {
-      id: "deepseek-v4-flash",
-      name: "DeepSeek V4 Flash",
-      vendor: "Alibaba Cloud",
-      context_window: 1000000,
-      pricing_type: "fixed",
-      prices: {
-        input: 1,
-        input_cache_hit: 0.2,
-        output: 2,
       },
     },
     {

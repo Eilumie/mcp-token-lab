@@ -10,12 +10,12 @@ const close = (a, b) =>
   );
 const calculators = [calculateOnDemand, calculateFullLoad];
 const expected = [
-  [1, 0, 28145, 6655, 1300, 13855, 0.001862685],
-  [1, 1, 153990, 5790, 1200, 57690, 0.00205047],
-  [2, 0, 85910, 14310, 2600, 21510, 0.00396423],
-  [2, 1, 327350, 12580, 2400, 64480, 0.00430905],
-  [10, 0, 1650350, 75550, 13000, 82750, 0.02408355],
-  [10, 1, 2447550, 66900, 12000, 118800, 0.02457765],
+  [1, 0, 28145, 6655, 1300, 13855, 0.0124179],
+  [1, 1, 153990, 5790, 1200, 57690, 0.0136698],
+  [2, 0, 85910, 14310, 2600, 21510, 0.0264282],
+  [2, 1, 327350, 12580, 2400, 64480, 0.028727],
+  [10, 0, 1650350, 75550, 13000, 82750, 0.160557],
+  [10, 1, 2447550, 66900, 12000, 118800, 0.163851],
 ];
 for (const [rounds, i, hit, miss, out, context, cost] of expected)
   test(`验收：方案 ${i + 1} / ${rounds} 轮`, () => {
@@ -166,6 +166,28 @@ test("缓存费率及命中输入折算跟随单价，零分母不可折算", ()
   }
 });
 
+test("累计费用构成金额与占比守恒，零费用占比为空", () => {
+  for (const calc of calculators) {
+    const result = calc(toTokens(defaults), presets[0]);
+    close(result.cost.input, result.cost.cached + result.cost.fresh);
+    close(result.costShare.input, result.cost.input / result.cost.total);
+    close(result.costShare.output, result.cost.generated / result.cost.total);
+    close(result.costShare.cached, result.cost.cached / result.cost.total);
+    close(result.costShare.fresh, result.cost.fresh / result.cost.total);
+    close(result.costShare.input + result.costShare.output, 1);
+    close(result.costShare.cached + result.costShare.fresh, result.costShare.input);
+
+    const zero = calc(toTokens(defaults), { hit: 0, miss: 0, output: 0 });
+    assert.equal(zero.cost.input, 0);
+    assert.deepEqual(zero.costShare, {
+      input: null,
+      output: null,
+      cached: null,
+      fresh: null,
+    });
+  }
+});
+
 test("百炼预设完整、人民币配置可往返、旧配置自动补充", async () => {
   const { bailianPresets } = await import("./bailian-pricing.js");
   const { readConfig, mergePresets } = await import("./config.js");
@@ -197,6 +219,35 @@ test("百炼预设完整、人民币配置可往返、旧配置自动补充", as
       [1.2, 6, 24],
     ],
   );
+});
+
+test("DeepSeek 官方预设使用人民币价格且缓存中的修改会被重置", async () => {
+  const { mergePresets } = await import("./config.js");
+  const deepseek = presets.slice(0, 4);
+  assert.ok(deepseek.every((rate) => rate.currency === "CNY"));
+  assert.deepEqual(
+    deepseek.map((rate) => [rate.hit, rate.miss, rate.output]),
+    [
+      [0.02, 1, 4],
+      [0.04, 2, 8],
+      [0.15, 4.5, 13.5],
+      [0.3, 9, 27],
+    ],
+  );
+  const old = {
+    ...deepseek[0],
+    currency: "USD",
+    hit: 0.003,
+    miss: 0.15,
+    output: 0.6,
+  };
+  const upgraded = mergePresets({ rates: [old] });
+  assert.deepEqual(upgraded.rates[0], deepseek[0]);
+  const customized = mergePresets({ rates: [{ ...old, modified: true }] });
+  assert.deepEqual(customized.rates[0], deepseek[0]);
+  const customRate = { ...old, id: "custom-rate", modified: true };
+  const withCustomRate = mergePresets({ rates: [customRate] });
+  assert.deepEqual(withCustomRate.rates[0], customRate);
 });
 
 test("全量 Schema 由数量与单个长度派生，忽略旧的独立配置", () => {

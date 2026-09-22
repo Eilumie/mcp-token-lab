@@ -12,6 +12,7 @@ import {
 import { ratio } from "./accounting.js";
 import { calculateOnDemand } from "./on-demand.js";
 import { calculateFullLoad } from "./full-load.js";
+import EChart from "./components/EChart.vue";
 import {
   csvCell,
   downloadFile,
@@ -127,18 +128,21 @@ const detailPages = computed(() =>
     ? Math.max(1, Math.ceil(results.value[detailPlan.value].rounds.length / 5))
     : 1,
 );
-const chart = computed(() => buildChart(results.value, trend.value));
+const trendChartOption = computed(() => buildTrendChartOption(results.value, trend.value));
+const sourceChartOption = computed(() => buildSourceChartOption(results.value));
 
 watch(
   state,
   () => {
     if (!results.value) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      // 预设价格允许临时试算，但写入缓存时始终恢复为代码中的官方价格。
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(mergePresets(structuredClone(state))),
+      );
       notice.value = tierNotice();
-    } catch {
-      notice.value = "浏览器存储不可用，可通过导出配置保存。";
-    }
+    } catch {}
   },
   { deep: true, immediate: true },
 );
@@ -161,7 +165,7 @@ function updateValue(id, event) {
 function updateRate(id, event) {
   selectedRate.value[id] =
     event.target.value === "" ? "" : Number(event.target.value);
-  selectedRate.value.modified = true;
+  if (!canRestoreRate.value) selectedRate.value.modified = true;
 }
 function resetState() {
   Object.assign(state, createDefaultState());
@@ -254,53 +258,94 @@ function logicalNew(request, result) {
   return request.in_new - (request.cold ? result.initial_context : 0);
 }
 
-function buildChart(data, metric) {
-  if (!data) return { grid: [], series: [], max: 0, format: () => "" };
-  const width = 900;
-  const height = 235;
-  const left = 84;
-  const right = 22;
-  const top = 22;
-  const bottom = 35;
-  const max = Math.max(
-    ...data.map((result) => Math.max(...result.rounds.map((row) => row[metric]))),
-    1e-10,
-  );
-  const y = (value) => top + (height - top - bottom) * (1 - value / max);
-  const x = (round) =>
-    left +
-    (width - left - right) *
-      (state.values.rounds === 1 ? 0.5 : (round - 1) / (state.values.rounds - 1));
-  const format = (value) => {
+function metricFormatter(metric) {
+  return (value) => {
     if (!["cost", "cumulativeCost"].includes(metric)) return token(value);
     const symbol = selectedRate.value.currency === "CNY" ? "¥" : "$";
     const amount = value === 0 ? "0" : value < 0.00001 ? value.toExponential(1) : value.toFixed(5);
     return `${symbol}${amount}`;
   };
+}
+
+function buildTrendChartOption(data, metric) {
+  if (!data) return {};
+  const format = metricFormatter(metric);
   return {
-    width,
-    height,
-    left,
-    right,
-    grid: [0, 0.25, 0.5, 0.75, 1].map((step) => ({
-      y: y(step * max),
-      label: format(step * max),
-    })),
+    animationDuration: 250,
+    color: ["#5063d8", "#db9a62"],
+    grid: { left: 16, right: 16, top: 42, bottom: 8, containLabel: true },
+    legend: { top: 0, right: 0, itemWidth: 13, itemHeight: 7, textStyle: { color: "#8795ad", fontSize: 10 } },
+    tooltip: {
+      trigger: "axis",
+      valueFormatter: format,
+      axisPointer: { type: "line", lineStyle: { color: "#aab4c5" } },
+    },
+    xAxis: {
+      type: "value",
+      min: state.values.rounds === 1 ? 0.5 : 1,
+      max: state.values.rounds === 1 ? 1.5 : state.values.rounds,
+      minInterval: 1,
+      name: "轮次",
+      nameTextStyle: { color: "#97a2b4", fontSize: 10 },
+      axisLabel: {
+        color: "#97a2b4",
+        fontSize: 10,
+        formatter: (value) => Number.isInteger(value) ? `第 ${value} 轮` : "",
+      },
+      axisLine: { lineStyle: { color: "#dfe4ec" } },
+      splitLine: { show: false },
+    },
+    yAxis: {
+      type: "value",
+      axisLabel: { color: "#97a2b4", fontSize: 10, formatter: format },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { lineStyle: { color: "#e9edf4" } },
+    },
     series: data.map((result, index) => {
       const sampleEvery = Math.max(1, Math.ceil(result.rounds.length / 250));
       const rows = result.rounds.filter(
         (_, rowIndex) => rowIndex % sampleEvery === 0 || rowIndex === result.rounds.length - 1,
       );
       return {
-        color: index ? "#db9a62" : "#5063d8",
-        points: rows.map((row) => ({
-          x: x(row.round),
-          y: y(row[metric]),
-          round: row.round,
-          label: format(row[metric]),
-        })),
+        name: planNames[index],
+        type: "line",
+        showSymbol: rows.length < 30,
+        symbolSize: 6,
+        lineStyle: { width: 2.5 },
+        data: rows.map((row) => [row.round, row[metric]]),
       };
     }),
+  };
+}
+
+function buildSourceChartOption(data) {
+  if (!data) return {};
+  return {
+    animationDuration: 250,
+    color: sourceColors,
+    grid: { left: 0, right: 16, top: 4, bottom: 52, containLabel: true },
+    legend: { bottom: 0, left: 0, itemWidth: 8, itemHeight: 8, textStyle: { color: "#8893a6", fontSize: 9 } },
+    tooltip: { trigger: "item", valueFormatter: (value) => money(value) },
+    xAxis: { type: "value", show: false },
+    yAxis: {
+      type: "category",
+      data: planNames,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: "#8491a7", fontSize: 10 },
+    },
+    series: data[0].sources.map((source, sourceIndex, sources) => ({
+      name: source.source,
+      type: "bar",
+      stack: "cost",
+      barWidth: 23,
+      emphasis: { focus: "series" },
+      data: data.map((result) => result.sources[sourceIndex].cost.total),
+      label: sourceIndex === sources.length - 1
+        ? { show: true, position: "right", color: "#60718b", fontSize: 10, formatter: ({ dataIndex }) => money(data[dataIndex].cost.total) }
+        : undefined,
+    })),
   };
 }
 
@@ -425,11 +470,16 @@ function exportCsv(kind) {
             <h2>{{ planNames[index] }}</h2><div class="price">{{ money(result.cost.total) }}<small>{{ selectedRate.currency }} / 会话</small></div>
             <div class="plan-sub">{{ result.requests.length }} 次 LLM 请求 <span>初始上下文 {{ token(result.initial_context) }}</span></div>
             <div class="metric-grid">
-              <div><span>累计输入</span><strong>{{ token(result.input_tokens) }}</strong></div><div><span>输出 Token</span><strong>{{ token(result.total_out) }}</strong></div>
+              <div><span>输出 Token</span><strong>{{ token(result.total_out) }}</strong></div>
               <div><span>命中输入</span><strong>{{ token(result.total_in_cache) }}</strong><small class="metric-subtext" title="按费用折算，不改变实际上下文长度">{{ result.equivalent === null ? "折算未命中 —（未命中单价为 0）" : `折算未命中 ${token(result.equivalent)}` }}</small></div>
               <div><span>未命中输入</span><strong>{{ token(result.total_in_new) }}</strong></div><div><span>最终 context</span><strong>{{ token(result.context) }}</strong></div><div><span>缓存命中率</span><strong>{{ percent(result.hitRate) }}</strong></div>
             </div>
-            <div class="cost-breakdown"><span>命中输入 <b>{{ money(result.cost.cached) }}</b></span><span>未命中输入 <b>{{ money(result.cost.fresh) }}</b></span><span>输出 <b>{{ money(result.cost.generated) }}</b></span></div>
+            <div class="cost-breakdown">
+              <div class="cost-breakdown-head"><span>累计费用构成</span><small>金额 / 占总费用</small></div>
+              <span>输出 <b>{{ money(result.cost.generated) }} <small>{{ percent(result.costShare.output) }}</small></b></span>
+              <span>命中输入 <b>{{ money(result.cost.cached) }} <small>{{ percent(result.costShare.cached) }}</small></b></span>
+              <span>未命中输入 <b>{{ money(result.cost.fresh) }} <small>{{ percent(result.costShare.fresh) }}</small></b></span>
+            </div>
           </section>
         </div>
 
@@ -437,19 +487,12 @@ function exportCsv(kind) {
 
         <section class="panel">
           <div class="section-head"><div><h2>会话越长，差异如何变化？</h2><p>完整逐轮计算 · 曲线最多展示 250 个采样点</p></div><select v-model="trend" aria-label="趋势指标"><option value="cumulativeCost">累计费用</option><option value="cost">当轮费用</option><option value="tokens">累计 Token</option><option value="context">Context 长度</option></select></div>
-          <div id="chart"><div class="chart-legend"><span><i style="background:#5063d8"></i>按需加载</span><span><i style="background:#db9a62"></i>全量加载</span></div>
-            <svg :viewBox="`0 0 ${chart.width} ${chart.height}`" role="img" aria-label="两种方案随会话轮次变化的趋势图">
-              <g v-for="grid in chart.grid" :key="grid.y"><line :x1="chart.left" :x2="chart.width - chart.right" :y1="grid.y" :y2="grid.y" stroke="#e9edf4"/><text :x="chart.left - 12" :y="grid.y + 4" text-anchor="end">{{ grid.label }}</text></g>
-              <g v-for="(series, index) in chart.series" :key="series.color"><polyline fill="none" :stroke="series.color" stroke-width="2.5" :points="series.points.map(point => `${point.x},${point.y}`).join(' ')"/><circle v-for="point in series.points" :key="point.round" :cx="point.x" :cy="point.y" :r="series.points.length < 30 ? 3 : 2" :fill="series.color"><title>{{ planNames[index] }} · 第 {{ point.round }} 轮：{{ point.label }}</title></circle></g>
-              <text :x="chart.left" :y="chart.height - 6">第 1 轮</text><text :x="chart.width - chart.right" :y="chart.height - 6" text-anchor="end">第 {{ state.values.rounds }} 轮</text>
-            </svg>
-          </div>
+          <EChart id="chart" class="trend-chart" :option="trendChartOption" aria-label="两种方案随会话轮次变化的趋势图" />
         </section>
 
         <section class="panel">
           <div class="section-head"><div><h2>费用花在哪里</h2><p>含内容生成，以及后续每一次输入的费用</p></div><button @click="exportCsv('sources')">导出归因 CSV ↗</button></div>
-          <div id="source-bars"><div v-for="(result, planIndex) in results" :key="planNames[planIndex]" class="bar-row"><span>{{ planNames[planIndex] }}</span><div class="stack"><div v-for="(source, sourceIndex) in result.sources" :key="source.source" tabindex="0" :style="{ width: `${result.cost.total ? source.cost.total / result.cost.total * 100 : 0}%`, background: sourceColors[sourceIndex] }" :title="`${source.source}：${money(source.cost.total)} · ${percent(ratio(source.cost.total, result.cost.total))}`"></div></div><b>{{ money(result.cost.total) }}</b></div></div>
-          <div class="legend"><span v-for="(source, index) in results[0].sources" :key="source.source"><i :style="{ background: sourceColors[index] }"></i>{{ source.source }}</span></div>
+          <EChart id="source-bars" class="source-chart" :option="sourceChartOption" aria-label="两种方案的费用来源堆叠图" />
           <div class="table-scroll"><table><thead><tr><th>内容来源 / 方案</th><th>首次内容</th><th>命中输入</th><th>未命中输入</th><th>输出</th><th>命中费用</th><th>未命中费用</th><th>输出费用</th><th>合计 {{ selectedRate.currency }}</th><th>占总费用</th></tr></thead><tbody><template v-for="(source, sourceIndex) in results[0].sources" :key="source.source"><tr v-for="(result, planIndex) in results" :key="planIndex"><td><i class="dot" :style="{ background: sourceColors[sourceIndex] }"></i>{{ result.sources[sourceIndex].source }}<small>{{ planNames[planIndex] }}</small></td><td>{{ token(result.sources[sourceIndex].first) }}</td><td>{{ token(result.sources[sourceIndex].hit) }}</td><td>{{ token(result.sources[sourceIndex].miss) }}</td><td>{{ token(result.sources[sourceIndex].output) }}</td><td>{{ money(result.sources[sourceIndex].cost.cached) }}</td><td>{{ money(result.sources[sourceIndex].cost.fresh) }}</td><td>{{ money(result.sources[sourceIndex].cost.generated) }}</td><td>{{ money(result.sources[sourceIndex].cost.total) }}</td><td>{{ percent(ratio(result.sources[sourceIndex].cost.total, result.cost.total)) }}</td></tr></template></tbody></table></div>
         </section>
 

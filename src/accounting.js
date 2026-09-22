@@ -56,6 +56,13 @@ export function createLedger(initial) {
 export function summarize(result, rate) {
   const { total_in_cache, total_in_new, total_out } = result;
   result.cost = fees(total_in_cache, total_in_new, total_out, rate);
+  result.cost.input = result.cost.cached + result.cost.fresh;
+  result.costShare = {
+    input: ratio(result.cost.input, result.cost.total),
+    output: ratio(result.cost.generated, result.cost.total),
+    cached: ratio(result.cost.cached, result.cost.total),
+    fresh: ratio(result.cost.fresh, result.cost.total),
+  };
   result.input_tokens = total_in_cache + total_in_new;
   result.hitRate = ratio(total_in_cache, result.input_tokens);
   // 费用等值：缓存命中单价 / 未命中单价，与 Token 命中率不同。
