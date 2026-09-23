@@ -7,6 +7,7 @@ export const groups = [
     "会话规模",
     [
       ["rounds", "单会话轮次", 10, "轮"],
+      ["prefix_cache_hit_rate", "Prefix 缓存命中率", 90, "%"],
       ["skills_total", "Skills 总数", 30, "个"],
       ["tools_total", "Tools 总数", 90, "个"],
       ["skills_per_round", "每轮平均 Skills", 0.33, "个"],
@@ -73,6 +74,8 @@ export function validate(values, rate) {
     if (!Number.isInteger(Number(values[id]))) errors[id] = "请输入整数";
   if (values.rounds < 1 || values.rounds > 10000)
     errors.rounds = "轮次范围为 1–10,000";
+  if (values.prefix_cache_hit_rate > 100)
+    errors.prefix_cache_hit_rate = "命中率范围为 0–100%";
   if (+values.skills_per_round > +values.skills_total)
     errors.skills_per_round = "不能超过 Skills 总数";
   if (+values.tools_per_round > +values.tools_total)
@@ -94,6 +97,7 @@ export function toTokens(values) {
     ]),
   );
   tokens.tools_discovery_list = Number(values.tools_discovery_list) * 1000;
+  tokens.prefix_cache_hit_rate = Number(values.prefix_cache_hit_rate) / 100;
   tokens.skills_discovery_list =
     tokens.skills_total * tokens.single_skill_discovery;
   tokens.full_tools_schema = tokens.tools_total * tokens.single_tool_schema;

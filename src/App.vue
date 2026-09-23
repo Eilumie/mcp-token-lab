@@ -281,7 +281,7 @@ function requestRows(round) {
   );
 }
 function logicalNew(request, result) {
-  return request.in_new - (request.cold ? result.initial_context : 0);
+  return request.logical_new;
 }
 
 function metricFormatter(metric) {
@@ -491,7 +491,7 @@ function exportCsv(kind) {
         </div>
       </details>
 
-      <p class="hint">1K = 1,000 Token。Skills Discovery List = Skills 总数 × 单个 Skill 索引；全量 Tools Schema = Tools 总数 × 单个 Tool Schema。小数表示每轮平均使用量。</p>
+      <p class="hint">1K = 1,000 Token。Skills Discovery List = Skills 总数 × 单个 Skill 索引；全量 Tools Schema = Tools 总数 × 单个 Tool Schema。Prefix 缓存命中率会将可缓存输入按比例拆分；实际命中受 LLM 网关缓存机制和缓存过期影响。小数表示每轮平均使用量。</p>
       <label class="toggle"><input v-model="state.cold" type="checkbox" /><span>冷启动<small>首请求初始上下文不命中缓存</small></span></label>
 
       <div class="param-group">
@@ -582,8 +582,8 @@ function exportCsv(kind) {
         <section class="panel">
           <div class="section-head"><div><h2>逐步计算明细</h2><p>按原始公式展开，每一笔都可追溯 · Token 单位 K</p></div><button @click="exportCsv('requests')">导出请求 CSV ↗</button></div>
           <div class="detail-toolbar"><div class="segmented"><button :class="{ active: detailPlan === 0 }" @click="detailPlan = 0">按需 Tools</button><button :class="{ active: detailPlan === 1 }" @click="detailPlan = 1">全量 Tools</button></div><div><button :disabled="detailPage === 1" @click="detailPage--">←</button><span id="page-label"> {{ detailPage }} / {{ detailPages }} </span><button :disabled="detailPage === detailPages" @click="detailPage++">→</button></div></div>
-          <div id="details"><details v-for="round in currentDetails" :key="round.round" class="round-detail"><summary><span>第 {{ round.round }} 轮 <small>{{ detailPlan ? 3 : 4 }} 次请求</small></span><span>{{ money(round.cost) }}</span></summary><details v-for="request in requestRows(round)" :key="request.stage" class="request"><summary><span>{{ request.stage }}</span><span>命中 {{ token(request.in_cache) }} · 新增 {{ token(request.in_new) }} · 输出 {{ token(request.out) }}</span></summary><div class="request-body"><div>input：{{ token(request.input_before) }} → {{ token(request.input_after) }}　context：{{ token(request.context_before) }} → {{ token(request.context_after) }}<br/>工具结果 {{ token(request.tool_result) }} · 本次 {{ money(request.cost.total) }} · 累计 {{ money(request.cumulativeCost) }}<br/>累计命中 {{ token(request.total_in_cache) }} / 新增 {{ token(request.total_in_new) }} / 输出 {{ token(request.total_out) }}</div><pre>in_cache = {{ request.cold ? "0（冷启动）" : `input = ${token(request.input_before)}` }}
-in_new = {{ request.first ? `用户消息 + context - input = ${token(request.user_message)} + ` : "context - input = " }}{{ token(request.context_before) }} - {{ token(request.input_before) }}{{ request.cold ? ` + 初始上下文 ${token(results[detailPlan].initial_context)}` : "" }} = {{ token(request.in_new) }}
+          <div id="details"><details v-for="round in currentDetails" :key="round.round" class="round-detail"><summary><span>第 {{ round.round }} 轮 <small>{{ detailPlan ? 3 : 4 }} 次请求</small></span><span>{{ money(round.cost) }}</span></summary><details v-for="request in requestRows(round)" :key="request.stage" class="request"><summary><span>{{ request.stage }}</span><span>命中 {{ token(request.in_cache) }} · 新增 {{ token(request.in_new) }} · 输出 {{ token(request.out) }}</span></summary><div class="request-body"><div>input：{{ token(request.input_before) }} → {{ token(request.input_after) }}　context：{{ token(request.context_before) }} → {{ token(request.context_after) }}<br/>工具结果 {{ token(request.tool_result) }} · 本次 {{ money(request.cost.total) }} · 累计 {{ money(request.cumulativeCost) }}<br/>累计命中 {{ token(request.total_in_cache) }} / 新增 {{ token(request.total_in_new) }} / 输出 {{ token(request.total_out) }}</div><pre>in_cache = {{ request.cold ? "0（冷启动）" : `input ${token(request.input_before)} × 命中率 ${state.values.prefix_cache_hit_rate}% = ${token(request.in_cache)}` }}
+in_new = 逻辑新增 {{ token(request.logical_new) }}{{ request.cold ? ` + 初始上下文 ${token(results[detailPlan].initial_context)}` : ` + 未命中缓存 ${token(request.input_before - request.in_cache)}` }} = {{ token(request.in_new) }}
 out = {{ token(request.out) }}
 total_in_cache += {{ token(request.in_cache) }}
 total_in_new += {{ token(request.in_new) }}
@@ -594,7 +594,7 @@ context = input + out + tool_result
         </section>
       </template>
 
-      <footer>计算口径：历史完整保留 · 每轮重新读取技能与 Schema · 上轮输出在下次请求中作为新输入<br/>预计费用基于输入参数与费率快照，不代表真实 API 账单。零分母指标显示 —。</footer>
+      <footer>计算口径：历史完整保留 · 每轮重新读取技能与 Schema · 上轮输出在下次请求中作为新输入 · 可缓存前缀按设定命中率计费<br/>实际命中受 LLM 网关缓存机制和缓存过期影响；预计费用基于输入参数与费率快照，不代表真实 API 账单。零分母指标显示 —。</footer>
     </main>
   </div>
 

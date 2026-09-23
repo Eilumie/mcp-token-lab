@@ -36,10 +36,13 @@ export function createLedger(initial) {
       pending[source] += tokens;
       totals[source].first += tokens;
     },
-    request(outputSource, output, cold) {
+    request(outputSource, output, cold, prefixCacheHitRate = 1) {
       const attribution = sources.map((source) => {
-        const hit = cold ? 0 : submitted[source];
-        const miss = pending[source] + (cold ? submitted[source] : 0);
+        const reusable = cold ? 0 : submitted[source];
+        const hit = reusable * prefixCacheHitRate;
+        const miss =
+          pending[source] +
+          (cold ? submitted[source] : reusable * (1 - prefixCacheHitRate));
         const generated = source === outputSource ? output : 0;
         totals[source].hit += hit;
         totals[source].miss += miss;

@@ -21,16 +21,17 @@ export function calculateFullLoad(p, rate, coldStart = false) {
       const input_before = input;
       const context_before = context;
       ledger.append("用户消息", p.user_message);
-      in_cache = input;
-      in_new = p.user_message + context - input;
+      const reusable_input = input;
+      const logical_new = p.user_message + context - input;
+      in_cache = reusable_input * p.prefix_cache_hit_rate;
+      in_new = logical_new + reusable_input * (1 - p.prefix_cache_hit_rate);
       out = p.read_skills_plan;
-      const logical_new = in_new;
       const cold = coldStart && round === 1;
       if (cold) {
         in_cache = 0;
-        in_new += initial_context;
+        in_new = logical_new + initial_context;
       }
-      const attribution = ledger.request("读取技能计划", out, cold);
+      const attribution = ledger.request("读取技能计划", out, cold, p.prefix_cache_hit_rate);
       total_in_cache += in_cache;
       total_in_new += in_new;
       total_out += out;
@@ -46,6 +47,7 @@ export function calculateFullLoad(p, rate, coldStart = false) {
         in_new,
         out,
         tool_result,
+        logical_new,
         input_after: input,
         context_after: context,
         total_in_cache,
@@ -64,16 +66,17 @@ export function calculateFullLoad(p, rate, coldStart = false) {
     {
       const input_before = input;
       const context_before = context;
-      in_cache = input;
-      in_new = context - input;
+      const reusable_input = input;
+      const logical_new = context - input;
+      in_cache = reusable_input * p.prefix_cache_hit_rate;
+      in_new = logical_new + reusable_input * (1 - p.prefix_cache_hit_rate);
       out = p.call_tools_plan;
-      const logical_new = in_new;
       const cold = false;
       if (cold) {
         in_cache = 0;
         in_new += initial_context;
       }
-      const attribution = ledger.request("调用工具计划", out, cold);
+      const attribution = ledger.request("调用工具计划", out, cold, p.prefix_cache_hit_rate);
       total_in_cache += in_cache;
       total_in_new += in_new;
       total_out += out;
@@ -89,6 +92,7 @@ export function calculateFullLoad(p, rate, coldStart = false) {
         in_new,
         out,
         tool_result,
+        logical_new,
         input_after: input,
         context_after: context,
         total_in_cache,
@@ -107,16 +111,17 @@ export function calculateFullLoad(p, rate, coldStart = false) {
     {
       const input_before = input;
       const context_before = context;
-      in_cache = input;
-      in_new = context - input;
+      const reusable_input = input;
+      const logical_new = context - input;
+      in_cache = reusable_input * p.prefix_cache_hit_rate;
+      in_new = logical_new + reusable_input * (1 - p.prefix_cache_hit_rate);
       out = p.agent_reply;
-      const logical_new = in_new;
       const cold = false;
       if (cold) {
         in_cache = 0;
         in_new += initial_context;
       }
-      const attribution = ledger.request("Agent 最终回复", out, cold);
+      const attribution = ledger.request("Agent 最终回复", out, cold, p.prefix_cache_hit_rate);
       total_in_cache += in_cache;
       total_in_new += in_new;
       total_out += out;
@@ -132,6 +137,7 @@ export function calculateFullLoad(p, rate, coldStart = false) {
         in_new,
         out,
         tool_result,
+        logical_new,
         input_after: input,
         context_after: context,
         total_in_cache,

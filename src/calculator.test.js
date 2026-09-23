@@ -20,7 +20,10 @@ const expected = [
 ];
 for (const [rounds, i, hit, miss, out, context, cost] of expected)
   test(`验收：方案 ${i + 1} / ${rounds} 轮`, () => {
-    const r = calculators[i](toTokens({ ...defaults, rounds }), referenceRate);
+    const r = calculators[i](
+      toTokens({ ...defaults, rounds, prefix_cache_hit_rate: 100 }),
+      referenceRate,
+    );
     for (const [a, b] of [
       [r.total_in_cache, hit],
       [r.total_in_new, miss],
@@ -49,8 +52,8 @@ for (const [rounds, i, hit, miss, out, context, cost] of expected)
         );
   });
 test("来源独立归因与末次回复不回传", () => {
-  const a = calculateOnDemand(toTokens({ ...defaults, rounds: 1 }), referenceRate);
-  const b = calculateFullLoad(toTokens({ ...defaults, rounds: 1 }), referenceRate);
+  const a = calculateOnDemand(toTokens({ ...defaults, rounds: 1, prefix_cache_hit_rate: 100 }), referenceRate);
+  const b = calculateFullLoad(toTokens({ ...defaults, rounds: 1, prefix_cache_hit_rate: 100 }), referenceRate);
   close(a.sources.find((s) => s.source === "Tools List").hit, 4800);
   close(b.sources.find((s) => s.source === "Tools Schema").hit, 137700);
   const tool = a.sources.find((s) => s.source === "Tools Result");
@@ -62,7 +65,7 @@ test("来源独立归因与末次回复不回传", () => {
 });
 test("冷启动只改变初始上下文缓存计费", () => {
   calculators.forEach((calc) => {
-    const p = toTokens(defaults),
+    const p = toTokens({ ...defaults, prefix_cache_hit_rate: 100 }),
       warm = calc(p, referenceRate),
       cold = calc(p, presets[0], true);
     close(warm.total_in_cache - cold.total_in_cache, warm.initial_context);
@@ -74,6 +77,25 @@ test("冷启动只改变初始上下文缓存计费", () => {
       cold.cost.total,
     );
   });
+});
+test("默认 Prefix 缓存命中率为 90%，每次请求将 10% 可缓存输入计入未命中", () => {
+  for (const calc of calculators) {
+    const defaultResult = calc(toTokens(defaults), referenceRate);
+    const fullHitResult = calc(
+      toTokens({ ...defaults, prefix_cache_hit_rate: 100 }),
+      referenceRate,
+    );
+    close(defaultResult.total_in_cache, fullHitResult.total_in_cache * 0.9);
+    close(
+      defaultResult.total_in_new,
+      fullHitResult.total_in_new + fullHitResult.total_in_cache * 0.1,
+    );
+    for (const request of defaultResult.requests) {
+      if (request.cold) continue;
+      close(request.in_cache, request.input_before * 0.9);
+      close(request.in_new, request.logical_new + request.input_before * 0.1);
+    }
+  }
 });
 test("高峰翻倍、零费率", () => {
   const p = toTokens(defaults);
@@ -195,7 +217,10 @@ test("百炼预设完整、人民币配置可往返、旧配置自动补充", as
   assert.equal(bailianPresets.length, 18);
   assert.ok(bailianPresets.every((r) => r.currency === "CNY"));
   const flash = bailianPresets.find((r) => r.actual === "qwen3.8-flash");
-  const result = calculateOnDemand(toTokens(defaults), flash);
+  const result = calculateOnDemand(
+    toTokens({ ...defaults, prefix_cache_hit_rate: 100 }),
+    flash,
+  );
   close(
     result.cost.total,
     (1650350 / 1e6) * 0.1 + (75550 / 1e6) * 0.8 + (13000 / 1e6) * 2.7,
