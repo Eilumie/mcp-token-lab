@@ -321,5 +321,5 @@ export const deepseekPresets = deepseekData.models.flatMap((model) =>
 
 export const modelPricingData = [deepseekData, bailianData];
 
-// DeepSeek 保持为默认选项，百炼模型随后展示。
+// 页面默认使用列表中的第一个模型。
 export const modelPresets = [...bailianPresets, ...deepseekPresets];

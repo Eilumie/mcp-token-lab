@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { SlidersHorizontal, RotateCcw, ChevronDown, Layers, Cpu } from "lucide-vue-next";
-import { groups, compressionFields, priceFields, createConfig } from "../config.js";
+import { groups, compressionFields, priceFields, createPresetConfig } from "../config.js";
 import { modelPresets } from "../model-pricing.js";
 import { token } from "../utils.js";
 import ParameterField from "./ParameterField.vue";
@@ -19,14 +19,8 @@ const sizing = computed(() => {
 });
 function selectRate(event) {
   const preset = modelPresets.find(p => p.id === event.target.value);
-  if (!preset) {
-    const defaults = createConfig();
-    props.config.model = defaults.model;
-    props.config.pricing = defaults.pricing;
-    return;
-  }
-  props.config.model = { name: preset.name, currency: preset.currency === "CNY" ? "¥" : "$", inputCachedPrice: preset.hit, inputNotCachedPrice: preset.miss, outputPrice: preset.output };
-  props.config.pricing = { id: preset.id, label: preset.sourceLabel || "内置费率快照", source: preset.source, date: preset.verified, ...(preset.contextWindow ? { contextWindow: preset.contextWindow } : {}), ...(preset.tier ? { tier: { input_tokens_gt: preset.tier.input_tokens_gt, input_tokens_lte: preset.tier.input_tokens_lte } } : {}) };
+  if (!preset) return;
+  Object.assign(props.config, createPresetConfig(preset));
 }
 function markCustom() {
   props.config.pricing = { id: "custom", label: "手动费率", source: "", date: "" };
@@ -62,11 +56,10 @@ function markCustom() {
     <details class="parameter-group" open>
       <summary><span><Cpu :size="15" />模型与费率</span><ChevronDown :size="14" /></summary>
       <div class="parameter-fields">
-        <label class="field"><span>费率预设</span><select :value="config.pricing.id" aria-label="费率预设" @change="selectRate"><option value="session-default">Session 默认费率 · USD</option><option v-if="config.pricing.id === 'custom' || !['session-default', ...modelPresets.map(p => p.id)].includes(config.pricing.id)" :value="config.pricing.id">当前自定义费率</option><option v-for="preset in modelPresets" :key="preset.id" :value="preset.id">{{ preset.name }} · {{ preset.currency }}</option></select></label>
+        <label class="field"><span>费率预设</span><select :value="config.pricing.id" aria-label="费率预设" @change="selectRate"><option v-if="!modelPresets.some(p => p.id === config.pricing.id)" :value="config.pricing.id">当前自定义费率</option><option v-for="preset in modelPresets" :key="preset.id" :value="preset.id">{{ preset.name }} · {{ preset.currency }}</option></select></label>
         <label class="field"><span>模型名称</span><input v-model="config.model.name" maxlength="100" aria-label="模型名称" @input="markCustom" /><small v-if="errors.name" class="error">{{ errors.name }}</small></label>
-        <label class="field"><span>币种</span><select v-model="config.model.currency" aria-label="币种" @change="markCustom"><option value="$">USD · 美元</option><option value="¥">CNY · 人民币</option></select></label>
         <ParameterField v-for="[key, label] in priceFields" :key="key" :object="config.model" :field="[key, label, config.model.currency + '/M', 0]" :error="errors[key]" @change="markCustom" />
-        <p class="field-note">{{ config.pricing.label }}<template v-if="config.pricing.date"> · {{ config.pricing.date }}</template>。单价单位为每百万 Token，修改后作为自定义费率保存。<a v-if="config.pricing.source?.startsWith('https://')" :href="config.pricing.source" target="_blank" rel="noopener noreferrer">查看来源 ↗</a></p>
+        <p class="field-note">{{ config.pricing.label }}<template v-if="config.pricing.date"> · {{ config.pricing.date }}</template>。单价单位为每百万 Token，修改后使用自定义费率。<a v-if="config.pricing.source?.startsWith('https://')" :href="config.pricing.source" target="_blank" rel="noopener noreferrer">查看来源 ↗</a></p>
       </div>
     </details>
     <div class="aside-footnote">1K = 1,000 Token<br />所有计算在本地完成，不调用模型 API。</div>

@@ -1,6 +1,6 @@
 import Session from "./session.js";
+import { modelPresets } from "./model-pricing.js";
 
-export const STORAGE_KEY = "token-lab-session-v2";
 export const groups = [
   { title: "会话规模", fields: [
     ["turnTotalCount", "用户轮次", "轮", 1, 1000],
@@ -46,7 +46,13 @@ export function setValue(object, path, value) {
 }
 export function createConfig() {
   const { toolsMode, model, ...simulation } = structuredClone(new Session().config);
-  return { version: 2, unit: "K", simulation, model: { ...model, name: model.name || "Session 默认费率" }, pricing: { id: "session-default", label: "自定义费率", source: "", date: "" } };
+  return { version: 2, unit: "K", simulation, ...createPresetConfig(modelPresets[0]) };
+}
+export function createPresetConfig(preset) {
+  return {
+    model: { name: preset.name, currency: preset.currency === "CNY" ? "¥" : "$", inputCachedPrice: preset.hit, inputNotCachedPrice: preset.miss, outputPrice: preset.output },
+    pricing: { id: preset.id, label: preset.sourceLabel || "内置费率快照", source: preset.source, date: preset.verified, ...(preset.contextWindow ? { contextWindow: preset.contextWindow } : {}), ...(preset.tier ? { tier: { input_tokens_gt: preset.tier.input_tokens_gt, input_tokens_lte: preset.tier.input_tokens_lte } } : {}) },
+  };
 }
 export function validate(config) {
   const errors = {};
@@ -68,7 +74,7 @@ export function validate(config) {
   for (const [key] of priceFields) {
     if (typeof config.model[key] !== "number" || !Number.isFinite(config.model[key]) || config.model[key] < 0) errors[key] = "请输入非负有限单价";
   }
-  if (!["$", "¥"].includes(config.model.currency)) errors.currency = "请选择币种";
+  if (!["$", "¥"].includes(config.model.currency)) errors.currency = "模型币种无效";
   if (typeof config.model.name !== "string" || !config.model.name.trim()) errors.name = "请输入模型名称";
   return errors;
 }
@@ -82,6 +88,7 @@ export function readConfig(data) {
   }
   normalized.simulation.compressionThresholdType = data.simulation.compressionThresholdType;
   for (const key of ["name", "currency", ...priceFields.map(([key]) => key)]) normalized.model[key] = data.model[key];
+  normalized.pricing = { id: "custom", label: "手动费率", source: "", date: "" };
   if (data.pricing && typeof data.pricing === "object") {
     for (const key of ["id", "label", "source", "date"]) normalized.pricing[key] = typeof data.pricing[key] === "string" ? data.pricing[key] : "";
     if (Number.isFinite(data.pricing.contextWindow) && data.pricing.contextWindow > 0) normalized.pricing.contextWindow = data.pricing.contextWindow;

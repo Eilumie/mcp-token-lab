@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import Session from "./session.js";
 import { simulate, buildReport, modes } from "./session-report.js";
-import { createConfig, validate, readConfig } from "./config.js";
+import { createConfig, createPresetConfig, validate, readConfig } from "./config.js";
+import { modelPresets } from "./model-pricing.js";
 import { money, csvCell } from "./utils.js";
 
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) <= Math.max(1e-9, Math.abs(expected) * 1e-10), actual + " != " + expected);
@@ -11,6 +12,44 @@ const setup = (simulation = {}) => {
   Object.assign(config.simulation, simulation);
   return config;
 };
+
+test("默认选择第一个模型，重置时恢复其费率和元数据", () => {
+  const first = modelPresets[0];
+  const config = createConfig();
+  assert.equal(config.pricing.id, first.id);
+  assert.equal(config.model.name, first.name);
+  assert.equal(config.model.currency, first.currency === "CNY" ? "¥" : "$");
+  assert.deepEqual([config.model.inputCachedPrice, config.model.inputNotCachedPrice, config.model.outputPrice], [first.hit, first.miss, first.output]);
+  config.model.inputCachedPrice = 999;
+  config.pricing.contextWindow = 1;
+  const reset = createConfig();
+  assert.equal(reset.model.inputCachedPrice, first.hit);
+  assert.equal(reset.pricing.contextWindow, first.contextWindow);
+  assert.deepEqual(validate(reset), {});
+});
+
+test("Session 不提供默认费率，计费必须显式传入全部单价", () => {
+  const session = new Session({ turnTotalCount: 1 });
+  assert.deepEqual(session.config.model, {});
+  assert.throws(() => session.getConsumptionTokens(), /inputCachedPrice/);
+  const partial = new Session({ model: { inputCachedPrice: 1 } });
+  assert.throws(() => partial.getConsumptionTokens(), /inputNotCachedPrice/);
+  Object.assign(session.config.model, { inputCachedPrice: 0, inputNotCachedPrice: 0, outputPrice: 0 });
+  session.reset();
+  assert.equal(session.getConsumptionTokens().totalPrice, 0);
+});
+
+test("导入其他模型或自定义费率不继承默认模型上下文限制", () => {
+  const config = createConfig();
+  const preset = modelPresets.find(p => !p.contextWindow);
+  Object.assign(config, createPresetConfig(preset));
+  assert.deepEqual(readConfig(JSON.parse(JSON.stringify(config))), config);
+  delete config.pricing;
+  const imported = readConfig(config);
+  assert.equal(imported.pricing.id, "custom");
+  assert.equal(imported.pricing.contextWindow, undefined);
+  assert.deepEqual(imported.model, config.model);
+});
 function checkConservation(result) {
   const total = key => result.requests.reduce((sum, r) => sum + r[key], 0);
   for (const key of ["hit", "miss", "output"]) {
@@ -30,7 +69,7 @@ function checkConservation(result) {
 }
 
 test("10 轮基准，末轮压缩请求和最终上下文完整计入", () => {
-  const results = simulate(setup({ turnTotalCount: 10 }));
+  const results = simulate(setup({ turnTotalCount: 10, skillsTotalCount: 1 }));
   const expected = [
     [41, 6.089, 1588.9941, 255.1049, 19, 25.799, 6.12874995],
     [31, 51.989, 2365.2981, 332.7109, 18, 69.969, 8.18847795],

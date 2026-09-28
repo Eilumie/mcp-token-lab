@@ -1,20 +1,14 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import { Activity, ArrowDownToLine, ArrowUpFromLine, SlidersHorizontal, X, Check, LoaderCircle } from "lucide-vue-next";
-import { createConfig, readConfig, STORAGE_KEY, validate } from "./config.js";
+import { createConfig, readConfig, validate } from "./config.js";
 import { downloadFile } from "./utils.js";
 import ParameterPanel from "./components/ParameterPanel.vue";
 import SummaryCards from "./components/SummaryCards.vue";
 import AnalysisPanel from "./components/AnalysisPanel.vue";
 
 const notice = ref("");
-function load() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? readConfig(JSON.parse(stored)) : createConfig();
-  } catch { notice.value = "保存的配置无法读取，已加载默认参数。"; return createConfig(); }
-}
-const config = ref(load());
+const config = ref(createConfig());
 const errors = computed(() => validate(config.value));
 const report = shallowRef(null);
 const busy = ref(false);
@@ -45,8 +39,6 @@ watch(config, () => {
       finish();
       if (data.error) { failure.value = data.error; return; }
       report.value = { results: data.results, config: snapshot };
-      // try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot)); }
-      // catch { notice.value = "浏览器无法保存配置，请导出 JSON 备份。"; }
     };
     currentWorker.onerror = () => { if (worker !== currentWorker) return; finish(); failure.value = "计算失败，请检查参数后重试。"; };
     deadline = setTimeout(() => { if (worker !== currentWorker) return; finish(); failure.value = "计算超过 20 秒，请减少轮次或降低压缩阈值。"; }, 20000);
@@ -64,7 +56,7 @@ const warnings = computed(() => {
   if (results.some(r => r.compressions.some(c => c.after >= c.before))) messages.push("部分压缩没有缩短上下文，可减小摘要长度或保留轮次。");
   return messages;
 });
-function reset() { config.value = createConfig(); notice.value = "已恢复 Session 默认参数。"; }
+function reset() { config.value = createConfig(); notice.value = "已恢复默认参数，并选择第一个模型。"; }
 function exportConfig() {
   downloadFile("token-lab-session.json", JSON.stringify(config.value, null, 2), "application/json");
   notice.value = "已导出配置及当前费率快照。";

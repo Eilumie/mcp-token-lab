@@ -187,7 +187,7 @@ class Session {
       ...this.config,
       ...config,
       initialContext: {...this.config.initialContext, ...config.initialContext},
-      model: {...this.config.model, ...config.model},
+      model: {...config.model},
     }
     this.validateCompressionConfig()
 
@@ -236,14 +236,6 @@ class Session {
     compressionThresholdTurnCount: 10,
     compressionTargetToken: 4,
     compressionKeepTurns: 2,
-    model: {
-      name: "",
-      inputCachedPrice: 1.5,
-      inputNotCachedPrice: 12,
-      outputPrice: 36,
-      // "$" || "¥"
-      currency: "$"
-    },
   }
 
   turns = []
@@ -365,6 +357,11 @@ class Session {
     turn.runPlan()
   }
   getConsumptionTokens() {
+    for (const key of ["inputCachedPrice", "inputNotCachedPrice", "outputPrice"]) {
+      if (!Number.isFinite(this.config.model[key]) || this.config.model[key] < 0) {
+        throw new RangeError(`请提供模型的 ${key}（非负有限单价）`)
+      }
+    }
     const llms = this.turns
       .map(turn => turn.actions)
       .flat()
