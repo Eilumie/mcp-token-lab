@@ -213,7 +213,7 @@ class Session {
     turnTotalCount: 100,
     // 只在结果计算的时候
     expectedPrefixCacheHitRate: 0.9,
-    skillsTotalCount: 1,
+    skillsTotalCount: 30,
     toolsTotalCount: 90,
     turnAvgSkillsCount: 0.33,
     turnAvgToolsCount: 1.5,
@@ -437,22 +437,23 @@ class Session {
   
 }
 
-const lazyToolsSession = new Session({
-  toolsMode: "LAZY_TOOLS_SCHEMA",
-  // model: {
-  //   name: "gpt5.6-Luna",
-  // },
-})
-lazyToolsSession.reset()
+// const lazyToolsSession = new Session({
+//   toolsMode: "LAZY_TOOLS_SCHEMA",
+//   // model: {
+//   //   name: "gpt5.6-Luna",
+//   // },
+// })
+// lazyToolsSession.reset()
 
-const fullToolsSession = new Session({
-  toolsMode: "FULL_TOOLS_SCHEMA",
-  // model: {
-  //   name: "gpt5.6-Luna",
-  // },
-})
-fullToolsSession.reset()
-console.log(
-  lazyToolsSession.getConsumptionTokens(),
-  fullToolsSession.getConsumptionTokens()
-)
+// const fullToolsSession = new Session({
+//   toolsMode: "FULL_TOOLS_SCHEMA",
+//   // model: {
+//   //   name: "gpt5.6-Luna",
+//   // },
+// })
+// fullToolsSession.reset()
+// console.log(
+//   lazyToolsSession.getConsumptionTokens(),
+//   fullToolsSession.getConsumptionTokens()
+// )
+export default Session

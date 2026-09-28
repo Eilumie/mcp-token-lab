@@ -1,135 +1,94 @@
-import { modelPresets } from "./model-pricing.js";
-// Token 参数以 K 展示，进入计算器时统一转为 Token。
-// Tools Discovery List 是固定的协议开销，不开放给实验参数配置。
-export const toolsDiscoveryList = 1.2;
+import Session from "./session.js";
+
+export const STORAGE_KEY = "token-lab-session-v2";
 export const groups = [
-  [
-    "会话规模",
-    [
-      ["rounds", "单会话轮次", 10, "轮"],
-      ["prefix_cache_hit_rate", "Prefix 缓存命中率", 90, "%"],
-      ["skills_total", "Skills 总数", 30, "个"],
-      ["tools_total", "Tools 总数", 90, "个"],
-      ["skills_per_round", "每轮平均 Skills", 0.33, "个"],
-      ["tools_per_round", "每轮平均 Tools", 1.5, "个"],
-    ],
-  ],
-  [
-    "初始上下文",
-    [
-      ["agent_prompt", "Agent Prompt", 2, "K"],
-      ["single_skill_discovery", "单个 Skill 索引", 0.1, "K"],
-      ["single_tool_schema", "单个 Tool Schema", 0.51, "K"],
-    ],
-  ],
-  [
-    "每轮内容",
-    [
-      ["user_message", "用户消息", 0.1, "K"],
-      ["skill_content", "单个 Skill 内容", 3, "K"],
-      ["tool_result", "单个 Tool Result", 3, "K"],
-      ["read_skills_plan", "读取技能计划", 0.1, "K"],
-      ["query_schema_plan", "查询 Schema 计划", 0.1, "K"],
-      ["call_tools_plan", "调用工具计划", 0.1, "K"],
-      ["agent_reply", "Agent 最终回复", 1, "K"],
-    ],
-  ],
+  { title: "会话规模", fields: [
+    ["turnTotalCount", "用户轮次", "轮", 1, 1000],
+    ["skillsTotalCount", "Skills 总数", "个", 0],
+    ["toolsTotalCount", "Tools 总数", "个", 0],
+    ["turnAvgSkillsCount", "每轮平均 Skills", "个", 0],
+    ["turnAvgToolsCount", "每轮平均 Tools", "个", 0],
+  ] },
+  { title: "缓存与权限", fields: [
+    ["expectedPrefixCacheHitRate", "Prefix 期望命中率", "%", 0, 100],
+    ["sessionAvgAllowToolsRate", "角色允许工具比例", "%", 0, 100],
+  ] },
+  { title: "初始上下文", fields: [
+    ["initialContext.agentPromptToken", "Agent Prompt", "K", 0],
+    ["skillIndexToken", "单个 Skill 索引", "K", 0],
+    ["toolsIndexToken", "单个 Tool 索引", "K", 0],
+    ["toolSchemaToken", "单个 Tool Schema", "K", 0],
+  ] },
+  { title: "每轮内容与输出", fields: [
+    ["userMessageToken", "用户消息", "K", 0],
+    ["skillDetailToken", "单个 Skill 内容", "K", 0],
+    ["toolResultToken", "单个 Tool Result", "K", 0],
+    ["readSkillPlanToken", "读取技能计划", "K", 0],
+    ["schemaPlanToken", "查询 Schema 计划", "K", 0],
+    ["callToolsPlanToken", "调用工具计划", "K", 0],
+    ["agentResult", "Agent 最终回复", "K", 0],
+  ] },
 ];
-export const fields = groups.flatMap(([, fields]) => fields);
-export const defaults = Object.fromEntries(
-  fields.map(([id, , value]) => [id, value]),
-);
-// 保留在配置中以兼容导入和零值模拟，但不在初始上下文的参数面板展示。
-defaults.tools_discovery_list = toolsDiscoveryList;
-export const presets = modelPresets;
-
-// 官方预设始终以代码中的价格为准；仅保留 ID 不属于预设的自定义模型。
-export function mergePresets(config) {
-  const officialRates = new Map(presets.map((rate) => [rate.id, rate]));
-  const rates = config.rates.map((rate) => {
-    const official = officialRates.get(rate.id);
-    return official ? structuredClone(official) : rate;
-  });
-  const ids = new Set(rates.map((r) => r.id));
-  return {
-    ...config,
-    rates: [
-      ...rates,
-      ...structuredClone(presets.filter((r) => !ids.has(r.id))),
-    ],
-  };
+export const compressionFields = [
+  ["compressionThresholdTurnCount", "活跃用户轮次阈值", "轮", 1],
+  ["compressionThresholdToken", "上下文触发阈值", "K", 0],
+  ["compressionKeepTurns", "保留最近用户轮次", "轮", 0],
+  ["compressionTargetToken", "压缩摘要长度", "K", 0],
+];
+const fields = [...groups.flatMap(g => g.fields), ...compressionFields];
+const integers = new Set(["turnTotalCount", "skillsTotalCount", "toolsTotalCount", "compressionThresholdTurnCount", "compressionKeepTurns"]);
+export const priceFields = [["inputCachedPrice", "命中输入"], ["inputNotCachedPrice", "未命中输入"], ["outputPrice", "模型输出"]];
+export const getValue = (object, path) => path.split(".").reduce((value, key) => value?.[key], object);
+export function setValue(object, path, value) {
+  const keys = path.split(".");
+  const key = keys.pop();
+  keys.reduce((parent, part) => parent[part], object)[key] = value;
 }
-
-export function validate(values, rate) {
+export function createConfig() {
+  const { toolsMode, model, ...simulation } = structuredClone(new Session().config);
+  return { version: 2, unit: "K", simulation, model: { ...model, name: model.name || "Session 默认费率" }, pricing: { id: "session-default", label: "自定义费率", source: "", date: "" } };
+}
+export function validate(config) {
   const errors = {};
-  for (const [id, label] of fields) {
-    if (
-      typeof values[id] !== "number" ||
-      !Number.isFinite(values[id]) ||
-      Number(values[id]) < 0
-    )
-      errors[id] = `${label}必须为非负有限数值`;
+  const s = config.simulation;
+  for (const [key, , unit, min, max] of fields) {
+    if (key === "compressionThresholdTurnCount" && s.compressionThresholdType !== "TURN") continue;
+    if (key === "compressionThresholdToken" && s.compressionThresholdType !== "TOKEN") continue;
+    const value = getValue(s, key);
+    const upper = unit === "%" ? 1 : max;
+    if (typeof value !== "number" || !Number.isFinite(value) || value < min || (upper !== undefined && value > upper)) {
+      errors[key] = unit === "%" ? "请输入 0–100%" : `请输入 ${min}${max ? `–${max}` : " 及以上的有限"}数值`;
+    } else if (integers.has(key) && !Number.isInteger(value)) errors[key] = "请输入整数";
   }
-  for (const id of ["rounds", "skills_total", "tools_total"])
-    if (!Number.isInteger(Number(values[id]))) errors[id] = "请输入整数";
-  if (values.rounds < 1 || values.rounds > 10000)
-    errors.rounds = "轮次范围为 1–10,000";
-  if (values.prefix_cache_hit_rate > 100)
-    errors.prefix_cache_hit_rate = "命中率范围为 0–100%";
-  if (+values.skills_per_round > +values.skills_total)
-    errors.skills_per_round = "不能超过 Skills 总数";
-  if (+values.tools_per_round > +values.tools_total)
-    errors.tools_per_round = "不能超过 Tools 总数";
-  for (const id of ["hit", "miss", "output"])
-    if (
-      typeof rate[id] !== "number" ||
-      !Number.isFinite(rate[id]) ||
-      +rate[id] < 0
-    )
-      errors[id] = "费率必须为非负有限数值";
+  if (s.turnAvgSkillsCount > s.skillsTotalCount) errors.turnAvgSkillsCount = "不能超过 Skills 总数";
+  if (s.turnAvgToolsCount > s.toolsTotalCount) errors.turnAvgToolsCount = "不能超过 Tools 总数";
+  if (!["TURN", "TOKEN"].includes(s.compressionThresholdType)) errors.compressionThresholdType = "请选择压缩方式";
+  if (s.compressionThresholdType === "TURN" && s.compressionThresholdTurnCount <= s.compressionKeepTurns) errors.compressionThresholdTurnCount = "阈值必须大于保留轮次";
+  if (s.compressionThresholdType === "TOKEN" && s.compressionThresholdToken <= 0) errors.compressionThresholdToken = "阈值必须大于 0";
+  for (const [key] of priceFields) {
+    if (typeof config.model[key] !== "number" || !Number.isFinite(config.model[key]) || config.model[key] < 0) errors[key] = "请输入非负有限单价";
+  }
+  if (!["$", "¥"].includes(config.model.currency)) errors.currency = "请选择币种";
+  if (typeof config.model.name !== "string" || !config.model.name.trim()) errors.name = "请输入模型名称";
   return errors;
 }
-export function toTokens(values) {
-  const tokens = Object.fromEntries(
-    fields.map(([id, , , unit]) => [
-      id,
-      Number(values[id]) * (unit === "K" ? 1000 : 1),
-    ]),
-  );
-  tokens.tools_discovery_list = Number(values.tools_discovery_list) * 1000;
-  tokens.prefix_cache_hit_rate = Number(values.prefix_cache_hit_rate) / 100;
-  tokens.skills_discovery_list =
-    tokens.skills_total * tokens.single_skill_discovery;
-  tokens.full_tools_schema = tokens.tools_total * tokens.single_tool_schema;
-  return tokens;
-}
-
 export function readConfig(data) {
-  if (
-    data.version !== 1 ||
-    !data.values ||
-    !Array.isArray(data.rates) ||
-    !data.rates.length ||
-    typeof data.cold !== "boolean"
-  )
-    throw Error("配置格式不正确");
-  const normalized = { ...data, values: { ...defaults, ...data.values } };
-  if (new Set(normalized.rates.map((r) => r.id)).size !== normalized.rates.length)
-    throw Error("模型 ID 重复");
-  for (const rate of normalized.rates) {
-    if (
-      ["id", "name", "actual", "period", "currency", "source", "verified"].some(
-        (k) => typeof rate[k] !== "string",
-      ) ||
-      !["USD", "CNY"].includes(rate.currency) ||
-      !rate.id ||
-      !rate.name
-    )
-      throw Error("模型信息不完整");
-    if (Object.keys(validate(normalized.values, rate)).length)
-      throw Error("参数或费率不合法");
+  if (data?.version !== 2 || data.unit !== "K" || !data.simulation || !data.model) throw new Error("仅支持 Session v2 配置（K Token）。");
+  const normalized = createConfig();
+  for (const [key] of fields) {
+    const value = getValue(data.simulation, key);
+    if (value === undefined) throw new Error(`配置缺少 ${key}`);
+    setValue(normalized.simulation, key, value);
   }
-  if (!normalized.rates.some((r) => r.id === normalized.selected))
-    throw Error("所选模型不存在");
+  normalized.simulation.compressionThresholdType = data.simulation.compressionThresholdType;
+  for (const key of ["name", "currency", ...priceFields.map(([key]) => key)]) normalized.model[key] = data.model[key];
+  if (data.pricing && typeof data.pricing === "object") {
+    for (const key of ["id", "label", "source", "date"]) normalized.pricing[key] = typeof data.pricing[key] === "string" ? data.pricing[key] : "";
+    if (Number.isFinite(data.pricing.contextWindow) && data.pricing.contextWindow > 0) normalized.pricing.contextWindow = data.pricing.contextWindow;
+    const tier = data.pricing.tier;
+    if (tier && Number.isFinite(tier.input_tokens_gt) && Number.isFinite(tier.input_tokens_lte) && tier.input_tokens_gt >= 0 && tier.input_tokens_lte > tier.input_tokens_gt) normalized.pricing.tier = { input_tokens_gt: tier.input_tokens_gt, input_tokens_lte: tier.input_tokens_lte };
+  }
+  const errors = validate(normalized);
+  if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
   return normalized;
 }

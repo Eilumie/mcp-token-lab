@@ -1,10 +1,10 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { LineChart, PieChart } from "echarts/charts";
+import { LineChart, BarChart, PieChart } from "echarts/charts";
 import {
   GridComponent,
   LegendComponent,
-  TitleComponent,
+  MarkPointComponent,
   TooltipComponent,
 } from "echarts/components";
 import { init, use } from "echarts/core";
@@ -12,15 +12,17 @@ import { CanvasRenderer } from "echarts/renderers";
 
 use([
   LineChart,
-  PieChart,
+  BarChart,
   GridComponent,
   LegendComponent,
-  TitleComponent,
+  MarkPointComponent,
   TooltipComponent,
   CanvasRenderer,
+  PieChart
 ]);
 
 const props = defineProps({ option: { type: Object, required: true } });
+const emit = defineEmits(["select"]);
 const container = ref(null);
 let chart;
 let resizeObserver;
@@ -28,6 +30,7 @@ let resizeObserver;
 onMounted(() => {
   chart = init(container.value, null, { renderer: "canvas" });
   chart.setOption(props.option);
+  chart.on("click", event => emit("select", event));
   resizeObserver = new ResizeObserver(() => chart?.resize());
   resizeObserver.observe(container.value);
 });

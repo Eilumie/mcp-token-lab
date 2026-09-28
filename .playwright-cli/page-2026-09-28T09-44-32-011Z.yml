@@ -1,0 +1,175 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - link "Token Lab AGENT COST SIMULATOR" [ref=e4] [cursor=pointer]:
+      - /url: ./
+      - strong [ref=e8]:
+        - text: Token Lab
+        - generic [ref=e9]: AGENT COST SIMULATOR
+    - navigation "配置操作" [ref=e10]:
+      - generic [ref=e11]: 本地模拟
+      - button "导入配置" [ref=e13] [cursor=pointer]
+      - button "导出配置" [ref=e17] [cursor=pointer]
+  - generic [ref=e21]:
+    - complementary [ref=e23]:
+      - generic [ref=e24]:
+        - heading "实验参数" [level=2] [ref=e27]
+        - button "恢复所有默认参数" [ref=e28] [cursor=pointer]
+      - paragraph [ref=e32]: 同一组参数，两种工具加载策略。
+      - group [ref=e33]:
+        - generic "01 会话规模" [ref=e34] [cursor=pointer]:
+          - generic [ref=e35]:
+            - generic [ref=e36]: "01"
+            - text: 会话规模
+        - generic [ref=e39]:
+          - generic [ref=e40]:
+            - generic [ref=e41]: 用户轮次
+            - generic [ref=e42]:
+              - spinbutton "用户轮次" [ref=e43]: "100"
+              - generic [ref=e44]: 轮
+          - generic [ref=e45]:
+            - generic [ref=e46]: Skills 总数
+            - generic [ref=e47]:
+              - spinbutton "Skills 总数" [ref=e48]: "1"
+              - generic [ref=e49]: 个
+          - generic [ref=e50]:
+            - generic [ref=e51]: Tools 总数
+            - generic [ref=e52]:
+              - spinbutton "Tools 总数" [ref=e53]: "90"
+              - generic [ref=e54]: 个
+          - generic [ref=e55]:
+            - generic [ref=e56]: 每轮平均 Skills
+            - generic [ref=e57]:
+              - spinbutton "每轮平均 Skills" [ref=e58]: "0.33"
+              - generic [ref=e59]: 个
+          - generic [ref=e60]:
+            - generic [ref=e61]: 每轮平均 Tools
+            - generic [ref=e62]:
+              - spinbutton "每轮平均 Tools" [ref=e63]: "1.5"
+              - generic [ref=e64]: 个
+          - generic [ref=e65]: 支持 1–1,000 轮；小数数量表示每轮平均用量。
+      - group [ref=e66]:
+        - generic "02 缓存与权限" [ref=e67] [cursor=pointer]:
+          - generic [ref=e68]:
+            - generic [ref=e69]: "02"
+            - text: 缓存与权限
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]: Prefix 期望命中率
+            - generic [ref=e75]:
+              - spinbutton "Prefix 期望命中率" [ref=e76]: "90"
+              - generic [ref=e77]: "%"
+          - generic [ref=e78]:
+            - generic [ref=e79]: 角色允许工具比例
+            - generic [ref=e80]:
+              - spinbutton "角色允许工具比例" [ref=e81]: "70"
+              - generic [ref=e82]: "%"
+          - generic [ref=e83]: 命中率作用于匹配到的前缀。角色比例只决定允许工具列表的长度。
+      - group [ref=e84]:
+        - generic "03 初始上下文" [ref=e85] [cursor=pointer]:
+          - generic [ref=e86]:
+            - generic [ref=e87]: "03"
+            - text: 初始上下文
+      - group [ref=e90]:
+        - generic "04 每轮内容与输出" [ref=e91] [cursor=pointer]:
+          - generic [ref=e92]:
+            - generic [ref=e93]: "04"
+            - text: 每轮内容与输出
+      - group [ref=e96]:
+        - generic "历史压缩" [ref=e97] [cursor=pointer]
+        - generic [ref=e105]:
+          - generic [ref=e106]:
+            - generic [ref=e107]: 触发方式
+            - combobox "压缩触发方式" [ref=e108] [cursor=pointer]:
+              - option "按活跃用户轮次" [selected]
+              - option "按上下文 Token"
+          - generic [ref=e109]:
+            - generic [ref=e110]: 活跃用户轮次阈值
+            - generic [ref=e111]:
+              - spinbutton "活跃用户轮次阈值" [ref=e112]: "10"
+              - generic [ref=e113]: 轮
+          - generic [ref=e114]:
+            - generic [ref=e115]: 保留最近用户轮次
+            - generic [ref=e116]:
+              - spinbutton "保留最近用户轮次" [ref=e117]: "2"
+              - generic [ref=e118]: 轮
+          - generic [ref=e119]:
+            - generic [ref=e120]: 压缩摘要长度
+            - generic [ref=e121]:
+              - spinbutton "压缩摘要长度" [ref=e122]: "4"
+              - generic [ref=e123]: K
+          - paragraph [ref=e124]: 在每轮回复后检查，压缩会额外请求一次模型。摘要长度不等于压缩后的总上下文。
+      - group [ref=e125]:
+        - generic "模型与费率" [ref=e126] [cursor=pointer]
+        - generic [ref=e133]:
+          - generic [ref=e134]:
+            - generic [ref=e135]: 费率预设
+            - combobox "费率预设" [ref=e136] [cursor=pointer]:
+              - option "Session 默认费率 · USD" [selected]
+              - option "百炼 · Qwen3.8 Max · 固定价格 · CNY"
+              - option "百炼 · Qwen3.7 Plus · 0K–256K 输入 · CNY"
+              - option "百炼 · Qwen3.7 Plus · 256K–1000K 输入 · CNY"
+              - option "百炼 · Qwen3.8 Flash · 固定价格 · CNY"
+              - option "百炼 · DeepSeek V4.1 Flash · 闲时 · CNY"
+              - option "百炼 · DeepSeek V4.1 Flash · 忙时 · CNY"
+              - option "百炼 · DeepSeek V4 Flash · 固定价格 · CNY"
+              - option "百炼 · DeepSeek V4 Pro · 固定价格 · CNY"
+              - option "百炼 · DeepSeek V4 Pro 0813 · 闲时 · CNY"
+              - option "百炼 · DeepSeek V4 Pro 0813 · 忙时 · CNY"
+              - option "百炼 · Kimi K3 · 固定价格 · CNY"
+              - option "百炼 · Kimi K3 (Moonshot) · 固定价格 · CNY"
+              - option "百炼 · GLM-5.2 · 固定价格 · CNY"
+              - option "百炼 · GLM-5.3 · 固定价格 · CNY"
+              - option "百炼 · GLM-5.3 (ZHIPU) · 固定价格 · CNY"
+              - option "百炼 · GLM-5.3 Flash (ZHIPU) · 固定价格 · CNY"
+              - option "百炼 · MiniMax M3 · 固定价格 · CNY"
+              - option "百炼 · MiMo V2.5 Pro · 固定价格 · CNY"
+              - option "DeepSeek V4.1 Flash · 非高峰 · CNY"
+              - option "DeepSeek V4.1 Flash · 高峰 · CNY"
+              - option "DeepSeek V4 Pro · 非高峰 · CNY"
+              - option "DeepSeek V4 Pro · 高峰 · CNY"
+          - generic [ref=e137]:
+            - generic [ref=e138]: 模型名称
+            - textbox "模型名称" [ref=e139]: Session 默认费率
+          - generic [ref=e140]:
+            - generic [ref=e141]: 币种
+            - combobox "币种" [ref=e142] [cursor=pointer]:
+              - option "USD · 美元" [selected]
+              - option "CNY · 人民币"
+          - generic [ref=e143]:
+            - generic [ref=e144]: 命中输入
+            - generic [ref=e145]:
+              - spinbutton "命中输入" [ref=e146]: "1.5"
+              - generic [ref=e147]: $/M
+          - generic [ref=e148]:
+            - generic [ref=e149]: 未命中输入
+            - generic [ref=e150]:
+              - spinbutton "未命中输入" [ref=e151]: "12"
+              - generic [ref=e152]: $/M
+          - generic [ref=e153]:
+            - generic [ref=e154]: 模型输出
+            - generic [ref=e155]:
+              - spinbutton "模型输出" [ref=e156]: "36"
+              - generic [ref=e157]: $/M
+          - paragraph [ref=e158]: 自定义费率。单价单位为每百万 Token，修改后作为自定义费率保存。
+      - generic [ref=e159]: 1K = 1,000 Token所有计算在本地完成，不调用模型 API。
+    - main [ref=e160]:
+      - generic [ref=e161]:
+        - generic [ref=e162]:
+          - paragraph [ref=e163]: MEASURE. COMPARE. UNDERSTAND.
+          - heading "让每一个 Token 有据可循。" [level=1] [ref=e164]
+          - paragraph [ref=e165]: 从工具加载到历史压缩，看清完整会话的成本。
+        - generic [ref=e166]: 100 轮会话
+      - generic [ref=e167]:
+        - generic [ref=e168]: 当前实验
+        - strong [ref=e169]: Session 默认费率
+        - generic [ref=e170]: /
+        - generic [ref=e171]: 按轮次压缩
+        - generic [ref=e172]: /
+        - generic [ref=e173]: 保留最近 2 轮
+      - status [ref=e174]:
+        - heading "正在模拟完整会话" [level=2] [ref=e177]
+        - paragraph [ref=e178]: 逐次记录请求、缓存与历史压缩…
+      - generic [ref=e179]:
+        - generic [ref=e180]: T / L
+        - paragraph [ref=e181]: 初始前缀按期望命中率计费 · 每轮回复后检查压缩 · 最后一轮触发的压缩也计费所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。
+        - generic [ref=e182]: SESSION / V2
