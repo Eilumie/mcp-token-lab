@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { ArrowDownRight, ArrowUpRight, Layers, Zap, Database } from "lucide-vue-next";
 import { planNames, ratio } from "../session-report.js";
-import { money, token, percent } from "../utils.js";
+import { money, token, percent, number } from "../utils.js";
 const props = defineProps({ results: Array, config: Object });
 const delta = computed(() => props.results[1].cost.total - props.results[0].cost.total);
 const savings = computed(() => ratio(Math.abs(delta.value), props.results[1].cost.total));
@@ -16,6 +16,9 @@ const costParts = [["cached", "命中输入"], ["fresh", "未命中输入"], ["g
       <div class="strategy-heading"><span class="strategy-icon"><Database v-if="index" :size="20" /><Zap v-else :size="20" /></span><div><h2>{{ planNames[index] }}</h2><span>{{ index ? '预先加载全部工具 Schema' : '每轮按需查询工具 Schema' }}</span></div><span class="strategy-tag">{{ index ? 'FULL' : 'ON DEMAND' }}</span></div>
       <div class="total-cost" :title="money(result.cost.total, config.model.currency, true)">{{ m(result.cost.total) }}<span>/ 会话</span></div>
       <div class="request-count">{{ result.requests.length - result.compressions.length }} 次普通请求<span>+</span>{{ result.compressions.length }} 次压缩请求</div>
+      <div class="request-count" title="用户消息总轮数 ÷ 实际压缩次数；包含末次压缩后尚未再次触发压缩的用户轮次。">
+        {{ result.averageUserTurnsPerCompression === null ? '未触发压缩' : `平均每 ${number(result.averageUserTurnsPerCompression)} 轮用户消息触发一次压缩` }}
+      </div>
       <div class="token-metrics">
         <div><span><i class="dot cached"></i>命中输入</span><strong>{{ token(result.hit) }}</strong></div>
         <div><span><i class="dot fresh"></i>未命中输入</span><strong>{{ token(result.miss) }}</strong></div>
@@ -31,7 +34,7 @@ const costParts = [["cached", "命中输入"], ["fresh", "未命中输入"], ["g
   </div>
   <div class="savings-strip" :class="{ negative: delta < 0 }">
     <span class="saving-symbol"><ArrowUpRight v-if="delta < 0" :size="23" /><ArrowDownRight v-else :size="23" /></span>
-    <div><strong>{{ delta === 0 ? '两种方案费用相同' : delta > 0 ? '按需加载节省' : '按需加载多花费' }}</strong><span>以全量方案为比较基准，包含历史压缩费用</span></div>
+    <div><strong>{{ delta === 0 ? '两种方案费用相同' : delta > 0 ? '按需加载节省' : '按需加载多花费' }}</strong><span>以全量方案为比较基准，包含上下文压缩费用</span></div>
     <b :title="money(Math.abs(delta), config.model.currency, true)">{{ m(Math.abs(delta)) }}</b><span class="saving-percent">{{ percent(savings) }}</span>
   </div>
 </template>

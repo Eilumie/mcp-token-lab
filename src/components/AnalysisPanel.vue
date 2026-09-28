@@ -35,12 +35,12 @@ function chartClick(event) {
   <section class="analysis-panel">
     <nav class="analysis-tabs" aria-label="结果分析"><button :class="{ active: tab === 'trend' }" :aria-pressed="tab === 'trend'" @click="tab = 'trend'"><ChartNoAxesCombined :size="17" />会话趋势</button><button :class="{ active: tab === 'sources' }" :aria-pressed="tab === 'sources'" @click="tab = 'sources'"><ListTree :size="17" />费用归因</button><button :class="{ active: tab === 'requests' }" :aria-pressed="tab === 'requests'" @click="tab = 'requests'"><Rows3 :size="17" />请求明细</button><span>完整会话 · 可追溯</span></nav>
     <div v-if="tab === 'trend'" class="analysis-body">
-      <div class="section-heading"><div><h2>会话越长，差异如何变化？</h2><p>圆点标记历史压缩，点击可查看当轮请求。</p></div><select v-model="metric" aria-label="趋势指标"><option v-for="[key, label] in metrics" :key="key" :value="key">{{ label }}</option></select></div>
+      <div class="section-heading"><div><h2>会话越长，差异如何变化？</h2><p>圆点标记上下文压缩，点击可查看当轮请求。</p></div><select v-model="metric" aria-label="趋势指标"><option v-for="[key, label] in metrics" :key="key" :value="key">{{ label }}</option></select></div>
       <EChart class="trend-chart" :option="trend" aria-label="两种方案的会话趋势图" @select="chartClick" />
       <p class="chart-note">普通点最多采样 250 个，另保留全部压缩点、相邻轮次及峰值；费用统计使用完整数据。</p>
       <div class="compression-overview">
-        <div class="section-heading"><div><h3><Layers :size="16" />历史压缩记录</h3><p>压缩输入包含当时的完整上下文，费用已计入对应用户轮次。</p></div><div class="segmented"><button v-for="(name, i) in planNames" :key="name" :class="{ active: plan === i }" @click="plan = i">{{ name }}</button></div></div>
-        <div v-if="!result.compressions.length" class="inline-empty">本次会话未触发历史压缩。</div>
+        <div class="section-heading"><div><h3><Layers :size="16" />上下文压缩记录</h3><p>压缩输入包含当时的完整上下文，费用已计入对应用户轮次。</p></div><div class="segmented"><button v-for="(name, i) in planNames" :key="name" :class="{ active: plan === i }" @click="plan = i">{{ name }}</button></div></div>
+        <div v-if="!result.compressions.length" class="inline-empty">本次会话未触发上下文压缩。</div>
         <div v-else class="compression-events">
           <button v-for="event in result.compressions" :key="event.requestId" class="compression-event" @click="openRound(event.round)">
             <span class="event-round">第 {{ event.round }} 轮</span><span>{{ token(event.before) }} <ArrowRight :size="13" /> {{ token(event.after) }}</span><span class="event-kept">保留 {{ roundRange(event.keptRounds) }}</span><b>{{ m(event.cost) }}</b><ChevronRight :size="14" />

@@ -75,7 +75,7 @@
             - generic [ref=e93]: "04"
             - text: 每轮内容与输出
       - group [ref=e96]:
-        - generic "历史压缩" [ref=e97] [cursor=pointer]
+        - generic "上下文压缩" [ref=e97] [cursor=pointer]
         - generic [ref=e105]:
           - generic [ref=e106]:
             - generic [ref=e107]: 触发方式
@@ -157,7 +157,7 @@
         - generic [ref=e162]:
           - paragraph [ref=e163]: MEASURE. COMPARE. UNDERSTAND.
           - heading "让每一个 Token 有据可循。" [level=1] [ref=e164]
-          - paragraph [ref=e165]: 从工具加载到历史压缩，看清完整会话的成本。
+          - paragraph [ref=e165]: 从工具加载到上下文压缩，看清完整会话的成本。
         - generic [ref=e166]: 100 轮会话
       - generic [ref=e167]:
         - generic [ref=e168]: 当前实验
@@ -168,7 +168,7 @@
         - generic [ref=e173]: 保留最近 2 轮
       - status [ref=e174]:
         - heading "正在模拟完整会话" [level=2] [ref=e177]
-        - paragraph [ref=e178]: 逐次记录请求、缓存与历史压缩…
+        - paragraph [ref=e178]: 逐次记录请求、缓存与上下文压缩…
       - generic [ref=e179]:
         - generic [ref=e180]: T / L
         - paragraph [ref=e181]: 初始前缀按期望命中率计费 · 每轮回复后检查压缩 · 最后一轮触发的压缩也计费所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。

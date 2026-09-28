@@ -415,8 +415,18 @@ class Session {
       totalInputNotCachedPrice +
       totalOutputPrice
 
+    // 只统计实际用户消息轮次，初始上下文和压缩摘要不计入。
+    const userTurnCount = this.turns.filter(turn =>
+      turn.actions.some(action => action.group === "user_message")
+    ).length
+    const compressionCount = this.compressTurnIndexs.length
+    const averageUserTurnsPerCompression = compressionCount === 0
+      ? null
+      : userTurnCount / compressionCount
+
     return {
       llms,
+      averageUserTurnsPerCompression,
 
       totalInputCached,
       totalInputNotCached,

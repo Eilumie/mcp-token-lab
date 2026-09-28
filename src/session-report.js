@@ -70,7 +70,7 @@ export function buildReport(session) {
       const following = turn.actions[actionIndex + 2];
       const request = {
         id: requests.length + 1, round: round.round, compression,
-        stage: compression ? "历史压缩" : sourceNames[llm.output.group],
+        stage: compression ? "上下文压缩" : sourceNames[llm.output.group],
         input: llm.cachedToken + llm.notCachedToken, prefix: prefixSize(llm),
         hit: llm.cachedToken, miss: llm.notCachedToken, output: llm.output.token,
         toolResult: following && following.type !== "llm" ? following.token : 0,
@@ -107,6 +107,7 @@ export function buildReport(session) {
     hitRate: ratio(totals.totalInputCached, totals.totalInputCached + totals.totalInputNotCached),
     equivalent: model.inputNotCachedPrice === 0 ? null : totals.totalInputCached * model.inputCachedPrice / model.inputNotCachedPrice,
     compressionCost: compressions.reduce((sum, c) => sum + c.cost, 0),
+    averageUserTurnsPerCompression: totals.averageUserTurnsPerCompression,
     requests, rounds, compressions,
     sources: Object.values(sources).map(s => ({ ...s, cost: fees(s.hit, s.miss, s.output, model) })),
   };

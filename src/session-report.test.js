@@ -82,7 +82,7 @@ test("10 轮基准，末轮压缩请求和最终上下文完整计入", () => {
     assert.deepEqual(r.compressions[0].compressedRounds, [1, 2, 3, 4, 5, 6, 7, 8]);
     assert.deepEqual(r.compressions[0].keptRounds, [9, 10]);
     assert.equal(r.rounds.at(-1).requestIds.length, i ? 4 : 5);
-    assert.equal(r.requests.at(-1).stage, "历史压缩");
+    assert.equal(r.requests.at(-1).stage, "上下文压缩");
     checkConservation(r);
   });
 });
@@ -110,6 +110,24 @@ test("Token 阈值下两方案独立触发压缩", () => {
   const results = simulate(setup({ turnTotalCount: 20, compressionThresholdType: "TOKEN", compressionThresholdToken: 80 }));
   assert.notDeepEqual(results[0].compressions.map(c => c.round), results[1].compressions.map(c => c.round));
   results.forEach(checkConservation);
+  results.forEach(r => close(r.averageUserTurnsPerCompression, 20 / r.compressions.length));
+});
+
+test("平均压缩轮次只统计实际用户消息，包含尾部轮次，重复 reset 不累积", () => {
+  const config = setup({ turnTotalCount: 30 });
+  const session = new Session({ ...config.simulation, model: config.model });
+  assert.equal(session.getConsumptionTokens().averageUserTurnsPerCompression, null);
+  for (let i = 0; i < 9; i++) session.startNewTurn();
+  assert.equal(buildReport(session).averageUserTurnsPerCompression, null);
+  session.startNewTurn();
+  assert.equal(buildReport(session).averageUserTurnsPerCompression, 10);
+  for (let i = 10; i < 18; i++) session.startNewTurn();
+  assert.equal(session.getConsumptionTokens().averageUserTurnsPerCompression, 9);
+  assert.equal(buildReport(session).averageUserTurnsPerCompression, 9);
+  session.reset();
+  assert.equal(session.getConsumptionTokens().averageUserTurnsPerCompression, 10);
+  session.reset();
+  assert.equal(buildReport(session).averageUserTurnsPerCompression, 10);
 });
 
 test("保留零轮、多次压缩及零长度摘要", () => {

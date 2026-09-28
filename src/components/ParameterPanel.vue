@@ -46,7 +46,7 @@ function markCustom() {
       </div>
     </details>
     <details class="parameter-group compression-parameters" open>
-      <summary><span><Layers :size="15" />历史压缩</span><ChevronDown :size="14" /></summary>
+      <summary><span><Layers :size="15" />上下文压缩</span><ChevronDown :size="14" /></summary>
       <div class="parameter-fields">
         <label class="field"><span>触发方式</span><select v-model="s.compressionThresholdType" aria-label="压缩触发方式"><option value="TURN">按活跃用户轮次</option><option value="TOKEN">按上下文 Token</option></select></label>
         <ParameterField v-for="field in visibleCompression" :key="field[0]" :object="s" :field="field" :error="errors[field[0]]" />

@@ -82,12 +82,12 @@ async function importConfig(event) {
     <button class="mobile-config-button" @click="mobileParams = !mobileParams"><X v-if="mobileParams" :size="16" /><SlidersHorizontal v-else :size="16" />{{ mobileParams ? '收起实验参数' : '调整实验参数' }}</button>
     <div class="parameter-container" :class="{ 'mobile-open': mobileParams }"><ParameterPanel :config="config" :errors="errors" @reset="reset" /></div>
     <main>
-      <div class="page-heading"><div><p class="eyebrow">MEASURE. COMPARE. UNDERSTAND.</p><h1>让每一个 Token 有据可循<span>。</span></h1><p>从工具加载到历史压缩，看清完整会话的成本。</p></div><span class="session-badge">{{ config.simulation.turnTotalCount || '—' }} 轮会话</span></div>
+      <div class="page-heading"><div><p class="eyebrow">MEASURE. COMPARE. UNDERSTAND.</p><h1>让每一个 Token 有据可循<span>。</span></h1><p>从工具加载到上下文压缩，看清完整会话的成本。</p></div><span class="session-badge">{{ config.simulation.turnTotalCount || '—' }} 轮会话</span></div>
       <div v-if="notice" class="notice" role="status"><Check :size="15" /><span>{{ notice }}</span><button class="icon-button" aria-label="关闭通知" @click="notice = ''"><X :size="14" /></button></div>
       <div class="scenario-strip"><span class="scenario-label">当前实验</span><strong>{{ config.model.name }}</strong><span class="separator">/</span><span>{{ config.simulation.compressionThresholdType === 'TURN' ? '按轮次压缩' : '按 Token 压缩' }}</span><span class="separator">/</span><span>保留最近 {{ config.simulation.compressionKeepTurns }} 轮</span><span class="auto-indicator"><i></i>自动重算</span></div>
       <div v-if="Object.keys(errors).length" class="empty-state" role="alert"><SlidersHorizontal :size="30" /><h2>请修正实验参数</h2><p>{{ Object.values(errors)[0] }}</p><button class="mobile-only" @click="mobileParams = true">打开参数面板</button></div>
       <div v-else-if="failure" class="empty-state" role="alert"><h2>暂时无法完成模拟</h2><p>{{ failure }}</p><button @click="config = JSON.parse(JSON.stringify(config))">重新计算</button></div>
-      <div v-else-if="busy" class="empty-state" role="status"><LoaderCircle class="spinner" :size="30" /><h2>正在模拟完整会话</h2><p>逐次记录请求、缓存与历史压缩…</p></div>
+      <div v-else-if="busy" class="empty-state" role="status"><LoaderCircle class="spinner" :size="30" /><h2>正在模拟完整会话</h2><p>逐次记录请求、缓存与上下文压缩…</p></div>
       <template v-else-if="report">
         <div v-for="warning in warnings" :key="warning" class="warning" role="status">{{ warning }}</div>
         <SummaryCards :results="report.results" :config="report.config" />
