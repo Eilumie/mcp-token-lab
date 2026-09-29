@@ -50,7 +50,7 @@ function chartClick(event) {
     </div>
     <div v-else-if="tab === 'sources'" class="analysis-body">
       <div class="section-heading"><div><h2>费用花在了哪里？</h2><p>按内容来源统计命中输入、未命中输入和输出费用。</p></div><button @click="exportCsv(results, config, 'sources')"><ArrowDownToLine :size="14" />导出归因 CSV</button></div>
-      <EChart style="height: 300px" class="source-chart" :option="sourceChart" aria-label="两个方案费用来源堆叠条形图" />
+      <EChart style="height: 300px" class="source-chart" :option="sourceChart" aria-label="两个方案费用来源环形图" />
       <div class="table-toolbar"><p>Token 分项：{{ planNames[plan] }}</p><div class="segmented"><button v-for="(name, i) in planNames" :key="name" :class="{ active: plan === i }" @click="plan = i">{{ name }}</button></div></div>
       <div class="table-scroll"><table class="source-table"><thead><tr><th>内容来源</th><th>命中输入</th><th>未命中输入</th><th>输出</th><th>按需费用</th><th>全量费用</th><th>当前方案占比</th></tr></thead><tbody><tr v-for="source in sourceRows" :key="source.key"><td>{{ source.name }}</td><td>{{ token(source.hit) }}</td><td>{{ token(source.miss) }}</td><td>{{ token(source.output) }}</td><td>{{ m(results[0].sources[source.index].cost.total, true) }}</td><td>{{ m(results[1].sources[source.index].cost.total, true) }}</td><td>{{ percent(ratio(source.cost.total, result.cost.total)) }}</td></tr></tbody><tfoot><tr><th>合计</th><td>{{ token(result.hit) }}</td><td>{{ token(result.miss) }}</td><td>{{ token(result.output) }}</td><td>{{ m(results[0].cost.total, true) }}</td><td>{{ m(results[1].cost.total, true) }}</td><td>{{ percent(ratio(result.cost.total, result.cost.total)) }}</td></tr></tfoot></table></div>
       <p class="field-note attribution-note">“压缩保留轮次”归集保留内容在后续请求中的输入费用，不与原来源重复计费；模型输出归入生成时的来源。“压缩摘要”是内容来源，概览中的“压缩请求费用”则包含压缩时的全部输入和输出。</p>

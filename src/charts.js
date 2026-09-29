@@ -7,7 +7,7 @@ export function trendOption(results, metric, currency) {
   return {
     color: planColors,
     animation: false,
-    grid: { left: 16, right: 24, top: 48, bottom: 16, containLabel: true },
+    grid: { left: 16, right: 24, top: 48, bottom: 16, outerBoundsMode: "same", outerBoundsContain: "axisLabel" },
     legend: { right: 10, top: 4, icon: "roundRect", itemWidth: 16, itemHeight: 5, textStyle: { color: "#798296", fontSize: 11 } },
     tooltip: { trigger: "axis", valueFormatter: format },
     xAxis: { type: "value", min: results[0].rounds.length === 1 ? 0.5 : 1, max: results[0].rounds.length === 1 ? 1.5 : results[0].rounds.length, minInterval: 1, axisLabel: { color: "#9299aa", formatter: value => Number.isInteger(value) ? "第 " + value + " 轮" : "" }, axisLine: { lineStyle: { color: "#e3e7ef" } }, splitLine: { show: false } },
@@ -101,7 +101,7 @@ export function sourceOption(results, currency) {
           position: "inside",
           formatter: "{d}%",
           color: "#8b94a7",
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: 500,
         },
 
@@ -176,7 +176,7 @@ export function sourceOption(results, currency) {
     };
   });
 
-  return {
+  const option = {
     animation: false,
 
     tooltip: {
@@ -298,9 +298,26 @@ export function sourceOption(results, currency) {
       },
 
       // 不在 legend 里展示“差额”
-      data: uniqueSources.map(source => source.name),
+      data: uniqueSources
+        .filter(source => results.some(result => result.sources.some(item => item.key === source.key && item.cost.total > 0)))
+        .map(source => source.name),
     },
 
     series,
+  };
+  return {
+    ...option,
+    media: [{
+      query: { maxWidth: 480 },
+      option: {
+        series: [{ center: ["50%", "25%"], radius: [52, 79] }, { center: ["50%", "70%"], radius: [52, 79] }],
+        title: [{ left: "50%", top: "18%" }, { left: "50%", top: "63%" }],
+      },
+    }, {
+      option: {
+        series: option.series.map(({ center, radius }) => ({ center, radius })),
+        title: option.title.map(({ left, top }) => ({ left, top })),
+      },
+    }],
   };
 }

@@ -127,7 +127,7 @@ h1 > span { color: #6d7bdd; }
 .analysis-tabs button { border: 0; border-radius: 0; border-bottom: 2px solid transparent; padding: 18px 1px 16px; color: #929aab; font-size: 12px; background: transparent; white-space: nowrap; }
 .analysis-tabs button.active { color: var(--blue); border-bottom-color: var(--blue); }
 .analysis-tabs > span { margin-left: auto; color: #b0b6c4; font-size: 9px; }
-.analysis-body { padding: 25px 24px; }
+.analysis-body { padding: 25px 24px; container-type: inline-size; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
 .section-heading h2 { font-size: 14px; }
 .section-heading h3 { display: flex; align-items: center; gap: 7px; }
@@ -135,7 +135,8 @@ h1 > span { color: #6d7bdd; }
 .section-heading > select { width: auto; font-size: 11px; padding: 7px 10px; }
 .section-heading > button { font-size: 10px; white-space: nowrap; }
 .trend-chart { height: 305px; margin-top: 15px; }
-.source-chart { height: 190px; margin-top: 22px; }
+.source-chart { height: 300px; margin-top: 22px; }
+@container (max-width: 480px) { .source-chart { height: 440px; } }
 .chart-note { color: #acb3c1; font-size: 9px; margin: 0 0 23px; line-height: 1.8; }
 .compression-overview { border-top: 1px solid var(--line); padding-top: 21px; }
 .segmented { display: inline-flex; background: #f3f5f9; padding: 3px; border-radius: 7px; flex-shrink: 0; }
@@ -267,7 +268,7 @@ footer > span:last-child { margin-left: auto; font-size: 8px; letter-spacing: 1p
   .strategy-card { padding: 20px 21px 0; }
   .strategy-tag { display: block; }
   .total-cost { font-size: 35px; }
-  .token-metrics strong { font-size: 17px; }
+  .token-metrics strong { font-size: clamp(12px, 3.8vw, 17px); }
   .compression-cost { margin: 0 -21px; padding: 11px 21px; }
   .savings-strip { flex-wrap: wrap; }
   .savings-strip > div > span { font-size: 8px; }

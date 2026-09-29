@@ -67,7 +67,7 @@ async function importConfig(event) {
   try {
     if (file.size > 500000) throw new Error("配置文件不能超过 500KB。");
     config.value = readConfig(JSON.parse(await file.text()));
-    notice.value = "配置已导入，正在重新计算。";
+    notice.value = "配置已导入。";
   } catch (error) { notice.value = "导入失败：" + error.message; }
   finally { event.target.value = ""; }
 }
@@ -76,7 +76,7 @@ async function importConfig(event) {
 <template>
   <header class="app-header">
     <a class="brand" href="./"><span class="brand-mark"><Activity :size="24" /></span><strong>Token Lab<span>AGENT COST SIMULATOR</span></strong></a>
-    <nav class="header-actions" aria-label="配置操作"><span class="local-badge"><i></i>本地模拟</span><button @click="importInput.click()"><ArrowUpFromLine :size="15" /><span>导入配置</span></button><button :disabled="!!Object.keys(errors).length" @click="exportConfig"><ArrowDownToLine :size="15" /><span>导出配置</span></button><input ref="importInput" type="file" accept=".json,application/json" hidden @change="importConfig" /></nav>
+    <nav class="header-actions" aria-label="配置操作"><span class="local-badge"><i></i>本地模拟</span><button aria-label="导入配置" @click="importInput.click()"><ArrowUpFromLine :size="15" /><span>导入配置</span></button><button aria-label="导出配置" :disabled="!!Object.keys(errors).length" @click="exportConfig"><ArrowDownToLine :size="15" /><span>导出配置</span></button><input ref="importInput" type="file" accept=".json,application/json" hidden @change="importConfig" /></nav>
   </header>
   <div class="workspace">
     <button class="mobile-config-button" @click="mobileParams = !mobileParams"><X v-if="mobileParams" :size="16" /><SlidersHorizontal v-else :size="16" />{{ mobileParams ? '收起实验参数' : '调整实验参数' }}</button>
