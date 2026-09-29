@@ -7,7 +7,7 @@ import { exportCsv } from "../export.js";
 import { sourceOption, trendOption } from "../charts.js";
 import EChart from "./EChart.vue";
 const props = defineProps({ results: Array, config: Object });
-const tab = ref("trend");
+const tab = ref("sources");
 const metric = ref("cumulativeCost");
 const plan = ref(0);
 const page = ref(1);
@@ -33,7 +33,7 @@ function chartClick(event) {
 
 <template>
   <section class="analysis-panel">
-    <nav class="analysis-tabs" aria-label="结果分析"><button :class="{ active: tab === 'trend' }" :aria-pressed="tab === 'trend'" @click="tab = 'trend'"><ChartNoAxesCombined :size="17" />会话趋势</button><button :class="{ active: tab === 'sources' }" :aria-pressed="tab === 'sources'" @click="tab = 'sources'"><ListTree :size="17" />费用归因</button><button :class="{ active: tab === 'requests' }" :aria-pressed="tab === 'requests'" @click="tab = 'requests'"><Rows3 :size="17" />请求明细</button><span>完整会话 · 可追溯</span></nav>
+    <nav class="analysis-tabs" aria-label="结果分析"><button :class="{ active: tab === 'sources' }" :aria-pressed="tab === 'sources'" @click="tab = 'sources'"><ListTree :size="17" />费用归因</button><button :class="{ active: tab === 'trend' }" :aria-pressed="tab === 'trend'" @click="tab = 'trend'"><ChartNoAxesCombined :size="17" />会话趋势</button><button :class="{ active: tab === 'requests' }" :aria-pressed="tab === 'requests'" @click="tab = 'requests'"><Rows3 :size="17" />请求明细</button><span>完整会话 · 可追溯</span></nav>
     <div v-if="tab === 'trend'" class="analysis-body">
       <div class="section-heading"><div><h2>会话越长，差异如何变化？</h2><p>圆点标记上下文压缩，点击可查看当轮请求。</p></div><select v-model="metric" aria-label="趋势指标"><option v-for="[key, label] in metrics" :key="key" :value="key">{{ label }}</option></select></div>
       <EChart class="trend-chart" :option="trend" aria-label="两种方案的会话趋势图" @select="chartClick" />
