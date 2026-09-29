@@ -220,7 +220,7 @@ class Session {
     sessionAvgAllowToolsRate: 0.7,
     skillIndexToken: 0.1,
     toolsIndexToken: 0.013,
-    toolSchemaToken: 0.51,
+    toolSchemaToken: 0.45,
     userMessageToken: 0.1,
     skillDetailToken: 3,
     toolResultToken: 3,
