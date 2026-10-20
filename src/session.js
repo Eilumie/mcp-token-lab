@@ -1,3 +1,4 @@
+import { createDefaultFlow, isStepEnabled, resolveStepToken, validateFlow } from "./session-flow.js";
 
 class Action{
   type = "action"
@@ -68,7 +69,7 @@ class LLMAction extends Action{
 
       acc[group].push(item);
       return acc;
-    }, {});
+    }, Object.create(null));
     const notCachedActionsGroup = notCachedActions.reduce((acc, item) => {
       const group = compressionKeptActions.has(item) ? "compression retained turns" : item.group;
 
@@ -78,7 +79,7 @@ class LLMAction extends Action{
 
       acc[group].push(item);
       return acc;
-    }, {});
+    }, Object.create(null));
     Object.keys(cachedActionsGroup).forEach(key => {
       notCachedActionsGroup[key] = notCachedActionsGroup[key] || []
     })
@@ -86,7 +87,7 @@ class LLMAction extends Action{
       cachedActionsGroup[key] = cachedActionsGroup[key] || []
     })
 
-    const actionGroupTokens = {}
+    const actionGroupTokens = Object.create(null)
     Object.keys(cachedActionsGroup).forEach(group => {
       cachedActionsGroup[group].cachedToken = cachedActionsGroup[group].reduce((total, item) => total + item.token, 0);
       const originCachedToken = cachedActionsGroup[group].cachedToken
@@ -107,77 +108,44 @@ class LLMAction extends Action{
 
 
 class Turn{
-  constructor({index, session}) {
+  constructor({index, session, kind = "user"}) {
     this.session = session
     this.type = "turn"
+    this.kind = kind
     this.index = index
     this.actions = []
   }
 
   runPlan() {
-    const userMessageAction = new Action({text: "user_message", token: this.session.config.userMessageToken, session: this.session})
-    this.actions.push(userMessageAction)
-    let userMessageSnapshot = this.session.getContextSnapshot()
-
-    let LLM = new LLMAction({
-      input: userMessageSnapshot, 
-      output: new Action({text: "read_skills_plan", token: this.session.config.readSkillPlanToken, session: this.session}),
-      session: this.session
-    })
-    this.actions.push(LLM)
-    this.actions.push(LLM.output)
-
-    const readSkillsAction = new Action({text: "read_skills", token: this.session.config.skillDetailToken * this.session.config.turnAvgSkillsCount, session: this.session})
-    this.actions.push(readSkillsAction)
-    let skillsDetailSnapshot = this.session.getContextSnapshot()
-
-    let toolsSchemaSnapshot = null
-    if (this.session.config.toolsMode === "LAZY_TOOLS_SCHEMA") {
-      LLM = new LLMAction({
-        input: skillsDetailSnapshot, 
-        output: new Action({text: "get_tools_schema_plan", token: this.session.config.schemaPlanToken, session: this.session}),
-        session: this.session
-      })
-      this.actions.push(LLM)
-      this.actions.push(LLM.output) 
-      const getToolsSchemaAction = new Action({text: "get_tools_schema", token: this.session.config.toolSchemaToken * this.session.config.turnAvgToolsCount, session: this.session})
-      this.actions.push(getToolsSchemaAction)
-      toolsSchemaSnapshot = this.session.getContextSnapshot()
+    for (const step of this.session.config.flow.turn) {
+      if (!isStepEnabled(step, this.session.config.toolsMode)) continue
+      const action = this.session.createAction(step)
+      if (step.type === "llm") {
+        const llm = new LLMAction({
+          input: this.session.getContextSnapshot(),
+          output: action,
+          session: this.session,
+        })
+        this.actions.push(llm, action)
+      } else {
+        this.actions.push(action)
+      }
     }
 
-    LLM = new LLMAction({
-      input: this.session.config.toolsMode === "LAZY_TOOLS_SCHEMA" ? toolsSchemaSnapshot : skillsDetailSnapshot,
-      output: new Action({text: "call_tools_plan", token: this.session.config.callToolsPlanToken, session: this.session}),
-      session: this.session
-    })
-    this.actions.push(LLM)
-    this.actions.push(LLM.output)
-
-    const callToolsAction = new Action({text: "call_tools", token: this.session.config.toolResultToken * this.session.config.turnAvgToolsCount, session: this.session})
-    this.actions.push(callToolsAction)
-    let toolsResultSnapshot = this.session.getContextSnapshot()
-
-    LLM = new LLMAction({
-      input: toolsResultSnapshot, 
-      output: new Action({text: "agent_result", token: this.session.config.agentResult, session: this.session}),
-      session: this.session
-    })
-    this.actions.push(LLM)
-    this.actions.push(LLM.output)
-
+    // 流程可以没有 LLM，也可以在最后一次 LLM 后继续追加内容。
+    const snapshot = this.session.getContextSnapshot()
+    const contextToken = snapshot.turns.flatMap(turn => turn.actions)
+      .reduce((total, action) => total + (action.type === "llm" ? 0 : action.token), 0)
     if (
       (this.session.config.compressionThresholdType === "TOKEN" &&
-        (LLM.cachedToken + LLM.notCachedToken + LLM.output.token >= this.session.config.compressionThresholdToken)
-      ) ||
+        contextToken >= this.session.config.compressionThresholdToken) ||
       (this.session.config.compressionThresholdType === "TURN" &&
-        (this.session.getContextSnapshot().turns.filter(turn =>
-          turn.actions.some(action => action.group === "user_message")
-        ).length >= this.session.config.compressionThresholdTurnCount)
-      )
+        snapshot.turns.filter(turn => turn.kind === "user").length >= this.session.config.compressionThresholdTurnCount)
     ) {
       this.session.doCompress()
     }
   }
+
 }
 
 class Session {
@@ -188,25 +156,22 @@ class Session {
       ...config,
       initialContext: {...this.config.initialContext, ...config.initialContext},
       model: {...config.model},
+      flow: config.flow === undefined ? this.config.flow : config.flow,
     }
     this.validateCompressionConfig()
 
-    this.actionIndex = 0
-    this.initialContext = {
-      agentPrompt: new Action({text: "agent prompt", token: this.config.initialContext.agentPromptToken, session: this}),
-      skillsDiscoverList: new Action({text: "skills discover list", token: 0, session: this}),
-      toolsIndexList: new Action({text: "tools discover list", token: 0, session: this}),
-      toolsSchemaList: new Action({text: "tools schema list", token: 0, session: this}),
-      roleAllowTools: new Action({text: "role allow tools", token: 0, session: this}),
+    if (this.config.flow && typeof this.config.flow === "object" && !Array.isArray(this.config.flow)) {
+      this.config.flow = {...createDefaultFlow(), ...this.config.flow}
     }
-
-    this.initialContext.skillsDiscoverList.token = this.config.skillIndexToken * this.config.skillsTotalCount
-    this.initialContext.toolsIndexList.token = this.config.toolsTotalCount * this.config.toolsIndexToken
-    this.initialContext.toolsSchemaList.token = this.config.toolsTotalCount * this.config.toolSchemaToken
-    this.initialContext.roleAllowTools.token = this.initialContext.toolsIndexList.token * this.config.sessionAvgAllowToolsRate
+    this.validateFlowConfig()
+    // 独立拷贝，修改某个会话的流程不会影响调用方或其他会话。
+    this.config.flow = structuredClone(this.config.flow)
+    this.actionIndex = 0
+    this.initializeContext()
   }
   
   config = {
+    flow: createDefaultFlow(),
     initialContext: {
       agentPromptToken: 4,
     },
@@ -294,7 +259,7 @@ class Session {
   doCompress() {
     const contextSnapshot = this.getContextSnapshot()
     const userTurns = contextSnapshot.turns.filter(turn =>
-      turn.actions.some(action => action.group === "user_message")
+      turn.kind === "user"
     )
     const compressibleTurnCount = userTurns.length - this.config.compressionKeepTurns
     if (compressibleTurnCount <= 0) return
@@ -313,7 +278,7 @@ class Session {
       this.turns[turn.index].compressionKept = true
     })
     
-    const turn = new Turn({index: this.turns.length, session: this})
+    const turn = new Turn({index: this.turns.length, session: this, kind: "compression"})
     this.turns.push(turn)
     const llm = new LLMAction({
       input: contextSnapshot,
@@ -329,26 +294,36 @@ class Session {
 
   reset() {
     this.validateCompressionConfig()
+    this.validateFlowConfig()
     this.turns = []
     this.actionIndex = 0
     this.compressTurnIndexs = []
+    this.initializeContext()
     for(let i = 0; i < this.config.turnTotalCount; i++) {
       this.startNewTurn()
     }
   }
   
+  validateFlowConfig() {
+    validateFlow(this.config.flow, this.config)
+  }
+
+  createAction(step) {
+    return new Action({text: step.text, token: resolveStepToken(step.token, this.config), session: this})
+  }
+
+  initializeContext() {
+    this.initialContext = this.config.flow.initial
+      .filter(step => isStepEnabled(step, this.config.toolsMode))
+      .map(step => this.createAction(step))
+  }
+
   getInitialContext() {
-    return [
-      this.initialContext.agentPrompt,
-      this.initialContext.skillsDiscoverList,
-      this.initialContext.toolsIndexList,
-      ...[this.config.toolsMode === "FULL_TOOLS_SCHEMA"? this.initialContext.toolsSchemaList : undefined].filter(item => item),
-      this.initialContext.roleAllowTools,
-    ]
+    return this.initialContext.slice()
   }
   startNewTurn() {
     if (this.turns.length === 0) {
-      const turn = new Turn({index: 0, session: this})
+      const turn = new Turn({index: 0, session: this, kind: "initial"})
       this.turns.push(turn)
       turn.actions.push(...this.getInitialContext())
     }
@@ -399,7 +374,7 @@ class Session {
       )
 
       return result
-    }, {})
+    }, Object.create(null))
 
     const totalInputCachedPrice =
       (totalInputCached / 10 / 100) * this.config.model.inputCachedPrice
@@ -417,7 +392,7 @@ class Session {
 
     // 只统计实际用户消息轮次，初始上下文和压缩摘要不计入。
     const userTurnCount = this.turns.filter(turn =>
-      turn.actions.some(action => action.group === "user_message")
+      turn.kind === "user"
     ).length
     const compressionCount = this.compressTurnIndexs.length
     const averageUserTurnsPerCompression = compressionCount === 0

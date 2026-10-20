@@ -2,6 +2,7 @@ import { planNames } from "./session-report.js";
 import { money, token } from "./utils.js";
 export const planColors = ["#5869d9", "#d99b61"];
 const sourceColors = ["#71819b", "#b795ce", "#81a8bb", "#6977ca", "#b4b9c9", "#c7ab70", "#83b5ad", "#5d9a8b", "#b8ba7c", "#8e81c0", "#ca9eac", "#dcad84", "#5467b7", "#9ba7b6", "#8e65c3"];
+const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 export function trendOption(results, metric, currency) {
   const format = ["cost", "cumulativeCost"].includes(metric) ? value => money(value, currency) : token;
   return {
@@ -220,7 +221,7 @@ export function sourceOption(results, currency) {
             }
 
             <span style="color:#6f788b;">
-              ${params.name}
+              ${escapeHtml(params.name)}
             </span>
 
             <strong style="

@@ -5,6 +5,7 @@ import { groups, compressionFields, priceFields, createPresetConfig } from "../c
 import { modelPresets } from "../model-pricing.js";
 import { token } from "../utils.js";
 import ParameterField from "./ParameterField.vue";
+import FlowEditor from "./FlowEditor.vue";
 const props = defineProps({ config: Object, errors: Object });
 defineEmits(["reset"]);
 const s = computed(() => props.config.simulation);
@@ -45,12 +46,13 @@ function markCustom() {
         </div>
       </div>
     </details>
+    <FlowEditor :simulation="s" :error="errors.flow" />
     <details class="parameter-group compression-parameters" open>
       <summary><span><Layers :size="15" />上下文压缩</span><ChevronDown :size="14" /></summary>
       <div class="parameter-fields">
         <label class="field"><span>触发方式</span><select v-model="s.compressionThresholdType" aria-label="压缩触发方式"><option value="TURN">按活跃用户轮次</option><option value="TOKEN">按上下文 Token</option></select></label>
         <ParameterField v-for="field in visibleCompression" :key="field[0]" :object="s" :field="field" :error="errors[field[0]]" />
-        <p class="field-note">在每轮回复后检查，压缩会额外请求一次模型。摘要长度不等于压缩后的总上下文。</p>
+        <p class="field-note">在每轮流程结束后检查，压缩会额外请求一次模型。摘要长度不等于压缩后的总上下文。</p>
       </div>
     </details>
     <details class="parameter-group" open>

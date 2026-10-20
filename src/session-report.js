@@ -12,6 +12,7 @@ export const sourceNames = {
   "compression retained turns": "压缩保留轮次", "compress history": "压缩摘要",
 };
 export const ratio = (a, b) => b === 0 ? null : a / b;
+const sourceName = key => Object.hasOwn(sourceNames, key) ? sourceNames[key] : key;
 export function fees(hit, miss, output, model) {
   const cached = hit / 1000 * model.inputCachedPrice;
   const fresh = miss / 1000 * model.inputNotCachedPrice;
@@ -35,17 +36,25 @@ export function buildReport(session) {
   const totals = session.getConsumptionTokens();
   const model = session.config.model;
   const requests = [], rounds = [], compressions = [];
-  const sources = Object.fromEntries(Object.keys(sourceNames).map(key => [key, { key, name: sourceNames[key], hit: 0, miss: 0, output: 0 }]));
+  // 两种工具模式使用同一来源顺序，包括仅在另一方案执行的自定义步骤。
+  const sourceKeys = new Set([
+    ...Object.keys(sourceNames),
+    ...session.config.flow.initial.map(step => step.text),
+    ...session.config.flow.turn.map(step => step.text),
+  ]);
+  const sources = Object.assign(Object.create(null), Object.fromEntries(
+    [...sourceKeys].map(key => [key, { key, name: sourceName(key), hit: 0, miss: 0, output: 0 }])
+  ));
   const initialContext = contentSize(session.getInitialContext());
   const turnSizes = session.turns.map(turn => contentSize(turn.actions));
   const userNumbers = new Map();
   let activeTurns = [0], context = initialContext, cumulativeCost = 0, cumulativeTokens = 0;
   let round;
   for (const turn of session.turns.slice(1)) {
-    const userTurn = turn.actions.some(a => a.group === "user_message");
+    const userTurn = turn.kind === "user";
     if (userTurn) {
       userNumbers.set(turn.index, rounds.length + 1);
-      round = { round: rounds.length + 1, requestIds: [], cost: 0, cumulativeCost: 0, cumulativeTokens: 0, context: 0, beforeCompression: null, compression: null };
+      round = { round: rounds.length + 1, requestIds: [], cost: 0, cumulativeCost: 0, cumulativeTokens: 0, context: 0, peakInput: 0, beforeCompression: null, compression: null };
       rounds.push(round);
       context += turnSizes[turn.index];
       activeTurns.push(turn.index);
@@ -53,7 +62,7 @@ export function buildReport(session) {
     for (let actionIndex = 0; actionIndex < turn.actions.length; actionIndex++) {
       const llm = turn.actions[actionIndex];
       if (llm.type !== "llm") continue;
-      const compression = llm.output.group === "compress history";
+      const compression = turn.kind === "compression";
       const cost = fees(llm.cachedToken, llm.notCachedToken, llm.output.token, model);
       cumulativeCost += cost.total;
       cumulativeTokens += llm.cachedToken + llm.notCachedToken + llm.output.token;
@@ -62,18 +71,22 @@ export function buildReport(session) {
       if (!outputSource) { outputSource = { key: llm.output.group, hit: 0, miss: 0, output: 0 }; attribution.push(outputSource); }
       outputSource.output += llm.output.token;
       for (const source of attribution) {
-        sources[source.key] ??= { key: source.key, name: sourceNames[source.key] || source.key, hit: 0, miss: 0, output: 0 };
+        sources[source.key] ??= { key: source.key, name: sourceName(source.key), hit: 0, miss: 0, output: 0 };
         for (const key of ["hit", "miss", "output"]) sources[source.key][key] += source[key];
         source.name = sources[source.key].name;
         source.cost = fees(source.hit, source.miss, source.output, model);
       }
-      const following = turn.actions[actionIndex + 2];
+      // 连续追加的内容都属于这次请求之后的结果，直到下一次模型调用。
+      let toolResult = 0;
+      for (let i = actionIndex + 2; i < turn.actions.length && turn.actions[i].type !== "llm"; i++) {
+        toolResult += turn.actions[i].token;
+      }
       const request = {
         id: requests.length + 1, round: round.round, compression,
-        stage: compression ? "上下文压缩" : sourceNames[llm.output.group],
+        stage: compression ? "上下文压缩" : sourceName(llm.output.group),
         input: llm.cachedToken + llm.notCachedToken, prefix: prefixSize(llm),
         hit: llm.cachedToken, miss: llm.notCachedToken, output: llm.output.token,
-        toolResult: following && following.type !== "llm" ? following.token : 0,
+        toolResult,
         cost, cumulativeCost, attribution,
       };
       requests.push(request);
@@ -93,10 +106,10 @@ export function buildReport(session) {
         round.beforeCompression = before;
         round.compression = event;
       }
-      round.cumulativeCost = cumulativeCost;
-      round.cumulativeTokens = cumulativeTokens;
-      round.context = context;
     }
+    round.cumulativeCost = cumulativeCost;
+    round.cumulativeTokens = cumulativeTokens;
+    round.context = context;
   }
   const result = {
     mode: session.config.toolsMode, initialContext,

@@ -1,5 +1,6 @@
 import Session from "./session.js";
 import { modelPresets } from "./model-pricing.js";
+import { validateFlow } from "./session-flow.js";
 
 export const groups = [
   { title: "会话规模", fields: [
@@ -71,6 +72,7 @@ export function validate(config) {
   if (!["TURN", "TOKEN"].includes(s.compressionThresholdType)) errors.compressionThresholdType = "请选择压缩方式";
   if (s.compressionThresholdType === "TURN" && s.compressionThresholdTurnCount <= s.compressionKeepTurns) errors.compressionThresholdTurnCount = "阈值必须大于保留轮次";
   if (s.compressionThresholdType === "TOKEN" && s.compressionThresholdToken <= 0) errors.compressionThresholdToken = "阈值必须大于 0";
+  try { validateFlow(s.flow, s); } catch (error) { errors.flow = error.message; }
   for (const [key] of priceFields) {
     if (typeof config.model[key] !== "number" || !Number.isFinite(config.model[key]) || config.model[key] < 0) errors[key] = "请输入非负有限单价";
   }
@@ -87,6 +89,11 @@ export function readConfig(data) {
     setValue(normalized.simulation, key, value);
   }
   normalized.simulation.compressionThresholdType = data.simulation.compressionThresholdType;
+  if (data.simulation.flow !== undefined) {
+    const flow = data.simulation.flow;
+    if (!flow || typeof flow !== "object" || Array.isArray(flow)) throw new Error("flow 必须是流程配置对象");
+    normalized.simulation.flow = { ...normalized.simulation.flow, ...structuredClone(flow) };
+  }
   for (const key of ["name", "currency", ...priceFields.map(([key]) => key)]) normalized.model[key] = data.model[key];
   normalized.pricing = { id: "custom", label: "手动费率", source: "", date: "" };
   if (data.pricing && typeof data.pricing === "object") {

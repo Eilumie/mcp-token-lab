@@ -98,7 +98,7 @@ async function importConfig(event) {
         <SummaryCards :results="report.results" :config="report.config" />
         <AnalysisPanel :results="report.results" :config="report.config" />
       </template>
-      <footer><span class="footer-mark">T / L</span><p>初始前缀按期望命中率计费 · 每轮回复后检查压缩 · 最后一轮触发的压缩也计费<br />所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。</p><span>SESSION / V2</span></footer>
+      <footer><span class="footer-mark">T / L</span><p>初始前缀按期望命中率计费 · 每轮流程结束后检查压缩 · 最后一轮触发的压缩也计费<br />所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。</p><span>SESSION / V2</span></footer>
     </main>
   </div>
 </template>
