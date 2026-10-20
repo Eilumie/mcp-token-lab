@@ -30,8 +30,12 @@ function markCustom() {
 
 <template>
   <aside class="parameters">
-    <div class="aside-heading"><div><SlidersHorizontal :size="17" /><h2>实验参数</h2></div><button class="icon-button" title="恢复所有默认参数" aria-label="恢复所有默认参数" @click="$emit('reset')"><RotateCcw :size="15" /></button></div>
-    <p class="aside-intro">同一组参数，两种工具加载策略。</p>
+    <div class="aside-heading"><div><SlidersHorizontal :size="17" /><h2>当前方案</h2></div><button class="icon-button" title="恢复当前方案默认参数" aria-label="恢复当前方案默认参数" @click="$emit('reset')"><RotateCcw :size="15" /></button></div>
+    <p class="aside-intro">修改仅作用于当前选中的方案。</p>
+    <div class="parameter-fields plan-identity">
+      <label class="field"><span>方案名称</span><input v-model="config.name" maxlength="60" aria-label="方案名称" /><small v-if="errors.planName" class="error">{{ errors.planName }}</small></label>
+      <label class="field"><span>工具加载方式</span><select v-model="config.toolsMode" aria-label="工具加载方式"><option value="LAZY_TOOLS_SCHEMA">按需加载 Tools Schema</option><option value="FULL_TOOLS_SCHEMA">全量加载 Tools Schema</option></select></label>
+    </div>
     <details v-for="(group, index) in groups" :key="group.title" class="parameter-group" :open="index < 2">
       <summary><span><i class="group-number">{{ String(index + 1).padStart(2, '0') }}</i>{{ group.title }}</span><ChevronDown :size="14" /></summary>
       <div class="parameter-fields">

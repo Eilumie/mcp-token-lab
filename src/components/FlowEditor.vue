@@ -45,7 +45,7 @@ function size(step) {
   <details class="parameter-group flow-editor">
     <summary><span><Workflow :size="15" />自定义流程</span><ChevronDown :size="14" /></summary>
     <div class="parameter-fields">
-      <p class="field-note">两种方案共用流程。可调整顺序、停用步骤，或指定仅在某种方案执行。</p>
+      <p class="field-note">当前方案的独立流程。可调整顺序、停用步骤，或根据工具加载方式执行。</p>
       <small v-if="error" class="error" role="alert">{{ error }}</small>
       <section v-for="phase in phases" :key="phase.key" class="flow-phase" :aria-label="phase.label + '流程编辑'">
         <div class="flow-heading"><h3>{{ phase.label }}</h3><button type="button" @click="simulation.flow[phase.key] = createDefaultFlow()[phase.key]">恢复默认</button></div>
@@ -61,7 +61,7 @@ function size(step) {
             </div>
             <label class="field"><span>步骤名称 / 费用来源</span><input :value="name(step)" @input="step.text = $event.target.value" /></label>
             <label v-if="phase.key === 'turn'" class="field"><span>步骤类型</span><select v-model="step.type"><option value="action">追加内容（消息 / 工具结果）</option><option value="llm">模型调用（生成内容）</option></select></label>
-            <label class="field"><span>适用方案</span><select :value="step.toolsMode || ''" @change="$event.target.value ? step.toolsMode = $event.target.value : delete step.toolsMode"><option value="">两种方案</option><option value="LAZY_TOOLS_SCHEMA">仅按需 Tools</option><option value="FULL_TOOLS_SCHEMA">仅全量 Tools</option></select></label>
+            <label class="field"><span>执行条件</span><select :value="step.toolsMode || ''" @change="$event.target.value ? step.toolsMode = $event.target.value : delete step.toolsMode"><option value="">始终执行</option><option value="LAZY_TOOLS_SCHEMA">按需加载时执行</option><option value="FULL_TOOLS_SCHEMA">全量加载时执行</option></select></label>
             <label class="field"><span>{{ step.type === 'llm' ? '输出长度' : '内容长度' }}</span><select :value="typeof step.token === 'number' ? 'fixed' : 'parameters'" @change="changeTokenMode(step, $event)"><option value="fixed">固定 Token</option><option value="parameters">引用参数 / 参数相乘</option></select></label>
             <label v-if="typeof step.token === 'number'" class="field"><span>Token（K）</span><input type="number" min="0" step="any" :value="Number.isFinite(step.token) ? step.token : ''" @input="step.token = $event.target.value === '' ? NaN : Number($event.target.value)" /></label>
             <template v-else>

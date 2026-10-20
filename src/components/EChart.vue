@@ -1,6 +1,6 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { LineChart, PieChart } from "echarts/charts";
+import { LineChart, BarChart } from "echarts/charts";
 import {
   GridComponent,
   LegendComponent,
@@ -19,7 +19,7 @@ use([
   TooltipComponent,
   TitleComponent,
   CanvasRenderer,
-  PieChart
+  BarChart
 ]);
 
 const props = defineProps({ option: { type: Object, required: true } });

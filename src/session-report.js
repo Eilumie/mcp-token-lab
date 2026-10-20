@@ -1,4 +1,5 @@
 import Session from "./session.js";
+import { validateComparison } from "./comparison.js";
 
 export const modes = ["LAZY_TOOLS_SCHEMA", "FULL_TOOLS_SCHEMA"];
 export const planNames = ["按需 Tools", "全量 Tools"];
@@ -128,6 +129,19 @@ export function buildReport(session) {
   return result;
 }
 export function simulate(config) {
+  if (config.version === 3) {
+    const errors = validateComparison(config);
+    if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
+    return config.plans.map(plan => {
+      const session = new Session({ ...plan.simulation, model: plan.model, toolsMode: plan.toolsMode });
+      session.reset();
+      return {
+        ...buildReport(session), planId: plan.id, planName: plan.name, color: plan.color,
+        model: { ...plan.model }, pricing: structuredClone(plan.pricing),
+        expectedPrefixCacheHitRate: plan.simulation.expectedPrefixCacheHitRate,
+      };
+    });
+  }
   return modes.map(toolsMode => {
     const session = new Session({ ...config.simulation, model: config.model, toolsMode });
     session.reset();
