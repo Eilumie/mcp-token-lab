@@ -1,31 +1,38 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
-import { Asterisk, ArrowDownToLine, ArrowUpFromLine, SlidersHorizontal, X, Check, LoaderCircle, Plus, Copy, Trash2, Pencil, RotateCcw } from "lucide-vue-next";
+import { Asterisk, ArrowDownToLine, ArrowUpFromLine, SlidersHorizontal, X, Check, LoaderCircle, Plus, Copy, Trash2, Pencil, RotateCcw, Undo2, Star } from "lucide-vue-next";
 import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, validatePlan, planColors, maxPlans } from "./comparison.js";
 import { displayPlanColor } from "./theme.js";
 import { downloadFile } from "./utils.js";
-import ParameterPanel from "./components/ParameterPanel.vue";
+import PlanEditor from "./components/PlanEditor.vue";
 import SummaryCards from "./components/SummaryCards.vue";
 import AnalysisPanel from "./components/AnalysisPanel.vue";
 
 const config = ref(createComparisonConfig());
-const selectedId = ref(config.value.plans[0].id);
-const selectedPlan = computed(() => config.value.plans.find(plan => plan.id === selectedId.value));
-const errors = computed(() => validateComparison(config.value));
-const selectedErrors = computed(() => {
-  if (!selectedPlan.value) return {};
-  const local = validatePlan(selectedPlan.value);
-  const index = config.value.plans.indexOf(selectedPlan.value);
-  const prefix = `plans.${index}.`;
-  for (const [key, value] of Object.entries(errors.value)) if (key.startsWith(prefix)) local[key.slice(prefix.length)] = value;
-  return local;
+const draft = ref(null);
+const draftIsNew = ref(false);
+const draftErrors = computed(() => {
+  if (!draft.value) return {};
+  const errors = validatePlan(draft.value);
+  const others = config.value.plans.filter(plan => plan.id !== draft.value.id);
+  if (others.some(plan => plan.name.trim() === draft.value.name.trim())) errors.planName = "方案名称已存在，请换一个名称";
+  if (others.some(plan => plan.model.currency !== draft.value.model.currency)) errors.currency = "对比方案需使用相同币种";
+  return errors;
 });
+const errors = computed(() => validateComparison(config.value));
 const notice = ref("");
-const removed = shallowRef(null);
+const undo = shallowRef(null);
+const clone = value => JSON.parse(JSON.stringify(value));
+function remember(label) { undo.value = { config: clone(config.value), label }; }
+function undoChange() {
+  if (!undo.value) return;
+  config.value = undo.value.config;
+  notice.value = `已撤销${undo.value.label}。`;
+  undo.value = null;
+}
 const report = shallowRef(null);
 const busy = ref(false);
 const failure = ref("");
-const mobileParams = ref(false);
 const importInput = ref(null);
 let worker, debounce, deadline;
 function cancel() {
@@ -71,7 +78,31 @@ const warnings = computed(() => {
   }
   return messages;
 });
-function editPlan(id) { selectedId.value = id; mobileParams.value = true; }
+function editPlan(id) {
+  const plan = config.value.plans.find(plan => plan.id === id);
+  if (!plan) return;
+  draftIsNew.value = false;
+  draft.value = clone(plan);
+}
+function savePlan() {
+  if (!draft.value || Object.keys(draftErrors.value).length) return;
+  if (draftIsNew.value && config.value.plans.length >= maxPlans) return;
+  remember(draftIsNew.value ? "新增方案" : "编辑方案");
+  const plan = clone(draft.value);
+  plan.name = plan.name.trim();
+  const index = config.value.plans.findIndex(item => item.id === plan.id);
+  if (index < 0) config.value.plans.push(plan);
+  else config.value.plans.splice(index, 1, plan);
+  if (!config.value.baselineId) config.value.baselineId = plan.id;
+  notice.value = `已保存「${plan.name}」，正在更新对比。`;
+  draft.value = null;
+}
+function setBaseline(plan) {
+  if (config.value.baselineId === plan.id) return;
+  remember("切换基准");
+  config.value.baselineId = plan.id;
+  notice.value = `已将「${plan.name}」设为对比基准。`;
+}
 function uniqueName(base) {
   const names = new Set(config.value.plans.map(p => p.name.trim()));
   let name = base, index = 2;
@@ -87,41 +118,19 @@ function addPlan(source) {
     plan.model = JSON.parse(JSON.stringify(config.value.plans[0].model));
     plan.pricing = JSON.parse(JSON.stringify(config.value.plans[0].pricing));
   }
-  config.value.plans.push(plan);
-  if (!config.value.baselineId) config.value.baselineId = plan.id;
-  editPlan(plan.id);
-  notice.value = source ? "已复制方案，可独立修改参数与流程。" : "已新增方案，以默认流程作为起点。";
+  draftIsNew.value = true;
+  draft.value = plan;
 }
 function removePlan(plan) {
-  const index = config.value.plans.indexOf(plan);
-  removed.value = { plan: JSON.parse(JSON.stringify(plan)), index, baseline: config.value.baselineId === plan.id };
-  config.value.plans.splice(index, 1);
-  if (selectedId.value === plan.id) selectedId.value = config.value.plans[Math.min(index, config.value.plans.length - 1)]?.id ?? null;
+  remember("删除方案");
+  config.value.plans.splice(config.value.plans.indexOf(plan), 1);
   if (config.value.baselineId === plan.id) config.value.baselineId = config.value.plans[0]?.id ?? null;
   notice.value = `已删除「${plan.name}」。`;
 }
-function undoRemove() {
-  if (!removed.value || config.value.plans.length >= maxPlans) return;
-  const { plan, index, baseline } = removed.value;
-  plan.name = uniqueName(plan.name);
-  config.value.plans.splice(Math.min(index, config.value.plans.length), 0, plan);
-  if (baseline || !config.value.baselineId) config.value.baselineId = plan.id;
-  editPlan(plan.id);
-  removed.value = null;
-  notice.value = "已恢复删除的方案。";
-}
-function resetPlan() {
-  const current = selectedPlan.value;
-  if (!current) return;
-  const template = createComparisonConfig().plans.find(plan => plan.id === current.id);
-  Object.assign(current, createPlan({ source: template, id: current.id, name: current.name, color: current.color }));
-  notice.value = "已恢复当前方案的默认参数和流程。";
-}
 function reset() {
+  remember("恢复默认方案");
   config.value = createComparisonConfig();
-  selectedId.value = config.value.plans[0].id;
-  removed.value = null;
-  notice.value = "已恢复默认的按需、全量两个方案。";
+  notice.value = "已恢复两套默认方案，可撤销以找回之前的配置。";
 }
 function exportConfig() {
   downloadFile("token-lab-plans.json", JSON.stringify(config.value, null, 2), "application/json");
@@ -132,16 +141,16 @@ async function importConfig(event) {
   if (!file) return;
   try {
     if (file.size > 4000000) throw new Error("配置文件不能超过 4MB。");
-    config.value = readComparisonConfig(JSON.parse(await file.text()));
-    selectedId.value = config.value.plans[0]?.id ?? null;
-    removed.value = null;
+    const imported = readComparisonConfig(JSON.parse(await file.text()));
+    remember("导入配置");
+    config.value = imported;
     notice.value = "方案已导入。";
   } catch (error) { notice.value = "导入失败：" + error.message; }
   finally { event.target.value = ""; }
 }
 function editInvalidPlan() {
   const key = Object.keys(errors.value).find(key => key.startsWith("plans."));
-  const plan = key ? config.value.plans[Number(key.split(".")[1])] : selectedPlan.value;
+  const plan = key ? config.value.plans[Number(key.split(".")[1])] : config.value.plans[0];
   if (plan) editPlan(plan.id);
 }
 </script>
@@ -151,23 +160,20 @@ function editInvalidPlan() {
     <a class="brand" href="./"><span class="brand-mark"><Asterisk :size="32" :stroke-width="1.6" /></span><strong>Token Lab<span>A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
     <nav class="header-actions" aria-label="配置操作"><span class="local-badge"><i></i>本地模拟</span><button aria-label="导入配置" @click="importInput.click()"><ArrowUpFromLine :size="15" /><span>导入配置</span></button><button aria-label="导出配置" :disabled="!!Object.keys(errors).length" @click="exportConfig"><ArrowDownToLine :size="15" /><span>导出配置</span></button><input ref="importInput" type="file" accept=".json,application/json" hidden @change="importConfig" /></nav>
   </header>
-  <div class="workspace">
-    <button class="mobile-config-button" @click="mobileParams = !mobileParams"><X v-if="mobileParams" :size="16" /><SlidersHorizontal v-else :size="16" />{{ mobileParams ? '收起实验参数' : '调整实验参数' }}</button>
-    <div class="parameter-container" :class="{ 'mobile-open': mobileParams }"><ParameterPanel v-if="selectedPlan" :key="selectedPlan.id" :config="selectedPlan" :errors="selectedErrors" @reset="resetPlan" /><div v-else class="parameters field-note">添加一个方案后，在这里编辑它的参数和流程。</div></div>
+  <div class="workspace comparison-workspace">
     <main>
       <div class="page-heading"><div><p class="eyebrow">会话成本实验室 / TOKEN LAB</p><h1>每一份成本，都更清楚<span>。</span></h1><p>从一个想法，到更好的方案。探索模型、流程与费用之间的关系。</p></div><span class="session-badge">{{ config.plans.length }} 个对比方案</span></div>
-      <div v-if="notice" class="notice" role="status"><Check :size="15" /><span>{{ notice }}</span><button class="icon-button" aria-label="关闭通知" @click="notice = ''"><X :size="14" /></button></div>
+      <div v-if="notice || undo" class="notice" role="status"><Check :size="15" /><span>{{ notice || '可以撤销最近一次修改。' }}</span><button v-if="undo" class="undo-button" @click="undoChange"><Undo2 :size="14" />撤销{{ undo.label }}</button><button class="icon-button" aria-label="关闭通知" @click="notice = ''; undo = null"><X :size="14" /></button></div>
       <section class="plan-manager" aria-label="方案管理">
-        <div class="section-heading"><div><h2>对比方案 <span class="plan-count">{{ config.plans.length }} / {{ maxPlans }}</span></h2><p>选择一个方案，调整参数，看看费用如何变化。</p></div><div class="plan-toolbar"><button @click="reset"><RotateCcw :size="14" />恢复默认方案</button><button class="primary-button" :disabled="config.plans.length >= maxPlans" @click="addPlan()"><Plus :size="15" />新增方案</button></div></div>
+        <div class="section-heading"><div><h2>对比方案 <span class="plan-count">{{ config.plans.length }} / {{ maxPlans }}</span></h2><p>编辑流程与参数，保存后更新费用对比。</p></div><div class="plan-toolbar"><button @click="reset"><RotateCcw :size="14" />恢复默认方案</button><button class="primary-button" :disabled="config.plans.length >= maxPlans" @click="addPlan()"><Plus :size="15" />新增方案</button></div></div>
         <div class="plan-list">
-          <article v-for="plan in config.plans" :key="plan.id" class="plan-tile" :class="{ selected: selectedId === plan.id }" :style="{ '--plan-color': displayPlanColor(plan.color) }">
-            <button class="plan-select" :aria-label="'编辑方案 ' + plan.name" :aria-pressed="selectedId === plan.id" @click="editPlan(plan.id)"><span class="plan-tile-name"><i></i><strong>{{ plan.name || '未命名方案' }}</strong><Pencil :size="12" /></span><span>{{ plan.simulation.flow.turn.filter(step => step.enabled !== false).length }} 个流程步骤 · {{ plan.simulation.turnTotalCount }} 轮</span><small>{{ plan.model.name }}</small></button>
-            <div class="plan-tile-actions"><span>{{ config.baselineId === plan.id ? '对比基准' : selectedId === plan.id ? '正在编辑' : '独立方案' }}</span><button :aria-label="'复制方案 ' + plan.name" :disabled="config.plans.length >= maxPlans" @click="addPlan(plan)"><Copy :size="13" /></button><button :aria-label="'删除方案 ' + plan.name" @click="removePlan(plan)"><Trash2 :size="13" /></button></div>
+          <article v-for="plan in config.plans" :key="plan.id" class="plan-tile" :class="{ baseline: config.baselineId === plan.id }" :style="{ '--plan-color': displayPlanColor(plan.color) }">
+            <button class="plan-select" :aria-label="'编辑方案 ' + plan.name" @click="editPlan(plan.id)"><span class="plan-tile-name"><i></i><strong>{{ plan.name || '未命名方案' }}</strong><Pencil :size="12" /></span><span>{{ plan.simulation.flow.turn.filter(step => step.enabled !== false).length }} 个流程步骤 · {{ plan.simulation.turnTotalCount }} 轮</span><small>{{ plan.model.name }}</small></button>
+            <div class="plan-tile-actions"><button class="baseline-button" :aria-label="'设为基准 ' + plan.name" :aria-pressed="config.baselineId === plan.id" @click="setBaseline(plan)"><Star :size="13" />{{ config.baselineId === plan.id ? '对比基准' : '设为基准' }}</button><button :aria-label="'复制方案 ' + plan.name" :disabled="config.plans.length >= maxPlans" @click="addPlan(plan)"><Copy :size="13" /><span>复制</span></button><button :aria-label="'删除方案 ' + plan.name" @click="removePlan(plan)"><Trash2 :size="13" /><span>删除</span></button></div>
           </article>
         </div>
-        <div v-if="config.plans.length" class="comparison-controls"><label>对比基准<select v-model="config.baselineId" aria-label="对比基准"><option v-for="plan in config.plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option></select></label><span>费用差额均相对此方案计算</span><span class="auto-indicator"><i></i>修改后自动重算</span></div>
+        <div class="comparison-controls"><span>最多 {{ maxPlans }} 个独立方案 · 点击星标选择对比基准</span><span class="auto-indicator"><i></i>本地计算，无需 API Key</span></div>
       </section>
-      <div v-if="removed" class="notice" role="status"><span>可撤销最近一次方案删除。</span><button :disabled="config.plans.length >= maxPlans" @click="undoRemove">撤销删除</button></div>
       <div v-if="!config.plans.length" class="empty-state"><Plus :size="30" /><h2>从一个方案开始</h2><p>新增自定义方案，或恢复默认的按需、全量方案。</p><button @click="addPlan()">新增方案</button><button @click="reset">恢复默认方案</button></div>
       <div v-else-if="Object.keys(errors).length" class="empty-state" role="alert"><SlidersHorizontal :size="30" /><h2>请修正实验参数</h2><p>{{ Object.values(errors)[0] }}</p><button @click="editInvalidPlan">编辑待修正方案</button></div>
       <div v-else-if="failure" class="empty-state" role="alert"><h2>暂时无法完成模拟</h2><p>{{ failure }}</p><button @click="config = JSON.parse(JSON.stringify(config))">重新计算</button></div>
@@ -181,4 +187,5 @@ function editInvalidPlan() {
       <footer><span class="footer-mark">T / L</span><p>初始前缀按期望命中率计费 · 每轮流程结束后检查压缩 · 最后一轮触发的压缩也计费<br />所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。</p><span>COMPARE / V4</span></footer>
     </main>
   </div>
+  <PlanEditor v-if="draft" :plan="draft" :is-new="draftIsNew" :errors="draftErrors" @save="savePlan" @close="draft = null" />
 </template>
