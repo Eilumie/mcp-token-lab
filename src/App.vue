@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import { Asterisk, ArrowDownToLine, ArrowUpFromLine, SlidersHorizontal, X, Check, LoaderCircle, Plus, RotateCcw, Undo2 } from "lucide-vue-next";
-import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, validatePlan, planColors, maxPlans } from "./comparison.js";
+import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, validatePlan, resolveBaselineId, planColors, maxPlans } from "./comparison.js";
 import { downloadFile } from "./utils.js";
 import PlanEditor from "./components/PlanEditor.vue";
 import SummaryCards from "./components/SummaryCards.vue";
@@ -56,6 +56,7 @@ watch(config, () => {
       if (worker !== currentWorker) return;
       finish();
       if (data.error) { failure.value = data.error; return; }
+      snapshot.baselineId = resolveBaselineId(snapshot, data.results);
       report.value = { results: data.results, config: snapshot };
     };
     currentWorker.onerror = () => { if (worker !== currentWorker) return; finish(); failure.value = "计算失败，请检查参数后重试。"; };
@@ -99,9 +100,10 @@ function savePlan() {
 function setBaseline(id) {
   const plan = config.value.plans.find(plan => plan.id === id);
   if (!plan) return;
-  if (config.value.baselineId === plan.id) return;
+  if (config.value.baselineMode !== "auto" && config.value.baselineId === plan.id) return;
   remember("切换基准");
   config.value.baselineId = plan.id;
+  config.value.baselineMode = "manual";
   notice.value = `已将「${plan.name}」设为对比基准。`;
 }
 function uniqueName(base) {
@@ -131,7 +133,10 @@ function removePlan(id) {
   if (!plan) return;
   remember("删除方案");
   config.value.plans.splice(config.value.plans.indexOf(plan), 1);
-  if (config.value.baselineId === plan.id) config.value.baselineId = config.value.plans[0]?.id ?? null;
+  if (config.value.baselineId === plan.id || report.value?.config.baselineId === plan.id) {
+    config.value.baselineId = config.value.plans[0]?.id ?? null;
+    config.value.baselineMode = "auto";
+  }
   notice.value = `已删除「${plan.name}」。`;
 }
 function reset() {
@@ -140,7 +145,7 @@ function reset() {
   notice.value = "已恢复两套默认方案，可撤销以找回之前的配置。";
 }
 function exportConfig() {
-  downloadFile("token-lab-plans.json", JSON.stringify(config.value, null, 2), "application/json");
+  downloadFile("token-lab-plans.json", JSON.stringify(report.value?.config ?? config.value, null, 2), "application/json");
   notice.value = "已导出全部方案、对比基准与费率快照。";
 }
 async function importConfig(event) {

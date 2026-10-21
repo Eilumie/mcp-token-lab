@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createConfig } from "./config.js";
-import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, compareSources, planColors, maxPlans } from "./comparison.js";
+import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, resolveBaselineId, compareSources, planColors, maxPlans } from "./comparison.js";
 import { simulate } from "./session-report.js";
 import { sourceOption, trendOption } from "./charts.js";
 import { buildCsv } from "./export.js";
@@ -12,6 +12,27 @@ const small = () => {
   return config;
 };
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`);
+
+test("默认基准随最低费用方案变化，同价保留首项，手动选择优先", () => {
+  const config = small();
+  const results = simulate(config);
+  assert.equal(config.baselineMode, "auto");
+  const cheapest = results.reduce((best, result) => result.cost.total < best.cost.total ? result : best);
+  assert.equal(resolveBaselineId(config, results), cheapest.planId);
+  const changed = structuredClone(results);
+  changed[1].cost.total = 0;
+  assert.equal(resolveBaselineId(config, changed), changed[1].planId);
+  changed[0].cost.total = 0;
+  assert.equal(resolveBaselineId(config, changed), changed[0].planId);
+  config.baselineMode = "manual";
+  config.baselineId = results[1].planId;
+  assert.equal(resolveBaselineId(config, results), results[1].planId);
+  assert.equal(resolveBaselineId(config, []), null);
+  assert.deepEqual(readComparisonConfig(config), config);
+  delete config.baselineMode;
+  assert.equal(resolveBaselineId(config, results), config.baselineId);
+  assert.deepEqual(readComparisonConfig(config), config);
+});
 
 test("默认两方案以独立流程表达差异，不再包含模式配置", () => {
   const config = small();
@@ -133,6 +154,7 @@ test("多方案校验拒绝重复标识、名称、混合币种、无效基准�
     c => c.plans[1].color = "invalid",
     c => c.plans[1].simulation.userMessageToken = -1,
     c => c.baselineId = "missing",
+    c => c.baselineMode = "invalid",
     c => { c.plans = []; },
     c => { c.plans = Array.from({ length: maxPlans + 1 }, (_, i) => createPlan({ name: `方案${i}` })); },
   ]) {

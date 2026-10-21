@@ -19,7 +19,13 @@ export function createComparisonConfig() {
     createPlan({ id: "plan-full", name: "全量 Tools", color: planColors[1] }),
   ];
   plans[1].simulation.flow = createPreloadedFlow();
-  return { version: 4, unit: "K", baselineId: plans[1].id, plans };
+  return { version: 4, unit: "K", baselineId: plans[0].id, baselineMode: "auto", plans };
+}
+
+export function resolveBaselineId(config, results) {
+  if (!results.length) return null;
+  if (config.baselineMode !== "auto" && results.some(result => result.planId === config.baselineId)) return config.baselineId;
+  return results.reduce((best, result) => result.cost.total < best.cost.total ? result : best).planId;
 }
 
 export function validatePlan(plan) {
@@ -36,6 +42,7 @@ export function validatePlan(plan) {
 export function validateComparison(config) {
   const errors = {};
   if (config?.version !== 4 || config.unit !== "K") errors.version = "请使用 v4 多方案配置（K Token）";
+  if (config?.baselineMode !== undefined && !["auto", "manual"].includes(config.baselineMode)) errors.baselineMode = "对比基准模式无效";
   if (!Array.isArray(config?.plans) || config.plans.length > maxPlans) return { plans: `最多对比 ${maxPlans} 个方案` };
   const ids = new Set(), names = new Set();
   config.plans.forEach((plan, index) => {
@@ -62,6 +69,7 @@ export function readComparisonConfig(data) {
     return result;
   });
   const config = { version: 4, unit: "K", baselineId: data.baselineId, plans };
+  if (data.baselineMode !== undefined) config.baselineMode = data.baselineMode;
   const errors = validateComparison(config);
   if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
   return config;
