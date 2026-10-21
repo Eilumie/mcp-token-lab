@@ -42,7 +42,7 @@ export function validatePlan(plan) {
 export function validateComparison(config) {
   const errors = {};
   if (config?.version !== 4 || config.unit !== "K") errors.version = "请使用 v4 多方案配置（K Token）";
-  if (config?.baselineMode !== undefined && !["auto", "manual"].includes(config.baselineMode)) errors.baselineMode = "对比基准模式无效";
+  if (config?.baselineMode !== undefined && !["auto", "manual"].includes(config.baselineMode)) errors.baselineMode = "Base模式无效";
   if (!Array.isArray(config?.plans) || config.plans.length > maxPlans) return { plans: `最多对比 ${maxPlans} 个方案` };
   const ids = new Set(), names = new Set();
   config.plans.forEach((plan, index) => {
@@ -54,7 +54,7 @@ export function validateComparison(config) {
     names.add(plan.name?.trim?.());
     if (plan.model?.currency !== config.plans[0]?.model?.currency) errors.currency = "对比方案需使用相同币种";
   });
-  if (config.plans.length ? !ids.has(config.baselineId) : config.baselineId !== null) errors.baselineId = "请选择有效的对比基准";
+  if (config.plans.length ? !ids.has(config.baselineId) : config.baselineId !== null) errors.baselineId = "请选择有效的Base";
   return errors;
 }
 

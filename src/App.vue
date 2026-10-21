@@ -104,7 +104,7 @@ function setBaseline(id) {
   remember("切换基准");
   config.value.baselineId = plan.id;
   config.value.baselineMode = "manual";
-  notice.value = `已将「${plan.name}」设为对比基准。`;
+  notice.value = `已将「${plan.name}」设为Base。`;
 }
 function uniqueName(base) {
   const names = new Set(config.value.plans.map(p => p.name.trim()));
@@ -146,7 +146,7 @@ function reset() {
 }
 function exportConfig() {
   downloadFile("token-lab-plans.json", JSON.stringify(report.value?.config ?? config.value, null, 2), "application/json");
-  notice.value = "已导出全部方案、对比基准与费率快照。";
+  notice.value = "已导出全部方案、Base与费率快照。";
 }
 async function importConfig(event) {
   const file = event.target.files?.[0];
