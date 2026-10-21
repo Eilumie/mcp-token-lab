@@ -45,6 +45,7 @@ export default class Session {
     this.turns = [];
     this.compressedRanges = [];
     this.actionIndex = 0;
+    this.userTurnCount = 0;
     this.initialContext = this.config.flow.initial
       .filter(step => step.enabled !== false)
       .map(step => this.createAction(step));
@@ -55,11 +56,11 @@ export default class Session {
     for (let i = 0; i < this.config.turnTotalCount; i++) this.startNewTurn();
   }
 
-  createAction(step) {
+  createAction(step, runtime) {
     const actionIndex = this.actionIndex++;
     return {
       type: "action", actionIndex, text: `${actionIndex}-${step.text}`, group: step.text,
-      token: resolveStepToken(step.token, this.config),
+      token: resolveStepToken(step.token, this.config, runtime),
     };
   }
 
@@ -83,7 +84,9 @@ export default class Session {
 
   startNewTurn() {
     if (!this.turns.length) this.createTurn("initial").actions.push(...this.getInitialContext());
-    this.runPlan(this.createTurn("user"));
+    const turn = this.createTurn("user");
+    turn.turnIndex = this.userTurnCount++;
+    this.runPlan(turn);
     const snapshot = this.getContextSnapshot();
     const thresholdReached = this.config.compressionThresholdType === "TOKEN"
       ? contentSize(flatten(snapshot)) >= this.config.compressionThresholdToken
@@ -93,11 +96,19 @@ export default class Session {
   }
 
   runPlan(turn) {
-    for (const step of this.config.flow.turn) {
+    let llmIndex = 0;
+    for (const [index, step] of this.config.flow.turn.entries()) {
       if (step.enabled === false) continue;
-      const output = this.createAction(step);
-      if (step.type === "llm") this.appendRequest(turn, output);
-      else turn.actions.push(output);
+      const runtime = { turnIndex: turn.turnIndex ?? 0, llmIndex };
+      let output;
+      try { output = this.createAction(step, runtime); }
+      catch (error) {
+        throw new RangeError(`flow.turn 第 ${index + 1} 步「${step.text}」（turnIndex=${runtime.turnIndex}, llmIndex=${llmIndex}）：${error.message}`);
+      }
+      if (step.type === "llm") {
+        this.appendRequest(turn, output);
+        llmIndex++;
+      } else turn.actions.push(output);
     }
   }
 

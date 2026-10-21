@@ -1,15 +1,31 @@
 <script setup>
-import { nextTick, ref, toRaw, watch } from "vue";
-import { ArrowUp, ArrowDown, Plus, Trash2, ChevronDown, Copy, Undo2, FileText, Sparkles } from "lucide-vue-next";
-import { resolveStepToken, tokenParameters } from "../session-flow.js";
+import { computed, nextTick, ref, shallowRef, toRaw, watch } from "vue";
+import { ArrowUp, ArrowDown, Plus, Trash2, ChevronDown, Copy, Undo2, FileText, Sparkles, Braces } from "lucide-vue-next";
+import { resolveStepToken, tokenParameters, tokenFormula, formulaVariables, runtimeParameters, stepRuntime } from "../session-flow.js";
+import { formulaFunctions, maxFormulaLength } from "../token-formula.js";
 import { sourceNames } from "../session-report.js";
 import { token } from "../utils.js";
+import VariablePicker from "./VariablePicker.vue";
 
 const props = defineProps({ simulation: Object, error: String });
 const container = ref(null);
 const phase = ref("initial");
 const openId = ref(null);
 const removed = ref(null);
+const picker = shallowRef(null);
+const previewTurn = ref(0);
+const previewTurnIndex = computed(() => Math.min(Math.max(0, Math.floor(Number(previewTurn.value) || 0)), Math.max(0, props.simulation.turnTotalCount - 1)));
+function runtimeFor(step) {
+  return stepRuntime(props.simulation.flow, phase.value, props.simulation.flow[phase.value].indexOf(step), previewTurnIndex.value);
+}
+const pickerVariables = computed(() => {
+  if (!picker.value) return [];
+  const values = formulaVariables(props.simulation, runtimeFor(picker.value.step));
+  return Object.entries({ ...runtimeParameters, ...tokenParameters }).map(([key, label]) => ({
+    key, label, group: Object.hasOwn(runtimeParameters, key) ? "运行变量" : "方案参数",
+    value: Number.isFinite(values[key]) ? Number(values[key].toFixed(6)) : "待填写",
+  }));
+});
 const stepIds = new WeakMap();
 let nextStepId = 0;
 function stepKey(step) {
@@ -21,7 +37,39 @@ const phases = [
   { key: "turn", label: "每轮流程", note: "从上到下执行。模型调用读取当前上下文，流程结束后检查压缩。" },
 ];
 const name = step => Object.hasOwn(sourceNames, step.text) ? sourceNames[step.text] : step.text;
-const factors = step => Array.isArray(step.token) ? step.token : [step.token];
+const formulaExamples = [
+  { label: "随轮次增长", value: "agentResult * (turnIndex + 1)" },
+  { label: "区分模型调用", value: "llmIndex === 0 ? readSkillPlanToken : agentResult" },
+  { label: "工具返回总量", value: "toolResultToken * turnAvgToolsCount" },
+  { label: "向上取整", value: "Math.ceil(toolResultToken * turnAvgToolsCount)" },
+  { label: "限制最大长度", value: "Math.min(toolResultToken * turnAvgToolsCount, 10)" },
+  { label: "按数量判断", value: "turnAvgToolsCount > 0 ? toolResultToken * turnAvgToolsCount : 0" },
+];
+const modeValues = new WeakMap();
+function openVariables(step) {
+  const input = container.value?.querySelector(`[data-step="${stepKey(step)}"] textarea`);
+  const length = tokenFormula(step.token).length;
+  picker.value = { step, input, start: Math.min(input?.selectionStart ?? length, length), end: Math.min(input?.selectionEnd ?? length, length) };
+}
+async function closeVariables() {
+  const entry = picker.value;
+  picker.value = null;
+  await nextTick();
+  entry?.input?.focus();
+  entry?.input?.setSelectionRange(entry.start, entry.end);
+}
+async function insertVariable(variable) {
+  const { step, input, start, end } = picker.value;
+  const expression = tokenFormula(step.token);
+  step.token = expression.slice(0, start) + variable + expression.slice(end);
+  picker.value = null;
+  await nextTick();
+  input?.focus();
+  input?.setSelectionRange(start + variable.length, start + variable.length);
+}
+function formulaError(step) {
+  try { resolveStepToken(step.token, props.simulation, runtimeFor(step)); return ""; } catch (error) { return error.message; }
+}
 function move(index, delta) {
   const steps = props.simulation.flow[phase.value];
   const [step] = steps.splice(index, 1);
@@ -57,15 +105,21 @@ function undoRemove() {
   removed.value = null;
   reveal(steps[index]);
 }
-watch(() => props.simulation.flow, () => { removed.value = null; openId.value = null; });
-function changeTokenMode(step, event) { step.token = event.target.value === "fixed" ? 1 : ["userMessageToken"]; }
-function changeFactor(step, index, value) {
-  const next = factors(step).slice();
-  next[index] = value;
-  step.token = next;
+watch(() => props.simulation.flow, () => { removed.value = null; openId.value = null; picker.value = null; });
+function changeTokenMode(step, event) {
+  const previous = modeValues.get(step) || {};
+  const isFixed = typeof step.token === "number";
+  previous[isFixed ? "fixed" : "formula"] = step.token;
+  modeValues.set(step, previous);
+  if (event.target.value === "formula") step.token = previous.formula ?? String(Number.isFinite(step.token) ? step.token : 1);
+  else {
+    let value = 1;
+    try { value = resolveStepToken(step.token, props.simulation, runtimeFor(step)); } catch { /* 无效公式仍可切回固定长度。 */ }
+    step.token = previous.fixed ?? value;
+  }
 }
 function size(step) {
-  try { return token(resolveStepToken(step.token, props.simulation)); } catch { return "待修正"; }
+  try { return token(resolveStepToken(step.token, props.simulation, runtimeFor(step))); } catch { return "待修正"; }
 }
 </script>
 
@@ -73,6 +127,7 @@ function size(step) {
   <div ref="container" class="flow-editor">
     <nav class="flow-phases" aria-label="流程阶段"><button v-for="item in phases" :key="item.key" :class="{ active: phase === item.key }" :aria-pressed="phase === item.key" @click="phase = item.key">{{ item.label }}<span>{{ simulation.flow[item.key].length }} 步</span></button></nav>
     <p class="flow-description">{{ phases.find(item => item.key === phase).note }}</p>
+    <div v-if="phase === 'turn'" class="flow-runtime-preview"><label>预览 turnIndex<input v-model="previewTurn" type="number" min="0" :max="Math.max(0, simulation.turnTotalCount - 1)" step="1" aria-label="预览 turnIndex" /></label><span>第 {{ previewTurnIndex + 1 }} 轮 · 索引从 0 开始，预览不改变会话轮数。</span></div>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <div v-if="removed" class="flow-undo" role="status"><span>已删除「{{ name(removed.step) }}」</span><button @click="undoRemove"><Undo2 :size="13" />撤销删除步骤</button></div>
     <section :aria-label="(phase === 'initial' ? '初始上下文' : '每轮流程') + '流程编辑'">
@@ -90,14 +145,22 @@ function size(step) {
         <div v-if="openId === stepKey(step)" class="flow-step-fields">
           <label class="field"><span>步骤名称 / 费用来源</span><input type="text" :value="name(step)" @input="step.text = $event.target.value" /></label>
           <label v-if="phase === 'turn'" class="field"><span>步骤类型</span><select v-model="step.type"><option value="action">追加内容（消息 / 工具结果）</option><option value="llm">模型调用（生成内容）</option></select></label>
-          <label class="field"><span>长度设置</span><select :value="typeof step.token === 'number' ? 'fixed' : 'parameters'" @change="changeTokenMode(step, $event)"><option value="fixed">固定 Token</option><option value="parameters">引用参数 / 参数相乘</option></select></label>
+          <label class="field"><span>长度设置</span><select :value="typeof step.token === 'number' ? 'fixed' : 'formula'" @change="changeTokenMode(step, $event)"><option value="fixed">固定 Token</option><option value="formula">公式</option></select></label>
           <label v-if="typeof step.token === 'number'" class="field"><span>{{ step.type === 'llm' ? '输出长度（K Token）' : '内容长度（K Token）' }}</span><input type="number" min="0" step="any" :value="Number.isFinite(step.token) ? step.token : ''" @input="step.token = $event.target.value === '' ? NaN : Number($event.target.value)" /></label>
-          <div v-else class="flow-factors"><div v-for="(factor, i) in factors(step)" :key="i" class="flow-factor"><span>{{ i ? '×' : '=' }}</span><select :aria-label="'参数因子 ' + (i + 1)" :value="factor" @change="changeFactor(step, i, $event.target.value)"><option v-for="(label, key) in tokenParameters" :key="key" :value="key">{{ label }}</option></select><button class="icon-button" :disabled="factors(step).length === 1" :aria-label="'移除参数因子 ' + (i + 1)" @click="step.token = factors(step).filter((_, n) => n !== i)"><Trash2 :size="13" /></button></div><button @click="step.token = [...factors(step), 'turnAvgToolsCount']"><Plus :size="13" />乘以参数</button></div>
+          <div v-else class="flow-formula">
+            <label class="field"><span>公式（结果单位：K Token）</span><textarea :value="tokenFormula(step.token)" :maxlength="maxFormulaLength" rows="3" spellcheck="false" autocapitalize="off" :aria-invalid="!!formulaError(step)" :aria-describedby="'formula-status-' + stepKey(step)" placeholder="例如：toolResultToken * turnAvgToolsCount" @input="step.token = $event.target.value" /></label>
+            <p :id="'formula-status-' + stepKey(step)" class="formula-preview" :class="{ error: formulaError(step) }" role="status">{{ formulaError(step) || '预览结果：' + size(step) + '（1K = 1,000 Token）' }}</p>
+            <div class="formula-examples"><span>试一试</span><button v-for="example in formulaExamples" :key="example.label" :title="example.value" @click="step.token = example.value">{{ example.label }}</button></div>
+            <div class="formula-variable-toolbar"><button @click="openVariables(step)"><Braces :size="15" />插入变量</button><span>预览：turnIndex = {{ runtimeFor(step).turnIndex }} · llmIndex = {{ runtimeFor(step).llmIndex }}</span></div>
+            <p class="field-note">{{ phase === 'initial' ? '初始阶段两个索引均为 0。' : 'turnIndex 只统计用户轮次；llmIndex 为当前步骤前已执行的模型调用数，每轮重置，停用步骤不计数。' }}</p>
+            <p class="field-note">支持 + − * / % **、括号、比较、&amp;&amp; / || 和条件 ? :。函数：{{ formulaFunctions.map(name => 'Math.' + name).join('、') }}；常量：Math.PI、Math.E。输入单个表达式，无需 return。</p>
+          </div>
           <p class="field-note flow-step-note">当前{{ step.type === 'llm' ? '输出' : '内容' }} {{ size(step) }}。{{ step.type === 'llm' ? '输入取当前有效上下文，输出追加到后续上下文。' : '这一步仅追加内容，在后续模型调用时产生输入费用。' }}</p>
         </div>
       </article>
       <div v-if="!simulation.flow[phase].length" class="flow-empty"><FileText :size="26" /><h3>从第一个步骤开始</h3><p>{{ phase === 'initial' ? '添加系统提示、业务背景或工具定义。' : '添加消息、工具结果或模型调用。空流程仍会按轮次检查压缩。' }}</p></div>
     </section>
     <div class="flow-add-actions"><button @click="add('action')"><Plus :size="15" />添加内容</button><button v-if="phase === 'turn'" @click="add('llm')"><Sparkles :size="15" />添加模型调用</button><span>{{ simulation.flow[phase].filter(step => step.enabled !== false).length }} / {{ simulation.flow[phase].length }} 步已启用</span></div>
+    <VariablePicker v-if="picker" :variables="pickerVariables" @select="insertVariable" @close="closeVariables" />
   </div>
 </template>

@@ -36,7 +36,7 @@ test("默认选择第一个模型，重置时恢复其费率和元数据", () =>
   const config = createConfig();
   assert.equal(config.pricing.id, first.id);
   assert.equal(config.model.name, first.name);
-  assert.equal(config.model.currency, first.currency === "CNY" ? "¥" : "$");
+  assert.equal(config.model.currency, "$");
   assert.deepEqual([config.model.inputCachedPrice, config.model.inputNotCachedPrice, config.model.outputPrice], [first.hit, first.miss, first.output]);
   config.model.inputCachedPrice = 999;
   config.pricing.contextWindow = 1;
@@ -96,7 +96,7 @@ test("10 轮基准，末轮压缩请求和最终上下文完整计入", () => {
     const [requests, initial, hit, miss, output, final, cost] = expected[i];
     assert.equal(r.requests.length, requests);
     close(r.initialContext, initial); close(r.hit, hit); close(r.miss, miss);
-    close(r.output, output); close(r.finalContext, final); close(r.cost.total, cost);
+    close(r.output, output); close(r.finalContext, final); close(r.cost.total, cost / 7);
     assert.deepEqual(r.compressions[0].compressedRounds, [1, 2, 3, 4, 5, 6, 7, 8]);
     assert.deepEqual(r.compressions[0].keptRounds, [9, 10]);
     assert.equal(r.rounds.at(-1).requestIds.length, i ? 4 : 5);
@@ -285,7 +285,7 @@ test("流程支持参数乘积、停用步骤和连续模型调用，步骤名�
 
 test("图表提示中的自定义步骤名称作为文字显示", () => {
   const results = simulate(setup({ turnTotalCount: 1 }));
-  const option = sourceOption(results, "¥");
+  const option = sourceOption(results, "$");
   const html = option.tooltip.formatter({ name: '<img src=x onerror="alert(1)">', value: 1, percent: 100, color: "#fff" });
   assert.ok(!html.includes("<img"));
   assert.ok(html.includes("&lt;img"));

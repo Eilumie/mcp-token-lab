@@ -62,15 +62,15 @@ test("来源表按 key 对齐自定义来源，多个图表和 CSV 包含全部�
   const third = rows.find(row => row.key === "独有来源2");
   assert.equal(third.output, 9);
   close(third.costs[2], results[2].cost.total);
-  const source = sourceOption(results, "¥");
+  const source = sourceOption(results, "$");
   assert.deepEqual(source.yAxis.data, config.plans.map(p => p.name));
   for (let i = 0; i < results.length; i++) close(source.series.reduce((sum, series) => sum + series.data[i], 0), results[i].cost.total);
-  const trend = trendOption(results, "context", "¥");
+  const trend = trendOption(results, "context", "$");
   assert.deepEqual(trend.series.map(s => s.name), config.plans.map(p => p.name));
   assert.equal(trend.xAxis.max, 3);
   for (const kind of ["requests", "sources"]) {
     const csv = buildCsv(results, config, kind);
-    config.plans.forEach(p => assert.ok(csv.includes(`"${p.name}","K","CNY"`)));
+    config.plans.forEach(p => assert.ok(csv.includes(`"${p.name}","K","USD"`)));
     assert.ok(!csv.includes("undefined"));
   }
 });
@@ -101,8 +101,8 @@ test("单方案与空方案均能保存、计算，改变基准不改变实际�
   config.plans.pop();
   const single = simulate(config);
   assert.equal(single.length, 1);
-  assert.equal(sourceOption(single, "¥").yAxis.data.length, 1);
-  assert.equal(trendOption(single, "cost", "¥").series.length, 1);
+  assert.equal(sourceOption(single, "$").yAxis.data.length, 1);
+  assert.equal(trendOption(single, "cost", "$").series.length, 1);
   assert.deepEqual(readComparisonConfig(config), config);
   config.plans = [];
   config.baselineId = null;
@@ -129,7 +129,7 @@ test("多方案校验拒绝重复标识、名称、混合币种、无效基准�
     c => c.plans[1].name = ` ${c.plans[0].name} `,
     c => c.plans[1].name = " ",
     c => c.plans[1].toolsMode = "invalid",
-    c => c.plans[1].model.currency = "$",
+    c => c.plans[1].model.currency = "EUR",
     c => c.plans[1].color = "invalid",
     c => c.plans[1].simulation.userMessageToken = -1,
     c => c.baselineId = "missing",
@@ -182,8 +182,8 @@ test("旧 v2 / v3 条件流程导入为显式步骤，保留基准费用与请�
     assert.ok(!JSON.stringify(migrated).includes("toolsMode"));
     const results = simulate(migrated);
     assert.deepEqual(results.map(r => r.requests.length), [41, 31]);
-    close(results[0].cost.total, 6.12874995);
-    close(results[1].cost.total, 8.18847795);
+    close(results[0].cost.total, 6.12874995 / 7);
+    close(results[1].cost.total, 8.18847795 / 7);
     assert.deepEqual(readComparisonConfig(migrated), migrated);
     if (version === 3) assert.equal(migrated.baselineId, original.baselineId);
   }

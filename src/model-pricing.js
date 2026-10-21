@@ -1,4 +1,14 @@
-// 所有官方模型费率快照统一维护在此文件；数据不会自动联网更新。
+import { cnyToUsd, conversionNote } from "./currency.js";
+
+// 原始报价保留来源币种，页面预设统一转换为 USD；数据不会自动联网更新。
+function usdPreset(preset) {
+  if (preset.currency === "USD") return preset;
+  const converted = { ...preset, currency: "USD", conversionNote };
+  for (const key of ["hit", "miss", "output", "explicitCacheCreate", "explicitCacheHit"]) {
+    if (preset[key] != null) converted[key] = cnyToUsd(preset[key]);
+  }
+  return converted;
+}
 export const deepseekData = {
   provider: "deepseek",
   provider_name: "DeepSeek",
@@ -299,7 +309,7 @@ export const bailianPresets = bailianData.models.flatMap((model) => {
         ? "整个会话按所选闲时 / 忙时价格计算；原数据未提供时段边界。"
         : "整个会话采用固定价格。",
   }));
-});
+}).map(usdPreset);
 
 const periodLabels = { off_peak: "非高峰", peak: "高峰" };
 
@@ -317,9 +327,69 @@ export const deepseekPresets = deepseekData.models.flatMap((model) =>
     source: deepseekData.source,
     verified: deepseekData.verified_at,
   })),
-);
+).map(usdPreset);
 
-export const modelPricingData = [deepseekData, bailianData];
+const fixedModel = (id, name, input, hit, output, pricingNote = "") => ({
+  id, name, pricing_type: "fixed", prices: { input, input_cache_hit: hit, output }, pricingNote,
+});
+
+export const openaiData = {
+  provider: "openai", provider_name: "OpenAI", currency: "USD", price_unit: "per_1m_tokens",
+  source: "https://developers.openai.com/api/docs/pricing", verified_at: "2026-10-21",
+  pricingNote: "Standard 文本价格，手动固定短 / 长上下文档位，不自动跨档；不包含缓存写入、工具调用和地区附加费用。",
+  models: [
+    ["gpt-6-astra", "GPT-6 Astra", 10, 1, 50, 20, 2, 75],
+    ["gpt-6.1-sol", "GPT-6.1 Sol", 2, 0.1, 10, 4, 0.2, 15],
+    ["gpt-6-luna", "GPT-6 Luna", 0.1, 0.01, 0.5, 0.2, 0.02, 0.75],
+  ].map(([id, name, input, hit, output, longInput, longHit, longOutput]) => ({
+    id, name, pricing_type: "tiered",
+    price_tiers: [
+      { label: "短上下文", prices: { input, input_cache_hit: hit, output } },
+      { label: "长上下文", prices: { input: longInput, input_cache_hit: longHit, output: longOutput } },
+    ],
+  })),
+};
+
+export const claudeData = {
+  provider: "anthropic", provider_name: "Anthropic", currency: "USD", price_unit: "per_1m_tokens",
+  source: "https://platform.claude.com/docs/en/about-claude/pricing", verified_at: "2026-10-21",
+  pricingNote: "Claude API 标准文本价格；命中输入采用缓存读取价格，未命中输入采用基础输入价格，不包含缓存写入、工具调用和地区附加费用。",
+  models: [
+    fixedModel("claude-fable-5-1", "Claude Fable 5.1", 10, 0.25, 50),
+    fixedModel("claude-opus-5-5", "Claude Opus 5.5", 4, 0.2, 20),
+    fixedModel("claude-sonnet-5-5", "Claude Sonnet 5.5", 2, 0.1, 10),
+    { id: "claude-haiku-5-5", name: "Claude Haiku 5.5", pricing_type: "tiered", price_tiers: [
+      { label: "≤100K 输入", input_tokens_gt: 0, input_tokens_lte: 100000, prices: { input: 0.1, input_cache_hit: 0.01, output: 0.5 } },
+      { label: ">100K 输入", input_tokens_gt: 100000, input_tokens_lte: Number.MAX_SAFE_INTEGER, prices: { input: 0.5, input_cache_hit: 0.05, output: 2.5 } },
+    ] },
+  ],
+};
+
+export const geminiData = {
+  provider: "google", provider_name: "Google Gemini", currency: "USD", price_unit: "per_1m_tokens",
+  source: "https://ai.google.dev/gemini-api/docs/pricing", verified_at: "2026-10-21",
+  pricingNote: "Gemini API 付费 Standard 文本价格，输出含思考 Token；不包含缓存存储、搜索及其他工具费用。",
+  models: [
+    fixedModel("gemini-4-argon", "Gemini 4 Argon", 2, 0.1, 10, "优惠价格截至 2026-11-30；仅支持隐式缓存。2026-12-01 起输入 / 命中 / 输出为 $4 / $0.2 / $20。"),
+    fixedModel("gemini-3.8-flash", "Gemini 3.8 Flash", 0.75, 0.075, 3.75, "优惠价格截至 2026-12-31；2027-01-01 起输入 / 命中 / 输出为 $1.5 / $0.15 / $7.5。"),
+    fixedModel("gemini-3.5-flash-lite", "Gemini 3.5 Flash-Lite", 0.3, 0.03, 2.5),
+  ],
+};
+
+export const overseasPresets = [openaiData, claudeData, geminiData].flatMap(provider => provider.models.flatMap(model => {
+  const variants = model.price_tiers ?? [{ label: "标准价格", prices: model.prices }];
+  return variants.map((variant, index) => ({
+    id: `${provider.provider}:${model.id}:${model.price_tiers ? `tier-${index + 1}` : "fixed"}`,
+    name: `${provider.provider_name} · ${model.name} · ${variant.label}`,
+    actual: model.id, provider: provider.provider, currency: "USD", period: variant.label,
+    hit: variant.prices.input_cache_hit, miss: variant.prices.input, output: variant.prices.output,
+    ...(Number.isFinite(variant.input_tokens_gt) ? { tier: { input_tokens_gt: variant.input_tokens_gt, input_tokens_lte: variant.input_tokens_lte } } : {}),
+    source: provider.source, verified: provider.verified_at, sourceLabel: "官方美元费率快照",
+    pricingNote: [provider.pricingNote, model.pricingNote, model.price_tiers ? "整个会话按所选固定档位估算，不自动跨档。" : ""].filter(Boolean).join(" "),
+  }));
+}));
+
+export const modelPricingData = [deepseekData, bailianData, openaiData, claudeData, geminiData];
 
 // 页面默认使用列表中的第一个模型。
-export const modelPresets = [...bailianPresets, ...deepseekPresets];
+export const modelPresets = [...bailianPresets, ...deepseekPresets, ...overseasPresets];

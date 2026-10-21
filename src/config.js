@@ -1,6 +1,7 @@
 import { createSessionConfig } from "./session-defaults.js";
 import { modelPresets } from "./model-pricing.js";
 import { validateFlow } from "./session-flow.js";
+import { cnyToUsd, conversionNote } from "./currency.js";
 
 export const groups = [
   { title: "会话规模", fields: [
@@ -51,8 +52,8 @@ export function createConfig() {
 }
 export function createPresetConfig(preset) {
   return {
-    model: { name: preset.name, currency: preset.currency === "CNY" ? "¥" : "$", inputCachedPrice: preset.hit, inputNotCachedPrice: preset.miss, outputPrice: preset.output },
-    pricing: { id: preset.id, label: preset.sourceLabel || "内置费率快照", source: preset.source, date: preset.verified, ...(preset.contextWindow ? { contextWindow: preset.contextWindow } : {}), ...(preset.tier ? { tier: { input_tokens_gt: preset.tier.input_tokens_gt, input_tokens_lte: preset.tier.input_tokens_lte } } : {}) },
+    model: { name: preset.name, currency: "$", inputCachedPrice: preset.hit, inputNotCachedPrice: preset.miss, outputPrice: preset.output },
+    pricing: { id: preset.id, label: preset.sourceLabel || "内置费率快照", source: preset.source, date: preset.verified, note: preset.pricingNote || "", conversionNote: preset.conversionNote || "", ...(preset.contextWindow ? { contextWindow: preset.contextWindow } : {}), ...(preset.tier ? { tier: { input_tokens_gt: preset.tier.input_tokens_gt, input_tokens_lte: preset.tier.input_tokens_lte } } : {}) },
   };
 }
 export function validate(config) {
@@ -76,7 +77,7 @@ export function validate(config) {
   for (const [key] of priceFields) {
     if (typeof config.model[key] !== "number" || !Number.isFinite(config.model[key]) || config.model[key] < 0) errors[key] = "请输入非负有限单价";
   }
-  if (!["$", "¥"].includes(config.model.currency)) errors.currency = "模型币种无效";
+  if (config.model.currency !== "$") errors.currency = "模型费率请统一使用美元（$）";
   if (typeof config.model.name !== "string" || !config.model.name.trim()) errors.name = "请输入模型名称";
   return errors;
 }
@@ -97,11 +98,21 @@ export function readConfig(data) {
   for (const key of ["name", "currency", ...priceFields.map(([key]) => key)]) normalized.model[key] = data.model[key];
   normalized.pricing = { id: "custom", label: "手动费率", source: "", date: "" };
   if (data.pricing && typeof data.pricing === "object") {
-    for (const key of ["id", "label", "source", "date"]) normalized.pricing[key] = typeof data.pricing[key] === "string" ? data.pricing[key] : "";
+    for (const key of ["id", "label", "source", "date", "note", "conversionNote"]) {
+      if (typeof data.pricing[key] === "string") normalized.pricing[key] = data.pricing[key];
+    }
     if (Number.isFinite(data.pricing.contextWindow) && data.pricing.contextWindow > 0) normalized.pricing.contextWindow = data.pricing.contextWindow;
     const tier = data.pricing.tier;
     if (tier && Number.isFinite(tier.input_tokens_gt) && Number.isFinite(tier.input_tokens_lte) && tier.input_tokens_gt >= 0 && tier.input_tokens_lte > tier.input_tokens_gt) normalized.pricing.tier = { input_tokens_gt: tier.input_tokens_gt, input_tokens_lte: tier.input_tokens_lte };
   }
+  if (normalized.model.currency === "¥" || normalized.model.currency === "CNY") {
+    // 仅在导入边界换算旧配置；美元配置再次导入时不重复换算。
+    for (const [key] of priceFields) {
+      if (typeof normalized.model[key] === "number") normalized.model[key] = cnyToUsd(normalized.model[key]);
+    }
+    normalized.model.currency = "$";
+    normalized.pricing.conversionNote = conversionNote;
+  } else if (normalized.model.currency === "USD") normalized.model.currency = "$";
   const errors = validate(normalized);
   if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
   return normalized;

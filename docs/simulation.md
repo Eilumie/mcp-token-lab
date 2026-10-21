@@ -8,7 +8,7 @@
 
 所有长度参数与 Session 结果均使用 **K Token**（1K = 1,000 Token），模型价格是每百万 Token 单价。费用 = K Token ÷ 1,000 × 单价。
 
-币种由模型内置，页面不提供手动切换。现有模型均使用人民币（CNY），单价显示为 ¥/M。
+所有预设、手动费率、图表和导出费用统一使用美元（USD），单价显示为 $/M（每百万 Token）。现有人民币快照按固定估算汇率 **$1 = ¥7** 换算，非实时汇率；原始报价保留在 `model-pricing.js`，汇率集中维护在 `currency.js`。
 
 每个方案拥有独立的参数、流程、模型和费率。默认两套流程分别在每轮查询所需 Schema，或在初始阶段预加载全部 Schema。Session 不区分工具模式，仅按流程数组执行；后续编辑互不影响。初始上下文、缓存命中、压缩触发和保留顺序都由 Session 决定。默认流程中角色允许工具比例只影响允许工具列表长度。每轮流程结束后检查压缩，最后一轮触发的压缩请求也计费。
 
@@ -20,7 +20,7 @@
 
 页面最多支持 8 个方案，每个方案支持 1–1,000 轮，计算在 Worker 中执行，超过 20 秒可减少方案数量、轮次或压缩阈值重试。不会为了提高性能改变 Session 的快照或引用匹配机制。图表采样保留压缩事件和峰值，明细每页 5 个用户轮次。
 
-页面导出 v4 多方案配置，包含全部方案和对比基准；可导入 v4，并兼容 v2 / v3 旧配置。旧模式条件在导入时解析成实际步骤，导出与运行时均不再包含 `toolsMode`。v2 会话配置迁移为两套独立流程。不迁移 v1 旧计算器数据。导出的费率保持原值，重新导入不会被预设覆盖。编辑模型或价格后标记为自定义费率。首次打开、刷新和恢复默认方案时均选择模型列表第一项，当前为百炼 Qwen3.8 Max；Session 不内置默认费率。配置仅保留在当前页面内存中，需要留存时可导出 JSON。
+页面导出 v4 多方案配置，包含全部方案和对比基准；可导入 v4，并兼容 v2 / v3 旧配置。旧模式条件在导入时解析成实际步骤，导出与运行时均不再包含 `toolsMode`。v2 会话配置迁移为两套独立流程。不迁移 v1 旧计算器数据。美元配置导出的费率保持原值，重新导入不会被预设覆盖或重复换算。导入 v2 / v3 / v4 人民币配置（¥ / CNY）时，三项费率按同一固定估算汇率转换为美元；自定义费率也适用。编辑模型或价格后标记为自定义费率。首次打开、刷新和恢复默认方案时均选择模型列表第一项，当前为百炼 Qwen3.8 Max；Session 不内置默认费率。配置仅保留在当前页面内存中，需要留存时可导出 JSON。
 
 
 ## 方案管理与比较
@@ -38,7 +38,7 @@
 
 ## 自定义会话流程
 
-编辑窗口的「执行流程」可分别编辑初始上下文与每轮流程：新增、复制、删除、改名、调整顺序、启用 / 停用，以及设置固定 Token 或引用参数乘积。支持撤销最近一次步骤删除，切换编辑分区不会清除该记录；更换流程模板会清除。配置导出会包含完整流程。
+编辑窗口的「执行流程」可分别编辑初始上下文与每轮流程：新增、复制、删除、改名、调整顺序、启用 / 停用，以及设置固定 Token 或公式。支持撤销最近一次步骤删除，切换编辑分区不会清除该记录；更换流程模板会清除。配置导出会包含完整流程。
 
 直接调用 Session 时使用 `config.flow.initial` 和 `config.flow.turn`；页面 v4 JSON 中位于 `plans[i].simulation.flow`（旧 v2 为 `simulation.flow`）。不提供流程或省略某个阶段时使用该阶段默认流程，显式传入 `[]` 表示空流程。步骤仅支持 `type`、`text`、`token`、`enabled`，未知字段会被拒绝。之前不含 `flow` 的 v2 配置仍可导入。
 
@@ -55,13 +55,13 @@ const session = new Session({
       {
         type: "action",
         text: "工具定义",
-        token: ["toolsTotalCount", "toolSchemaToken"],
+        token: "toolsTotalCount * toolSchemaToken",
       },
     ],
     turn: [
       { type: "action", text: "用户提问", token: "userMessageToken" },
       { type: "llm", text: "检索计划", token: 0.2 },
-      { type: "action", text: "检索结果", token: ["toolResultToken", "turnAvgToolsCount"] },
+      { type: "action", text: "检索结果", token: "Math.ceil(toolResultToken * turnAvgToolsCount)" },
       { type: "llm", text: "最终回复", token: "agentResult" },
     ],
   },
@@ -74,10 +74,43 @@ const totals = session.getConsumptionTokens();
 |---|---|
 | `type` | `action` 追加上下文；`llm` 请求当前有效上下文，并将输出追加到上下文。初始阶段只接受 `action`。 |
 | `text` | 非空名称，同时作为费用归因来源；相同名称合并统计。 |
-| `token` | 非负有限数字（K Token）、参数名字符串，或非空参数名数组（依次相乘）。`llm` 的 Token 表示输出长度，输入长度自动取当前上下文。 |
+| `token` | 非负有限数字（K Token）或 JS 数值表达式字符串。兼容旧版非空参数名数组（依次相乘）。`llm` 的 Token 表示输出长度，输入长度自动取当前上下文。 |
 | `enabled` | 可选布尔值，`false` 跳过该步骤，默认启用。 |
 
-可引用参数见 `session-flow.js` 的 `tokenParameters`：现有内容长度、Skills / Tools 总数、每轮平均数量、角色允许工具比例。流程为纯 JSON 数据，不执行字符串脚本或回调，可以传入 Worker。
+可引用变量见 `session-flow.js` 的 `tokenParameters`：现有内容长度、Skills / Tools 总数、每轮平均数量、角色允许工具比例以及会话总轮次 `turnTotalCount`。方案参数取当前配置值；长度单位是 K Token，比例使用 0–1。点击「插入变量」打开可搜索列表，查看变量名称、中文说明和当前预览值；选中后插入到原光标位置，或替换原选区。取消或按 Escape 只关闭变量弹框，不丢弃方案草稿。
+
+另外提供两个运行变量：
+
+| 变量 | 规则 |
+| --- | --- |
+| `turnIndex` | 用户轮次索引，从 0 开始；首轮为 0，压缩不占用轮次索引。 |
+| `llmIndex` | 当前步骤前已执行的模型调用数；本轮第一次调用取 0，第二次取 1。普通内容步骤取已完成调用数，每轮重置，停用调用不计数。 |
+
+初始阶段两者均为 0。每轮流程可指定预览 `turnIndex`，编辑器按步骤顺序计算 `llmIndex`；预览不会改变会话轮数。保存校验使用首轮索引，执行时逐步求值；若后续轮次得到无效结果，计算会停止并报告具体步骤、`turnIndex` 和 `llmIndex`。
+
+长度设置提供两种方式：
+
+- **固定 Token**：直接输入非负长度。
+- **公式**：输入单个 JavaScript 数值表达式，无需 `return`；输入时预览结果，保存前验证。切换方式会保留各自输入。
+
+```js
+// 单个工具返回长度 × 每轮工具数
+"toolResultToken * turnAvgToolsCount"
+// 向上取整（取整单位也是 K Token）
+"Math.ceil(toolResultToken * turnAvgToolsCount)"
+// 限制最大长度为 10K Token
+"Math.min(toolResultToken * turnAvgToolsCount, 10)"
+// 按数量分支
+"turnAvgToolsCount > 0 ? toolResultToken * turnAvgToolsCount : 0"
+// 输出随用户轮次增长
+"agentResult * (turnIndex + 1)"
+// 区分轮内模型调用
+"llmIndex === 0 ? readSkillPlanToken : agentResult"
+```
+
+支持算术 `+ - * / % **`、括号、比较 `> >= < <= == != === !==`、逻辑 `! && || ??` 和三元表达式 `条件 ? 值1 : 值2`。函数包括 `Math.min/max/ceil/floor/round/trunc/abs/sqrt/pow/log/log2/log10/exp`，常量包括 `Math.PI` 和 `Math.E`。公式结果必须是非负有限数字；未知变量、无效语法、负值或非有限结果会提示错误并阻止保存。
+
+公式由 Acorn 解析后，仅解释上述数值语法；不使用 `eval` 或 `Function`，不允许赋值、函数定义、全局对象、随机数、网络或任意属性访问。每条公式最多 2,000 字符、256 个求值节点、32 层嵌套。流程仍为可导入导出及传入 Worker 的纯 JSON 数据，旧参数名字符串及参数乘积数组继续兼容。
 
 轮次通过 `kind`（`initial` / `user` / `compression`）区分，不依赖步骤名称。每次 `startNewTurn()` 算一轮，即使没有用户消息步骤或模型调用，也会在轮末检查压缩。Token 阈值包含最后一次模型调用之后追加的内容。初始上下文的引用在本次运行中保持稳定，`reset()` 会按最新参数和流程重新创建初始上下文。
 
@@ -88,9 +121,9 @@ const totals = session.getConsumptionTokens();
 
 将 Session 轮次设为 10、Skills 总数设为 1，其他参数不变：
 
-| 方案 | 普通请求 / 压缩请求 | 最终上下文 K | 费用 CNY |
+| 方案 | 普通请求 / 压缩请求 | 最终上下文 K | 费用 USD |
 |---|---:|---:|---:|
-| 按需 | 40 / 1 | 25.799 | 6.12874995 |
-| 全量 | 30 / 1 | 69.969 | 8.18847795 |
+| 按需 | 40 / 1 | 25.799 | 0.8755357071 |
+| 全量 | 30 / 1 | 69.969 | 1.1697825643 |
 
-费用采用列表第一个模型（百炼 Qwen3.8 Max）的单价 1.5 / 12 / 36 CNY 每百万 Token。
+费用采用列表第一个模型（百炼 Qwen3.8 Max）的单价 (1.5 / 7) / (12 / 7) / (36 / 7) USD 每百万 Token（依次为命中输入、未命中输入、输出）。
