@@ -34,9 +34,8 @@ function markCustom() {
     <p class="aside-intro">修改仅作用于当前选中的方案。</p>
     <div class="parameter-fields plan-identity">
       <label class="field"><span>方案名称</span><input v-model="config.name" maxlength="60" aria-label="方案名称" /><small v-if="errors.planName" class="error">{{ errors.planName }}</small></label>
-      <label class="field"><span>工具加载方式</span><select v-model="config.toolsMode" aria-label="工具加载方式"><option value="LAZY_TOOLS_SCHEMA">按需加载 Tools Schema</option><option value="FULL_TOOLS_SCHEMA">全量加载 Tools Schema</option></select></label>
     </div>
-    <details v-for="(group, index) in groups" :key="group.title" class="parameter-group" :open="index < 2">
+    <details v-for="(group, index) in groups" :key="group.title" class="parameter-group" :open="index === 0">
       <summary><span><i class="group-number">{{ String(index + 1).padStart(2, '0') }}</i>{{ group.title }}</span><ChevronDown :size="14" /></summary>
       <div class="parameter-fields">
         <ParameterField v-for="field in group.fields" :key="field[0]" :object="s" :field="field" :error="errors[field[0]]" />
@@ -51,7 +50,7 @@ function markCustom() {
       </div>
     </details>
     <FlowEditor :simulation="s" :error="errors.flow" />
-    <details class="parameter-group compression-parameters" open>
+    <details class="parameter-group compression-parameters">
       <summary><span><Layers :size="15" />上下文压缩</span><ChevronDown :size="14" /></summary>
       <div class="parameter-fields">
         <label class="field"><span>触发方式</span><select v-model="s.compressionThresholdType" aria-label="压缩触发方式"><option value="TURN">按活跃用户轮次</option><option value="TOKEN">按上下文 Token</option></select></label>
@@ -59,7 +58,7 @@ function markCustom() {
         <p class="field-note">在每轮流程结束后检查，压缩会额外请求一次模型。摘要长度不等于压缩后的总上下文。</p>
       </div>
     </details>
-    <details class="parameter-group" open>
+    <details class="parameter-group">
       <summary><span><Cpu :size="15" />模型与费率</span><ChevronDown :size="14" /></summary>
       <div class="parameter-fields">
         <label class="field"><span>费率预设</span><select :value="config.pricing.id" aria-label="费率预设" @change="selectRate"><option v-if="!modelPresets.some(p => p.id === config.pricing.id)" :value="config.pricing.id">当前自定义费率</option><option v-for="preset in modelPresets" :key="preset.id" :value="preset.id">{{ preset.name }} · {{ preset.currency }}</option></select></label>

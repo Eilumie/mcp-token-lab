@@ -1,4 +1,4 @@
-import Session from "./session.js";
+import { createSessionConfig } from "./session-defaults.js";
 import { modelPresets } from "./model-pricing.js";
 import { validateFlow } from "./session-flow.js";
 
@@ -46,8 +46,8 @@ export function setValue(object, path, value) {
   keys.reduce((parent, part) => parent[part], object)[key] = value;
 }
 export function createConfig() {
-  const { toolsMode, model, ...simulation } = structuredClone(new Session().config);
-  return { version: 2, unit: "K", simulation, ...createPresetConfig(modelPresets[0]) };
+  const { model, ...simulation } = createSessionConfig();
+  return { version: 4, unit: "K", simulation, ...createPresetConfig(modelPresets[0]) };
 }
 export function createPresetConfig(preset) {
   return {
@@ -81,7 +81,7 @@ export function validate(config) {
   return errors;
 }
 export function readConfig(data) {
-  if (data?.version !== 2 || data.unit !== "K" || !data.simulation || !data.model) throw new Error("仅支持 Session v2 配置（K Token）。");
+  if (data?.version !== 4 || data.unit !== "K" || !data.simulation || !data.model) throw new Error("仅支持 Session v4 配置（K Token）。");
   const normalized = createConfig();
   for (const [key] of fields) {
     const value = getValue(data.simulation, key);

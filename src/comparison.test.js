@@ -13,27 +13,22 @@ const small = () => {
 };
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`);
 
-test("默认两方案与原 v2 会话结果一致，配置相互独立", () => {
-  const legacy = createConfig();
-  legacy.simulation.turnTotalCount = 10;
-  const config = createComparisonConfig(legacy);
+test("默认两方案以独立流程表达差异，不再包含模式配置", () => {
+  const config = small();
   assert.deepEqual(validateComparison(config), {});
-  const oldResults = simulate(legacy);
   const results = simulate(config);
   assert.deepEqual(results.map(r => r.planName), ["按需 Tools", "全量 Tools"]);
-  results.forEach((r, i) => {
-    assert.deepEqual(r.cost, oldResults[i].cost);
-    assert.deepEqual(r.requests, oldResults[i].requests);
-    assert.equal(r.planId, config.plans[i].id);
-  });
+  assert.ok(config.plans.every(plan => !Object.hasOwn(plan, "toolsMode")));
+  assert.ok(results.every(result => !Object.hasOwn(result, "mode")));
+  assert.deepEqual(results.map(r => r.requests.length), [12, 9]);
+  assert.ok(results[1].initialContext > results[0].initialContext);
   config.plans[0].simulation.flow.initial[0].token = 100;
   config.plans[0].model.inputCachedPrice = 999;
   assert.equal(config.plans[1].simulation.flow.initial[0].token, "initialContext.agentPromptToken");
   assert.notEqual(config.plans[1].model.inputCachedPrice, 999);
-  assert.notEqual(legacy.model.inputCachedPrice, 999);
 });
 
-test("三个方案可使用同一加载方式及独立流程、费率、轮次", () => {
+test("三个方案可使用任意独立流程、费率、轮次", () => {
   const config = small();
   config.plans.push(createPlan({ source: config.plans[0], name: "精简流程", color: planColors[2] }));
   const extra = config.plans[2];
@@ -44,7 +39,6 @@ test("三个方案可使用同一加载方式及独立流程、费率、轮次",
   extra.model.outputPrice = 10;
   const results = simulate(config);
   assert.equal(results.length, 3);
-  assert.equal(results[0].mode, results[2].mode);
   assert.equal(results[0].rounds.length, 3);
   assert.equal(results[2].requests.length, 7);
   close(results[2].cost.total, 0.14);
@@ -81,7 +75,7 @@ test("来源表按 key 对齐自定义来源，多个图表和 CSV 包含全部�
   }
 });
 
-test("v3 配置往返保留方案、基准及自定义价格；v2 导入迁移成两方案", () => {
+test("v4 配置往返保留方案、基准及自定义价格；旧 v2 导入迁移成两方案", () => {
   const config = small();
   config.plans[0].name = "我的按需方案";
   config.plans[0].model.outputPrice = 1.234;
@@ -90,9 +84,11 @@ test("v3 配置往返保留方案、基准及自定义价格；v2 导入迁移�
   assert.deepEqual(imported, config);
   assert.deepEqual(simulate(imported), simulate(config));
   const legacy = createConfig();
+  legacy.version = 2;
+  delete legacy.simulation.flow;
   legacy.model.outputPrice = 123;
   const migrated = readComparisonConfig(legacy);
-  assert.equal(migrated.version, 3);
+  assert.equal(migrated.version, 4);
   assert.deepEqual(migrated.plans.map(p => p.model.outputPrice), [123, 123]);
   assert.equal(migrated.plans[0].simulation.turnTotalCount, legacy.simulation.turnTotalCount);
 });
@@ -158,4 +154,73 @@ test("八方案比较的输入、输出、来源费用与各自请求记录守�
     close(result.sources.reduce((sum, s) => sum + s.cost.total, 0), result.cost.total);
     for (const key of ["hit", "miss", "output"]) close(result.requests.reduce((sum, r) => sum + r[key], 0), result[key]);
   }
+});
+
+// 模拟旧版导出的通用流程：同一流程通过模式条件选择不同步骤。
+function legacyFixture(version = 3) {
+  const base = createConfig();
+  base.simulation.turnTotalCount = 10;
+  base.simulation.skillsTotalCount = 1;
+  const flow = base.simulation.flow;
+  flow.initial.splice(3, 0, { type: "action", text: "tools schema list", token: ["toolsTotalCount", "toolSchemaToken"], toolsMode: "FULL_TOOLS_SCHEMA" });
+  flow.turn[3].toolsMode = "LAZY_TOOLS_SCHEMA";
+  flow.turn[4].toolsMode = "LAZY_TOOLS_SCHEMA";
+  if (version === 2) return { ...base, version: 2 };
+  const plans = ["LAZY_TOOLS_SCHEMA", "FULL_TOOLS_SCHEMA"].map((toolsMode, i) => ({
+    ...createPlan({ source: base, id: `legacy-${i}`, name: `旧方案 ${i}`, color: planColors[i] }), toolsMode,
+  }));
+  return { version: 3, unit: "K", baselineId: plans[1].id, plans };
+}
+
+test("旧 v2 / v3 条件流程导入为显式步骤，保留基准费用与请求数", () => {
+  for (const version of [2, 3]) {
+    const original = legacyFixture(version);
+    const snapshot = structuredClone(original);
+    const migrated = readComparisonConfig(original);
+    assert.deepEqual(original, snapshot);
+    assert.equal(migrated.version, 4);
+    assert.ok(!JSON.stringify(migrated).includes("toolsMode"));
+    const results = simulate(migrated);
+    assert.deepEqual(results.map(r => r.requests.length), [41, 31]);
+    close(results[0].cost.total, 6.12874995);
+    close(results[1].cost.total, 8.18847795);
+    assert.deepEqual(readComparisonConfig(migrated), migrated);
+    if (version === 3) assert.equal(migrated.baselineId, original.baselineId);
+  }
+});
+
+test("旧 v3 自定义、停用、空阶段与缺省阶段迁移不会补入错误步骤", () => {
+  const old = legacyFixture();
+  old.plans[0].simulation.flow = { initial: [], turn: [
+    { type: "llm", text: "生成", token: 2 },
+    { type: "llm", text: "禁用", token: 999, enabled: false },
+    { type: "llm", text: "另一模式", token: 999, toolsMode: "FULL_TOOLS_SCHEMA" },
+  ] };
+  old.plans[1].simulation.flow = { turn: [] };
+  old.plans.forEach(plan => plan.simulation.turnTotalCount = 1);
+  const migrated = readComparisonConfig(old);
+  assert.deepEqual(migrated.plans[0].simulation.flow.initial, []);
+  assert.equal(migrated.plans[0].simulation.flow.turn.length, 2);
+  assert.ok(migrated.plans[1].simulation.flow.initial.some(step => step.text === "tools schema list"));
+  const results = simulate(migrated);
+  assert.deepEqual(results.map(r => r.requests.length), [1, 0]);
+  assert.equal(results[0].output, 2);
+  assert.equal(results[1].cost.total, 0);
+  assert.ok(!JSON.stringify(migrated).includes("toolsMode"));
+});
+
+test("旧模式配置在导入时验证，新配置拒绝模式条件", () => {
+  for (const mutate of [
+    c => c.plans[0].toolsMode = "unknown",
+    c => c.plans[0].simulation.flow.turn[0].toolsMode = "unknown",
+    c => c.plans[0].simulation.flow = null,
+  ]) {
+    const old = legacyFixture();
+    mutate(old);
+    assert.throws(() => readComparisonConfig(old));
+  }
+  const config = small();
+  config.plans[0].simulation.flow.turn[0].toolsMode = "LAZY_TOOLS_SCHEMA";
+  assert.throws(() => readComparisonConfig(config), /不支持字段/);
+  assert.throws(() => simulate(config), /不支持字段/);
 });

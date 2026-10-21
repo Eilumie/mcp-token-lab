@@ -1,17 +1,34 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import Session from "./session.js";
-import { simulate, buildReport, modes } from "./session-report.js";
+import { simulate as simulateComparison, buildReport } from "./session-report.js";
 import { createConfig, createPresetConfig, validate, readConfig } from "./config.js";
 import { modelPresets } from "./model-pricing.js";
 import { money, csvCell } from "./utils.js";
 import { sourceOption } from "./charts.js";
+import { createComparisonConfig, createPlan } from "./comparison.js";
+import { createDefaultFlow, createPreloadedFlow } from "./session-flow.js";
 
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) <= Math.max(1e-9, Math.abs(expected) * 1e-10), actual + " != " + expected);
 const setup = (simulation = {}) => {
   const config = createConfig();
   Object.assign(config.simulation, simulation);
   return config;
+};
+
+// 单会话测试显式包装为一个方案；默认模板测试分别传入两套流程。
+const simulate = config => {
+  const plan = createPlan({ source: config, id: "test-plan" });
+  return simulateComparison({ version: 4, unit: "K", baselineId: plan.id, plans: [plan] });
+};
+const simulateTemplates = config => {
+  const comparison = createComparisonConfig();
+  comparison.plans.forEach(plan => {
+    const flow = plan.simulation.flow;
+    plan.simulation = { ...structuredClone(config.simulation), flow };
+    plan.model = { ...config.model };
+  });
+  return simulateComparison(comparison);
 };
 
 test("默认选择第一个模型，重置时恢复其费率和元数据", () => {
@@ -70,7 +87,7 @@ function checkConservation(result) {
 }
 
 test("10 轮基准，末轮压缩请求和最终上下文完整计入", () => {
-  const results = simulate(setup({ turnTotalCount: 10, skillsTotalCount: 1 }));
+  const results = simulateTemplates(setup({ turnTotalCount: 10, skillsTotalCount: 1 }));
   const expected = [
     [41, 6.089, 1588.9941, 255.1049, 19, 25.799, 6.12874995],
     [31, 51.989, 2365.2981, 332.7109, 18, 69.969, 8.18847795],
@@ -90,8 +107,8 @@ test("10 轮基准，末轮压缩请求和最终上下文完整计入", () => {
 
 test("重复压缩、用户轮次编号及逐轮上下文与 Session 实际快照一致", () => {
   const config = setup({ turnTotalCount: 30 });
-  for (const toolsMode of modes) {
-    const session = new Session({ ...config.simulation, model: config.model, toolsMode });
+  for (const flow of [createDefaultFlow(), createPreloadedFlow()]) {
+    const session = new Session({ ...config.simulation, model: config.model, flow });
     const contexts = [];
     for (let i = 0; i < 30; i++) {
       session.startNewTurn();
@@ -108,7 +125,7 @@ test("重复压缩、用户轮次编号及逐轮上下文与 Session 实际快�
 });
 
 test("Token 阈值下两方案独立触发压缩", () => {
-  const results = simulate(setup({ turnTotalCount: 20, compressionThresholdType: "TOKEN", compressionThresholdToken: 80 }));
+  const results = simulateTemplates(setup({ turnTotalCount: 20, compressionThresholdType: "TOKEN", compressionThresholdToken: 80 }));
   assert.notDeepEqual(results[0].compressions.map(c => c.round), results[1].compressions.map(c => c.round));
   results.forEach(checkConservation);
   results.forEach(r => close(r.averageUserTurnsPerCompression, 20 / r.compressions.length));
@@ -195,7 +212,7 @@ test("配置校验与快照往返：不兼容旧版本，不替换费率", () =>
 });
 
 test("1000 轮分页数据完整、压缩汇总守恒", () => {
-  const results = simulate(setup({ turnTotalCount: 1000 }));
+  const results = simulateTemplates(setup({ turnTotalCount: 1000 }));
   results.forEach((r, i) => {
     assert.equal(r.rounds.length, 1000);
     assert.equal(r.requests.length, 1000 * (i ? 3 : 4) + r.compressions.length);
@@ -245,27 +262,25 @@ test("自定义 initial 与每轮步骤按顺序执行，缓存及费用归因�
   assert.equal(simulate(config)[0].requests[0].input, 5);
 });
 
-test("流程支持参数乘积、方案条件、停用步骤和连续模型调用", () => {
+test("流程支持参数乘积、停用步骤和连续模型调用，步骤名称不影响执行", () => {
   const config = setup({
     turnTotalCount: 1, toolsTotalCount: 2, toolSchemaToken: 3,
     flow: {
-      initial: [{ type: "action", text: "自定义 Schema", token: ["toolsTotalCount", "toolSchemaToken"], toolsMode: "FULL_TOOLS_SCHEMA" }],
+      initial: [{ type: "action", text: "自定义 Schema", token: ["toolsTotalCount", "toolSchemaToken"] }],
       turn: [
         { type: "llm", text: "首次生成", token: "agentResult" },
-        { type: "llm", text: "按需补充", token: 2, toolsMode: "LAZY_TOOLS_SCHEMA" },
+        { type: "llm", text: "按需补充", token: 2 },
         { type: "action", text: "已停用", token: 999, enabled: false },
         { type: "llm", text: "最终生成", token: 3 },
       ],
     },
   });
-  const [lazy, full] = simulate(config);
-  assert.deepEqual(lazy.requests.map(r => r.input), [0, 1, 3]);
-  assert.deepEqual(full.requests.map(r => r.input), [6, 7]);
-  assert.deepEqual([lazy.initialContext, full.initialContext], [0, 6]);
-  assert.deepEqual(lazy.sources.map(s => s.key), full.sources.map(s => s.key));
-  assert.equal(lazy.sources.find(s => s.key === "自定义 Schema").cost.total, 0);
-  assert.equal(full.sources.find(s => s.key === "按需补充").cost.total, 0);
-  [lazy, full].forEach(checkConservation);
+  const [report] = simulate(config);
+  assert.deepEqual(report.requests.map(r => r.input), [6, 7, 9]);
+  assert.equal(report.initialContext, 6);
+  assert.equal(report.finalContext, 12);
+  assert.equal(report.sources.find(s => s.key === "已停用").cost.total, 0);
+  checkConservation(report);
 });
 
 test("图表提示中的自定义步骤名称作为文字显示", () => {
@@ -344,7 +359,7 @@ test("reset 按最新配置重建 initial，引用稳定且动作编号唯一，
   assert.deepEqual(buildReport(first), before);
 });
 
-test("自定义流程经过 JSON 和 Worker 克隆后保留，旧 v2 配置及单阶段覆盖使用默认值", () => {
+test("自定义流程经过 JSON 和 Worker 克隆后保留，缺省流程及单阶段覆盖使用默认值", () => {
   const config = setup({ turnTotalCount: 3 });
   config.simulation.flow.initial = [];
   config.simulation.flow.turn = [{ type: "llm", text: "直接回复", token: 2 }];

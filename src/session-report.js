@@ -1,8 +1,6 @@
-import Session from "./session.js";
+import Session, { contentSize } from "./session.js";
 import { validateComparison } from "./comparison.js";
 
-export const modes = ["LAZY_TOOLS_SCHEMA", "FULL_TOOLS_SCHEMA"];
-export const planNames = ["按需 Tools", "全量 Tools"];
 export const sourceNames = {
   "agent prompt": "Agent Prompt", "skills discover list": "Skills 索引",
   "tools discover list": "Tools 索引", "tools schema list": "初始 Tools Schema",
@@ -20,7 +18,6 @@ export function fees(hit, miss, output, model) {
   const generated = output / 1000 * model.outputPrice;
   return { cached, fresh, generated, total: cached + fresh + generated };
 }
-const contentSize = actions => actions.reduce((sum, a) => sum + (a.type === "llm" ? 0 : a.token), 0);
 function prefixSize(llm) {
   let index = 0, size = 0;
   for (const turn of llm.input.turns) {
@@ -37,7 +34,7 @@ export function buildReport(session) {
   const totals = session.getConsumptionTokens();
   const model = session.config.model;
   const requests = [], rounds = [], compressions = [];
-  // 两种工具模式使用同一来源顺序，包括仅在另一方案执行的自定义步骤。
+  // 预先收集来源，停用步骤保留为零值来源。
   const sourceKeys = new Set([
     ...Object.keys(sourceNames),
     ...session.config.flow.initial.map(step => step.text),
@@ -95,7 +92,7 @@ export function buildReport(session) {
       round.cost += cost.total;
       round.peakInput = Math.max(round.peakInput || 0, request.input);
       if (compression) {
-        const [start, end] = session.compressTurnIndexs[compressions.length];
+        const [start, end] = session.compressedRanges[compressions.length];
         const compressedRounds = activeTurns.filter(i => i >= start && i <= end && userNumbers.has(i)).map(i => userNumbers.get(i));
         const before = context;
         activeTurns = activeTurns.filter(i => i < start || i > end);
@@ -113,7 +110,7 @@ export function buildReport(session) {
     round.context = context;
   }
   const result = {
-    mode: session.config.toolsMode, initialContext,
+    initialContext,
     finalContext: contentSize(session.getContextSnapshot().turns.flatMap(t => t.actions)),
     peakInput: requests.reduce((peak, request) => Math.max(peak, request.input), 0),
     hit: totals.totalInputCached, miss: totals.totalInputNotCached, output: totals.totalOutput,
@@ -129,22 +126,15 @@ export function buildReport(session) {
   return result;
 }
 export function simulate(config) {
-  if (config.version === 3) {
-    const errors = validateComparison(config);
-    if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
-    return config.plans.map(plan => {
-      const session = new Session({ ...plan.simulation, model: plan.model, toolsMode: plan.toolsMode });
-      session.reset();
-      return {
-        ...buildReport(session), planId: plan.id, planName: plan.name, color: plan.color,
-        model: { ...plan.model }, pricing: structuredClone(plan.pricing),
-        expectedPrefixCacheHitRate: plan.simulation.expectedPrefixCacheHitRate,
-      };
-    });
-  }
-  return modes.map(toolsMode => {
-    const session = new Session({ ...config.simulation, model: config.model, toolsMode });
+  const errors = validateComparison(config);
+  if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
+  return config.plans.map(plan => {
+    const session = new Session({ ...plan.simulation, model: plan.model });
     session.reset();
-    return buildReport(session);
+    return {
+      ...buildReport(session), planId: plan.id, planName: plan.name, color: plan.color,
+      model: { ...plan.model }, pricing: structuredClone(plan.pricing),
+      expectedPrefixCacheHitRate: plan.simulation.expectedPrefixCacheHitRate,
+    };
   });
 }

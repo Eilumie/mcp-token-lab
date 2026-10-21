@@ -18,28 +18,33 @@ export const tokenParameters = {
   sessionAvgAllowToolsRate: "角色允许工具比例",
 };
 
-export const toolsModes = ["LAZY_TOOLS_SCHEMA", "FULL_TOOLS_SCHEMA"];
-
 export function createDefaultFlow() {
   return {
     initial: [
       { type: "action", text: "agent prompt", token: "initialContext.agentPromptToken" },
       { type: "action", text: "skills discover list", token: ["skillIndexToken", "skillsTotalCount"] },
       { type: "action", text: "tools discover list", token: ["toolsTotalCount", "toolsIndexToken"] },
-      { type: "action", text: "tools schema list", token: ["toolsTotalCount", "toolSchemaToken"], toolsMode: "FULL_TOOLS_SCHEMA" },
       { type: "action", text: "role allow tools", token: ["toolsTotalCount", "toolsIndexToken", "sessionAvgAllowToolsRate"] },
     ],
     turn: [
       { type: "action", text: "user_message", token: "userMessageToken" },
       { type: "llm", text: "read_skills_plan", token: "readSkillPlanToken" },
       { type: "action", text: "read_skills", token: ["skillDetailToken", "turnAvgSkillsCount"] },
-      { type: "llm", text: "get_tools_schema_plan", token: "schemaPlanToken", toolsMode: "LAZY_TOOLS_SCHEMA" },
-      { type: "action", text: "get_tools_schema", token: ["toolSchemaToken", "turnAvgToolsCount"], toolsMode: "LAZY_TOOLS_SCHEMA" },
+      { type: "llm", text: "get_tools_schema_plan", token: "schemaPlanToken" },
+      { type: "action", text: "get_tools_schema", token: ["toolSchemaToken", "turnAvgToolsCount"] },
       { type: "llm", text: "call_tools_plan", token: "callToolsPlanToken" },
       { type: "action", text: "call_tools", token: ["toolResultToken", "turnAvgToolsCount"] },
       { type: "llm", text: "agent_result", token: "agentResult" },
     ],
   };
+}
+
+// 这是另一套可编辑流程模板；引擎无需知道模板名称或工具加载策略。
+export function createPreloadedFlow() {
+  const flow = createDefaultFlow();
+  flow.initial.splice(3, 0, { type: "action", text: "tools schema list", token: ["toolsTotalCount", "toolSchemaToken"] });
+  flow.turn.splice(3, 2);
+  return flow;
 }
 
 export function resolveStepToken(token, config) {
@@ -63,10 +68,6 @@ export function resolveStepToken(token, config) {
   return result;
 }
 
-export function isStepEnabled(step, toolsMode) {
-  return step.enabled !== false && (step.toolsMode === undefined || step.toolsMode === toolsMode);
-}
-
 export function validateFlow(flow, config) {
   if (!flow || typeof flow !== "object" || Array.isArray(flow)) throw new TypeError("flow 必须是流程配置对象");
   for (const phase of ["initial", "turn"]) {
@@ -80,7 +81,8 @@ export function validateFlow(flow, config) {
       }
       if (typeof step.text !== "string" || !step.text.trim()) throw new TypeError(`${prefix} 需要非空名称`);
       if (step.enabled !== undefined && typeof step.enabled !== "boolean") throw new TypeError(`${prefix} enabled 必须是布尔值`);
-      if (step.toolsMode !== undefined && !toolsModes.includes(step.toolsMode)) throw new RangeError(`${prefix} toolsMode 无效`);
+      const unknown = Object.keys(step).find(key => !["type", "text", "token", "enabled"].includes(key));
+      if (unknown) throw new RangeError(`${prefix} 不支持字段 ${unknown}`);
       try {
         resolveStepToken(step.token, config);
       } catch (error) {

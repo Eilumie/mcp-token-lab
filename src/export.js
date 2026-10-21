@@ -1,4 +1,4 @@
-import { planNames, ratio } from "./session-report.js";
+import { ratio } from "./session-report.js";
 import { csvCell, downloadFile } from "./utils.js";
 export function buildCsv(results, config, kind) {
   const metadata = ["方案", "Token 单位", "币种", "配置与费率快照"];
@@ -7,7 +7,7 @@ export function buildCsv(results, config, kind) {
     : ["来源", "命中K", "未命中K", "输出K", "命中费用", "未命中费用", "输出费用", "总费用", "占方案总费用"];
   const rows = [[...metadata, ...headers]];
   results.forEach((result, index) => {
-    const common = [result.planName ?? planNames[index], "K", (result.model ?? config.model).currency === "$" ? "USD" : "CNY", JSON.stringify(config)];
+    const common = [result.planName ?? `方案 ${index + 1}`, "K", (result.model ?? config.model).currency === "$" ? "USD" : "CNY", JSON.stringify(config)];
     const records = kind === "requests" ? result.requests : result.sources;
     records.forEach(row => rows.push([...common, ...(kind === "requests"
       ? [row.id, row.round, row.stage, row.input, row.prefix, row.hit, row.miss, row.output, row.toolResult, row.cost.cached, row.cost.fresh, row.cost.generated, row.cost.total, row.cumulativeCost]

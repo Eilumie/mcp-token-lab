@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
-import { Activity, ArrowDownToLine, ArrowUpFromLine, SlidersHorizontal, X, Check, LoaderCircle, Plus, Copy, Trash2, Pencil, RotateCcw } from "lucide-vue-next";
-import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, validatePlan, planColors, maxPlans, modeLabel } from "./comparison.js";
+import { Asterisk, ArrowDownToLine, ArrowUpFromLine, SlidersHorizontal, X, Check, LoaderCircle, Plus, Copy, Trash2, Pencil, RotateCcw } from "lucide-vue-next";
+import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, validatePlan, planColors, maxPlans } from "./comparison.js";
+import { displayPlanColor } from "./theme.js";
 import { downloadFile } from "./utils.js";
 import ParameterPanel from "./components/ParameterPanel.vue";
 import SummaryCards from "./components/SummaryCards.vue";
@@ -89,7 +90,7 @@ function addPlan(source) {
   config.value.plans.push(plan);
   if (!config.value.baselineId) config.value.baselineId = plan.id;
   editPlan(plan.id);
-  notice.value = source ? "已复制方案，可独立修改参数与流程。" : "已新增方案，按需加载参数作为起点。";
+  notice.value = source ? "已复制方案，可独立修改参数与流程。" : "已新增方案，以默认流程作为起点。";
 }
 function removePlan(plan) {
   const index = config.value.plans.indexOf(plan);
@@ -112,7 +113,8 @@ function undoRemove() {
 function resetPlan() {
   const current = selectedPlan.value;
   if (!current) return;
-  Object.assign(current, createPlan({ id: current.id, name: current.name, toolsMode: current.toolsMode, color: current.color }));
+  const template = createComparisonConfig().plans.find(plan => plan.id === current.id);
+  Object.assign(current, createPlan({ source: template, id: current.id, name: current.name, color: current.color }));
   notice.value = "已恢复当前方案的默认参数和流程。";
 }
 function reset() {
@@ -146,20 +148,20 @@ function editInvalidPlan() {
 
 <template>
   <header class="app-header">
-    <a class="brand" href="./"><span class="brand-mark"><Activity :size="24" /></span><strong>Token Lab<span>AGENT COST SIMULATOR</span></strong></a>
+    <a class="brand" href="./"><span class="brand-mark"><Asterisk :size="32" :stroke-width="1.6" /></span><strong>Token Lab<span>A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
     <nav class="header-actions" aria-label="配置操作"><span class="local-badge"><i></i>本地模拟</span><button aria-label="导入配置" @click="importInput.click()"><ArrowUpFromLine :size="15" /><span>导入配置</span></button><button aria-label="导出配置" :disabled="!!Object.keys(errors).length" @click="exportConfig"><ArrowDownToLine :size="15" /><span>导出配置</span></button><input ref="importInput" type="file" accept=".json,application/json" hidden @change="importConfig" /></nav>
   </header>
   <div class="workspace">
     <button class="mobile-config-button" @click="mobileParams = !mobileParams"><X v-if="mobileParams" :size="16" /><SlidersHorizontal v-else :size="16" />{{ mobileParams ? '收起实验参数' : '调整实验参数' }}</button>
     <div class="parameter-container" :class="{ 'mobile-open': mobileParams }"><ParameterPanel v-if="selectedPlan" :key="selectedPlan.id" :config="selectedPlan" :errors="selectedErrors" @reset="resetPlan" /><div v-else class="parameters field-note">添加一个方案后，在这里编辑它的参数和流程。</div></div>
     <main>
-      <div class="page-heading"><div><p class="eyebrow">MEASURE. COMPARE. UNDERSTAND.</p><h1>让每一个 Token 有据可循<span>。</span></h1><p>创建不同方案，让模型、流程与成本一起比较。</p></div><span class="session-badge">{{ config.plans.length }} 个对比方案</span></div>
+      <div class="page-heading"><div><p class="eyebrow">会话成本实验室 / TOKEN LAB</p><h1>每一份成本，都更清楚<span>。</span></h1><p>从一个想法，到更好的方案。探索模型、流程与费用之间的关系。</p></div><span class="session-badge">{{ config.plans.length }} 个对比方案</span></div>
       <div v-if="notice" class="notice" role="status"><Check :size="15" /><span>{{ notice }}</span><button class="icon-button" aria-label="关闭通知" @click="notice = ''"><X :size="14" /></button></div>
       <section class="plan-manager" aria-label="方案管理">
-        <div class="section-heading"><div><h2>对比方案 <span class="plan-count">{{ config.plans.length }} / {{ maxPlans }}</span></h2><p>每个方案独立配置。选择方案，在左侧调整模型、参数与流程。</p></div><div class="plan-toolbar"><button @click="reset"><RotateCcw :size="14" />恢复默认方案</button><button class="primary-button" :disabled="config.plans.length >= maxPlans" @click="addPlan()"><Plus :size="15" />新增方案</button></div></div>
+        <div class="section-heading"><div><h2>对比方案 <span class="plan-count">{{ config.plans.length }} / {{ maxPlans }}</span></h2><p>选择一个方案，调整参数，看看费用如何变化。</p></div><div class="plan-toolbar"><button @click="reset"><RotateCcw :size="14" />恢复默认方案</button><button class="primary-button" :disabled="config.plans.length >= maxPlans" @click="addPlan()"><Plus :size="15" />新增方案</button></div></div>
         <div class="plan-list">
-          <article v-for="plan in config.plans" :key="plan.id" class="plan-tile" :class="{ selected: selectedId === plan.id }" :style="{ '--plan-color': plan.color }">
-            <button class="plan-select" :aria-label="'编辑方案 ' + plan.name" :aria-pressed="selectedId === plan.id" @click="editPlan(plan.id)"><span class="plan-tile-name"><i></i><strong>{{ plan.name || '未命名方案' }}</strong><Pencil :size="12" /></span><span>{{ modeLabel(plan.toolsMode) }} · {{ plan.simulation.turnTotalCount }} 轮</span><small>{{ plan.model.name }}</small></button>
+          <article v-for="plan in config.plans" :key="plan.id" class="plan-tile" :class="{ selected: selectedId === plan.id }" :style="{ '--plan-color': displayPlanColor(plan.color) }">
+            <button class="plan-select" :aria-label="'编辑方案 ' + plan.name" :aria-pressed="selectedId === plan.id" @click="editPlan(plan.id)"><span class="plan-tile-name"><i></i><strong>{{ plan.name || '未命名方案' }}</strong><Pencil :size="12" /></span><span>{{ plan.simulation.flow.turn.filter(step => step.enabled !== false).length }} 个流程步骤 · {{ plan.simulation.turnTotalCount }} 轮</span><small>{{ plan.model.name }}</small></button>
             <div class="plan-tile-actions"><span>{{ config.baselineId === plan.id ? '对比基准' : selectedId === plan.id ? '正在编辑' : '独立方案' }}</span><button :aria-label="'复制方案 ' + plan.name" :disabled="config.plans.length >= maxPlans" @click="addPlan(plan)"><Copy :size="13" /></button><button :aria-label="'删除方案 ' + plan.name" @click="removePlan(plan)"><Trash2 :size="13" /></button></div>
           </article>
         </div>
@@ -172,10 +174,11 @@ function editInvalidPlan() {
       <div v-else-if="busy" class="empty-state" role="status"><LoaderCircle class="spinner" :size="30" /><h2>正在模拟完整会话</h2><p>逐次记录请求、缓存与上下文压缩…</p></div>
       <template v-else-if="report">
         <div v-for="warning in warnings" :key="warning" class="warning" role="status">{{ warning }}</div>
+        <div class="results-heading"><h2>费用概览</h2><span>完整会话 · 包含压缩费用</span></div>
         <SummaryCards :results="report.results" :config="report.config" @edit="editPlan" />
         <AnalysisPanel :results="report.results" :config="report.config" />
       </template>
-      <footer><span class="footer-mark">T / L</span><p>初始前缀按期望命中率计费 · 每轮流程结束后检查压缩 · 最后一轮触发的压缩也计费<br />所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。</p><span>COMPARE / V3</span></footer>
+      <footer><span class="footer-mark">T / L</span><p>初始前缀按期望命中率计费 · 每轮流程结束后检查压缩 · 最后一轮触发的压缩也计费<br />所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。</p><span>COMPARE / V4</span></footer>
     </main>
   </div>
 </template>
