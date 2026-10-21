@@ -123,22 +123,16 @@ button.plan-select { display: flex; flex-direction: column; align-items: stretch
 .plan-difference.saving { color: #6c805c; }
 .request-count { margin-top: 7px; font-size: 10px; color: #8a8173; }
 .request-count > span { margin: 0 9px; color: #b0a797; }
-.token-metrics { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 24px; gap: 9px; }
+.token-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 24px; gap: 9px; }
 .token-metrics > div > span { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; }
 .token-metrics strong { display: block; margin-top: 9px; font-size: clamp(14px, 1.2vw, 18px); color: #504a40; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.token-metrics small { display: block; margin-top: 7px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.token-metrics .dot { flex-shrink: 0; }
 .dot { width: 5px; height: 5px; display: inline-block; border-radius: 50%; }
 .cached { background: #94a58b; }
 .fresh { background: #d0b58b; }
 .generated { background: #ba795e; }
 .cost-bar { height: 4px; border-radius: 3px; display: flex; overflow: hidden; margin: 18px 0 20px; gap: 2px; background: #eee9df; }
-.card-breakdown { border-top: 1px solid var(--line); }
-.card-breakdown > summary { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; color: #807665; font-size: 11px; }
-.card-breakdown[open] > summary svg { transform: rotate(180deg); }
-.cost-labels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 4px 0 18px; border-bottom: 1px solid var(--line); }
-.cost-labels > div { display: flex; flex-direction: column; gap: 6px; font-size: 10px; }
-.cost-labels span, .cost-labels small { color: var(--muted); }
-.cost-labels b { font-size: 12px; font-weight: 500; color: #62594b; overflow-wrap: anywhere; }
-.cost-labels small { font-size: 10px; }
 .context-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 10px; margin: 19px 0 22px; }
 .context-metrics > div { min-width: 0; }
 .context-metrics dt { font-size: 10px; color: var(--muted); }
