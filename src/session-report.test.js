@@ -96,7 +96,7 @@ test("10 轮基准，末轮压缩请求和最终上下文完整计入", () => {
     const [requests, initial, hit, miss, output, final, cost] = expected[i];
     assert.equal(r.requests.length, requests);
     close(r.initialContext, initial); close(r.hit, hit); close(r.miss, miss);
-    close(r.output, output); close(r.finalContext, final); close(r.cost.total, cost / 7);
+    close(r.output, output); close(r.finalContext, final); close(r.cost.total, cost);
     assert.deepEqual(r.compressions[0].compressedRounds, [1, 2, 3, 4, 5, 6, 7, 8]);
     assert.deepEqual(r.compressions[0].keptRounds, [9, 10]);
     assert.equal(r.rounds.at(-1).requestIds.length, i ? 4 : 5);

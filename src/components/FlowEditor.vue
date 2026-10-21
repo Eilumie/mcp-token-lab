@@ -2,7 +2,7 @@
 import { computed, nextTick, ref, shallowRef, toRaw, watch } from "vue";
 import { ArrowUp, ArrowDown, Plus, Trash2, ChevronDown, Copy, Undo2, FileText, Sparkles, Braces } from "lucide-vue-next";
 import { resolveStepToken, tokenParameters, tokenFormula, formulaVariables, runtimeParameters, stepRuntime } from "../session-flow.js";
-import { formulaFunctions, maxFormulaLength } from "../token-formula.js";
+import { maxFormulaLength } from "../token-formula.js";
 import { sourceNames } from "../session-report.js";
 import { token } from "../utils.js";
 import VariablePicker from "./VariablePicker.vue";
@@ -13,10 +13,8 @@ const phase = ref("initial");
 const openId = ref(null);
 const removed = ref(null);
 const picker = shallowRef(null);
-const previewTurn = ref(0);
-const previewTurnIndex = computed(() => Math.min(Math.max(0, Math.floor(Number(previewTurn.value) || 0)), Math.max(0, props.simulation.turnTotalCount - 1)));
 function runtimeFor(step) {
-  return stepRuntime(props.simulation.flow, phase.value, props.simulation.flow[phase.value].indexOf(step), previewTurnIndex.value);
+  return stepRuntime(props.simulation.flow, phase.value, props.simulation.flow[phase.value].indexOf(step));
 }
 const pickerVariables = computed(() => {
   if (!picker.value) return [];
@@ -34,17 +32,9 @@ function stepKey(step) {
 }
 const phases = [
   { key: "initial", label: "初始上下文", note: "先放入系统提示、业务背景或工具定义，作为会话的起点。" },
-  { key: "turn", label: "每轮流程", note: "从上到下执行。模型调用读取当前上下文，流程结束后检查压缩。" },
+  { key: "turn", label: "每轮流程" },
 ];
 const name = step => Object.hasOwn(sourceNames, step.text) ? sourceNames[step.text] : step.text;
-const formulaExamples = [
-  { label: "随轮次增长", value: "agentResult * (turnIndex + 1)" },
-  { label: "区分模型调用", value: "llmIndex === 0 ? readSkillPlanToken : agentResult" },
-  { label: "工具返回总量", value: "toolResultToken * turnAvgToolsCount" },
-  { label: "向上取整", value: "Math.ceil(toolResultToken * turnAvgToolsCount)" },
-  { label: "限制最大长度", value: "Math.min(toolResultToken * turnAvgToolsCount, 10)" },
-  { label: "按数量判断", value: "turnAvgToolsCount > 0 ? toolResultToken * turnAvgToolsCount : 0" },
-];
 const modeValues = new WeakMap();
 function openVariables(step) {
   const input = container.value?.querySelector(`[data-step="${stepKey(step)}"] textarea`);
@@ -126,8 +116,7 @@ function size(step) {
 <template>
   <div ref="container" class="flow-editor">
     <nav class="flow-phases" aria-label="流程阶段"><button v-for="item in phases" :key="item.key" :class="{ active: phase === item.key }" :aria-pressed="phase === item.key" @click="phase = item.key">{{ item.label }}<span>{{ simulation.flow[item.key].length }} 步</span></button></nav>
-    <p class="flow-description">{{ phases.find(item => item.key === phase).note }}</p>
-    <div v-if="phase === 'turn'" class="flow-runtime-preview"><label>预览 turnIndex<input v-model="previewTurn" type="number" min="0" :max="Math.max(0, simulation.turnTotalCount - 1)" step="1" aria-label="预览 turnIndex" /></label><span>第 {{ previewTurnIndex + 1 }} 轮 · 索引从 0 开始，预览不改变会话轮数。</span></div>
+    <p v-if="phase === 'initial'" class="flow-description">{{ phases[0].note }}</p>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <div v-if="removed" class="flow-undo" role="status"><span>已删除「{{ name(removed.step) }}」</span><button @click="undoRemove"><Undo2 :size="13" />撤销删除步骤</button></div>
     <section :aria-label="(phase === 'initial' ? '初始上下文' : '每轮流程') + '流程编辑'">
@@ -150,12 +139,8 @@ function size(step) {
           <div v-else class="flow-formula">
             <label class="field"><span>公式（结果单位：K Token）</span><textarea :value="tokenFormula(step.token)" :maxlength="maxFormulaLength" rows="3" spellcheck="false" autocapitalize="off" :aria-invalid="!!formulaError(step)" :aria-describedby="'formula-status-' + stepKey(step)" placeholder="例如：toolResultToken * turnAvgToolsCount" @input="step.token = $event.target.value" /></label>
             <p :id="'formula-status-' + stepKey(step)" class="formula-preview" :class="{ error: formulaError(step) }" role="status">{{ formulaError(step) || '预览结果：' + size(step) + '（1K = 1,000 Token）' }}</p>
-            <div class="formula-examples"><span>试一试</span><button v-for="example in formulaExamples" :key="example.label" :title="example.value" @click="step.token = example.value">{{ example.label }}</button></div>
-            <div class="formula-variable-toolbar"><button @click="openVariables(step)"><Braces :size="15" />插入变量</button><span>预览：turnIndex = {{ runtimeFor(step).turnIndex }} · llmIndex = {{ runtimeFor(step).llmIndex }}</span></div>
-            <p class="field-note">{{ phase === 'initial' ? '初始阶段两个索引均为 0。' : 'turnIndex 只统计用户轮次；llmIndex 为当前步骤前已执行的模型调用数，每轮重置，停用步骤不计数。' }}</p>
-            <p class="field-note">支持 + − * / % **、括号、比较、&amp;&amp; / || 和条件 ? :。函数：{{ formulaFunctions.map(name => 'Math.' + name).join('、') }}；常量：Math.PI、Math.E。输入单个表达式，无需 return。</p>
+            <div class="formula-variable-toolbar"><button @click="openVariables(step)"><Braces :size="15" />插入变量</button></div>
           </div>
-          <p class="field-note flow-step-note">当前{{ step.type === 'llm' ? '输出' : '内容' }} {{ size(step) }}。{{ step.type === 'llm' ? '输入取当前有效上下文，输出追加到后续上下文。' : '这一步仅追加内容，在后续模型调用时产生输入费用。' }}</p>
         </div>
       </article>
       <div v-if="!simulation.flow[phase].length" class="flow-empty"><FileText :size="26" /><h3>从第一个步骤开始</h3><p>{{ phase === 'initial' ? '添加系统提示、业务背景或工具定义。' : '添加消息、工具结果或模型调用。空流程仍会按轮次检查压缩。' }}</p></div>

@@ -357,22 +357,14 @@ button.step-expand { flex: 1; min-width: 0; display: flex; justify-content: flex
 .flow-enabled { display: flex; align-items: center; gap: 5px; margin-right: 8px; color: var(--muted); font-size: 11px; }
 .flow-enabled input { width: 14px; height: 14px; margin: 0; accent-color: var(--accent); }
 .flow-step-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; padding: 20px; border-top: 1px solid var(--line); background: #faf8f2; }
-.flow-step-note { grid-column: 1 / -1; }
 .flow-formula { grid-column: 1 / -1; min-width: 0; display: grid; gap: 12px; }
 .flow-formula textarea { width: 100%; min-height: 86px; resize: vertical; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font: 13px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .flow-formula textarea:focus { outline: 2px solid #bd876c55; outline-offset: 2px; border-color: var(--accent); }
 .flow-formula textarea[aria-invalid="true"] { border-color: #bc6755; }
 .formula-preview { margin: 0; font-size: 12px; color: #63745b; }
 .formula-preview.error { color: #a14937; }
-.formula-examples { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
-.formula-examples > span { font-size: 11px; color: var(--muted); margin-right: 2px; }
-.formula-examples button { padding: 5px 9px; min-height: 28px; font-size: 11px; border-radius: 20px; background: var(--paper); }
 .formula-variable-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .formula-variable-toolbar button { font-size: 12px; }
-.formula-variable-toolbar > span { font-size: 11px; color: var(--muted); }
-.flow-runtime-preview { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: -6px 0 20px; font-size: 11px; color: var(--muted); }
-.flow-runtime-preview label { display: flex; align-items: center; gap: 8px; }
-.flow-runtime-preview input { width: 80px; }
 .variable-picker { width: min(560px, calc(100% - 32px)); max-width: none; max-height: calc(100dvh - 48px); padding: 0; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); color: var(--ink); box-shadow: 0 20px 80px #30271b40; overflow: hidden; }
 .variable-picker[open] { display: flex; flex-direction: column; }
 .variable-picker::backdrop { background: #302b2359; backdrop-filter: blur(2px); }
@@ -427,3 +419,13 @@ button.step-expand { flex: 1; min-width: 0; display: flex; justify-content: flex
   .flow-phases button { padding: 12px; font-size: 12px; }
   .notice { flex-wrap: wrap; }
 }
+
+/* 方案管理合并到费用卡片 */
+.comparison-heading { gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
+.comparison-heading p { margin-top: 8px; color: var(--muted); font-size: 11px; }
+.comparison-heading .plan-count { font-size: 13px; }
+.strategy-card.baseline { border-color: color-mix(in srgb, var(--plan-color) 50%, var(--line)); }
+.strategy-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; border-top: 1px solid var(--line); padding: 12px 0; }
+.strategy-actions > button { font-size: 11px; gap: 5px; padding: 6px 7px; background: transparent; border-color: transparent; }
+.strategy-actions > .baseline-button { margin-right: auto; }
+.failed-plan-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }

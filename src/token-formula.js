@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 
-export const formulaFunctions = ["min", "max", "ceil", "floor", "round", "trunc", "abs", "sqrt", "pow", "log", "log2", "log10", "exp"];
+export const formulaFunctions = ["min", "max", "ceil", "floor", "round", "trunc", "abs", "sqrt", "pow", "log", "log2", "log10", "exp", "random"];
 const math = Object.fromEntries(formulaFunctions.map(name => [name, Math[name]]));
 const constants = { "Math.PI": Math.PI, "Math.E": Math.E };
 const binary = {

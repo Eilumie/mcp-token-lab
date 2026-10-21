@@ -1,11 +1,12 @@
 <script setup>
 import { computed } from "vue";
-import { ArrowDownRight, Layers, Workflow, Pencil, ChevronDown } from "lucide-vue-next";
+import { ArrowDownRight, Workflow, Pencil, ChevronDown, Copy, Trash2, Star } from "lucide-vue-next";
+import { maxPlans } from "../comparison.js";
 import { displayPlanColor } from "../theme.js";
 import { ratio } from "../session-report.js";
 import { money, token, percent, number } from "../utils.js";
 const props = defineProps({ results: Array, config: Object });
-defineEmits(["edit"]);
+defineEmits(["edit", "copy", "remove", "baseline"]);
 const baseline = computed(() => props.results.find(r => r.planId === props.config.baselineId) || props.results[0]);
 const cheapest = computed(() => props.results.reduce((best, r) => r.cost.total < best.cost.total ? r : best));
 const allEqual = computed(() => props.results.every(r => r.cost.total === props.results[0].cost.total));
@@ -23,12 +24,11 @@ const costParts = [["cached", "命中输入"], ["fresh", "未命中输入"], ["g
 
 <template>
   <div class="comparison-cards">
-    <article v-for="result in results" :key="result.planId" class="strategy-card" :style="{ '--plan-color': displayPlanColor(result.color) }">
+    <article v-for="result in results" :key="result.planId" class="strategy-card" :class="{ baseline: result.planId === config.baselineId }" :style="{ '--plan-color': displayPlanColor(result.color) }">
       <div class="strategy-heading"><span class="strategy-icon"><Workflow :size="20" /></span><div><h2>{{ result.planName }}</h2><span>{{ result.rounds.length }} 轮 · 自定义流程</span></div><button class="icon-button" :aria-label="'编辑参数 ' + result.planName" @click="$emit('edit', result.planId)"><Pencil :size="14" /></button></div>
       <p class="result-model">{{ result.model.name }}</p>
       <div class="total-cost" :title="money(result.cost.total, currency, true)">{{ m(result.cost.total) }}<span>/ 会话</span></div>
       <p class="plan-difference" :class="{ saving: result.cost.total < baseline.cost.total }">{{ difference(result) }}</p>
-      <div class="request-count">{{ result.requests.length - result.compressions.length }} 次普通请求<span>+</span>{{ result.compressions.length }} 次压缩请求</div>
       <div class="request-count" title="用户消息总轮数 ÷ 实际压缩次数；包含末次压缩后尚未再次触发压缩的用户轮次。">
         {{ result.averageUserTurnsPerCompression === null ? '未触发压缩' : `平均每 ${number(result.averageUserTurnsPerCompression)} 轮用户消息触发一次压缩` }}
       </div>
@@ -42,9 +42,9 @@ const costParts = [["cached", "命中输入"], ["fresh", "未命中输入"], ["g
       </div>
       <details class="card-breakdown"><summary>费用与上下文详情<ChevronDown :size="14" /></summary>
       <div class="cost-labels"><div v-for="[key, label] in costParts" :key="key"><span>{{ label }}</span><b :title="money(result.cost[key], currency, true)">{{ m(result.cost[key]) }}</b><small>{{ percent(ratio(result.cost[key], result.cost.total)) }}</small></div></div>
-      <dl class="context-metrics"><div><dt>初始上下文</dt><dd>{{ token(result.initialContext) }}</dd></div><div><dt>峰值请求输入</dt><dd>{{ token(result.peakInput) }}</dd></div><div><dt>最终有效上下文</dt><dd>{{ token(result.finalContext) }}</dd></div><div><dt>整体输入命中率</dt><dd>{{ percent(result.hitRate) }}</dd></div></dl>
-      <div class="compression-cost"><Layers :size="14" />压缩请求费用 <b>{{ m(result.compressionCost) }}</b><span>已计入总费用</span></div>
+      <dl class="context-metrics"><div><dt>初始上下文</dt><dd>{{ token(result.initialContext) }}</dd></div><div><dt>峰值请求输入</dt><dd>{{ token(result.peakInput) }}</dd></div><div><dt>整体输入命中率</dt><dd>{{ percent(result.hitRate) }}</dd></div></dl>
       </details>
+      <div class="strategy-actions"><button class="baseline-button" :aria-label="'设为基准 ' + result.planName" :aria-pressed="result.planId === config.baselineId" @click="$emit('baseline', result.planId)"><Star :size="13" />{{ result.planId === config.baselineId ? '对比基准' : '设为基准' }}</button><button :aria-label="'复制方案 ' + result.planName" :disabled="config.plans.length >= maxPlans" @click="$emit('copy', result.planId)"><Copy :size="13" />复制</button><button :aria-label="'删除方案 ' + result.planName" @click="$emit('remove', result.planId)"><Trash2 :size="13" />删除</button></div>
     </article>
   </div>
   <div v-if="results.length > 1" class="savings-strip">

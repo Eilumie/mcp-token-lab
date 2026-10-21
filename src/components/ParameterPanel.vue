@@ -58,7 +58,6 @@ function markCustom() {
         <label class="field"><span>模型名称</span><input v-model="config.model.name" maxlength="100" aria-label="模型名称" @input="markCustom" /><small v-if="errors.name" class="error">{{ errors.name }}</small></label>
         <ParameterField v-for="[key, label] in priceFields" :key="key" :object="config.model" :field="[key, label, config.model.currency + '/M', 0]" :error="errors[key]" @change="markCustom" />
         <p class="field-note">{{ config.pricing.label }}<template v-if="config.pricing.date"> · {{ config.pricing.date }}</template>。所有费率与费用统一为美元（$），单价单位为 $/百万 Token，修改后使用自定义费率。<a v-if="config.pricing.source?.startsWith('https://')" :href="config.pricing.source" target="_blank" rel="noopener noreferrer">查看来源 ↗</a></p>
-        <p v-if="config.pricing.conversionNote" class="field-note">{{ config.pricing.conversionNote }}</p>
         <p v-if="config.pricing.note" class="field-note">{{ config.pricing.note }}</p>
       </div>
     </details>

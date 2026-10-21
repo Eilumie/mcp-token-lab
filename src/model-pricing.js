@@ -1,18 +1,8 @@
-import { cnyToUsd, conversionNote } from "./currency.js";
-
-// 原始报价保留来源币种，页面预设统一转换为 USD；数据不会自动联网更新。
-function usdPreset(preset) {
-  if (preset.currency === "USD") return preset;
-  const converted = { ...preset, currency: "USD", conversionNote };
-  for (const key of ["hit", "miss", "output", "explicitCacheCreate", "explicitCacheHit"]) {
-    if (preset[key] != null) converted[key] = cnyToUsd(preset[key]);
-  }
-  return converted;
-}
+// 所有模型费率直接以 USD 维护；数据不会自动联网更新。
 export const deepseekData = {
   provider: "deepseek",
   provider_name: "DeepSeek",
-  currency: "CNY",
+  currency: "USD",
   price_unit: "per_1m_tokens",
   source: "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
   verified_at: "2026-09-22",
@@ -45,7 +35,7 @@ export const bailianData = {
   provider: "aliyun-bailian",
   region: "cn-beijing",
   region_name: "华北2（北京）",
-  currency: "CNY",
+  currency: "USD",
   price_unit: "per_1m_tokens",
   verified_at: "2026-09-21",
   models: [
@@ -309,7 +299,7 @@ export const bailianPresets = bailianData.models.flatMap((model) => {
         ? "整个会话按所选闲时 / 忙时价格计算；原数据未提供时段边界。"
         : "整个会话采用固定价格。",
   }));
-}).map(usdPreset);
+});
 
 const periodLabels = { off_peak: "非高峰", peak: "高峰" };
 
@@ -327,7 +317,7 @@ export const deepseekPresets = deepseekData.models.flatMap((model) =>
     source: deepseekData.source,
     verified: deepseekData.verified_at,
   })),
-).map(usdPreset);
+);
 
 const fixedModel = (id, name, input, hit, output, pricingNote = "") => ({
   id, name, pricing_type: "fixed", prices: { input, input_cache_hit: hit, output }, pricingNote,
