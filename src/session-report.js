@@ -1,5 +1,5 @@
 import Session, { contentSize } from "./session.js";
-import { validateComparison } from "./comparison.js";
+import { validateComparison, resolvePlan } from "./comparison.js";
 
 export const sourceNames = {
   "agent prompt": "Agent Prompt", "skills discover list": "Skills 索引",
@@ -129,6 +129,7 @@ export function simulate(config) {
   const errors = validateComparison(config);
   if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
   return config.plans.map(plan => {
+    plan = resolvePlan(plan, config.globalSimulation);
     const session = new Session({ ...plan.simulation, model: plan.model });
     session.reset();
     return {

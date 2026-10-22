@@ -5,10 +5,11 @@ import { groups, compressionFields, priceFields, createPresetConfig } from "../c
 import { modelPresets } from "../model-pricing.js";
 import { token } from "../utils.js";
 import ParameterField from "./ParameterField.vue";
+import { isGlobalField } from "../comparison.js";
 const props = defineProps({ config: Object, errors: Object, section: String });
 const visibleGroups = computed(() => props.section === "params" ? groups.filter((_, index) => index !== 1) : props.section === "cache" ? [groups[1]] : []);
 const s = computed(() => props.config.simulation);
-const visibleCompression = computed(() => compressionFields.filter(([key]) => key !== (s.value.compressionThresholdType === "TURN" ? "compressionThresholdToken" : "compressionThresholdTurnCount")));
+const visibleCompression = computed(() => compressionFields.filter(([key]) => !isGlobalField(key)));
 const sizing = computed(() => {
   const c = s.value;
   const skills = c.skillsTotalCount * c.skillIndexToken;
@@ -32,7 +33,7 @@ function markCustom() {
     <details v-for="(group, index) in visibleGroups" :key="group.title" class="parameter-group" open>
       <summary><span><i class="group-number">{{ String(index + 1).padStart(2, '0') }}</i>{{ group.title }}</span><ChevronDown :size="14" /></summary>
       <div class="parameter-fields">
-        <ParameterField v-for="field in group.fields" :key="field[0]" :object="s" :field="field" :error="errors[field[0]]" />
+        <ParameterField v-for="field in group.fields.filter(([key]) => !isGlobalField(key))" :key="field[0]" :object="s" :field="field" :error="errors[field[0]]" />
         <div v-if="group === groups[0]" class="field-note">支持 1–1,000 轮；小数数量表示每轮平均用量。</div>
         <div v-if="group === groups[1]" class="field-note">命中率作用于匹配到的前缀。角色比例只决定允许工具列表的长度。</div>
         <div v-if="group === groups[2]" class="derived-values">
@@ -46,7 +47,6 @@ function markCustom() {
     <details v-if="section === 'cache'" class="parameter-group compression-parameters" open>
       <summary><span><Layers :size="15" />上下文压缩</span><ChevronDown :size="14" /></summary>
       <div class="parameter-fields">
-        <label class="field"><span>触发方式</span><select v-model="s.compressionThresholdType" aria-label="压缩触发方式"><option value="TURN">按活跃用户轮次</option><option value="TOKEN">按上下文 Token</option></select></label>
         <ParameterField v-for="field in visibleCompression" :key="field[0]" :object="s" :field="field" :error="errors[field[0]]" />
         <p class="field-note">在每轮流程结束后检查，压缩会额外请求一次模型。摘要长度不等于压缩后的总上下文。</p>
       </div>

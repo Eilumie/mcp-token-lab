@@ -5,8 +5,10 @@ import { createDefaultFlow, createPreloadedFlow } from "../session-flow.js";
 import { groups, compressionFields, priceFields } from "../config.js";
 import ParameterPanel from "./ParameterPanel.vue";
 import FlowEditor from "./FlowEditor.vue";
+import InheritedParameter from "./InheritedParameter.vue";
+import { globalFields, thresholdField } from "../comparison.js";
 
-const props = defineProps({ plan: Object, errors: Object, isNew: Boolean });
+const props = defineProps({ plan: Object, globalSimulation: Object, errors: Object, isNew: Boolean });
 const emit = defineEmits(["save", "close"]);
 const dialog = ref(null);
 const body = ref(null);
@@ -66,6 +68,13 @@ onBeforeUnmount(() => {
         <label class="field"><span>方案名称</span><input v-model="plan.name" autofocus maxlength="60" aria-label="方案名称" placeholder="例如：精简检索流程" :aria-invalid="!!errors.planName" /><small v-if="errors.planName" class="error">{{ errors.planName }}</small></label>
         <label v-if="isNew" class="field"><span>流程起点</span><select v-model="template" aria-label="流程起点" @change="chooseTemplate"><option value="current" disabled>保留当前流程</option><option value="lazy">按需发现工具</option><option value="preloaded">预加载工具定义</option><option value="blank">空白流程，从零开始</option></select></label>
       </div>
+      <section v-if="section === 'params' || section === 'cache'" class="plan-global-settings" aria-label="方案全局参数设置">
+        <InheritedParameter v-for="field in globalFields.filter(([key]) => section === 'params' ? ['turnTotalCount', 'skillsTotalCount', 'toolsTotalCount'].includes(key) : key === 'expectedPrefixCacheHitRate')" :key="field[0]" :plan="plan" :global-simulation="globalSimulation" :field="field" :error="errors[field[0]]" />
+        <template v-if="section === 'cache'">
+          <InheritedParameter :plan="plan" :global-simulation="globalSimulation" :field="['compressionThresholdType', '压缩触发方式']" :options="[{ value: 'TURN', label: '按活跃用户轮次' }, { value: 'TOKEN', label: '按上下文 Token' }]" :error="errors.compressionThresholdType" />
+          <InheritedParameter :key="thresholdField(plan.simulation)[0]" :plan="plan" :global-simulation="globalSimulation" :field="thresholdField(plan.simulation)" :error="errors[thresholdField(plan.simulation)[0]]" />
+        </template>
+      </section>
       <ParameterPanel v-if="section !== 'flow'" :config="plan" :errors="errors" :section="section" />
       <FlowEditor v-show="section === 'flow'" :simulation="plan.simulation" :error="errors.flow" />
     </div>

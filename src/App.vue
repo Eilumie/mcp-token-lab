@@ -1,18 +1,20 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
-import { Asterisk, ArrowDownToLine, ArrowUpFromLine, SlidersHorizontal, X, Check, LoaderCircle, Plus, RotateCcw, Undo2 } from "lucide-vue-next";
-import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, validatePlan, resolveBaselineId, planColors, maxPlans } from "./comparison.js";
+import { ArrowDownToLine, ArrowUpFromLine, SlidersHorizontal, X, Check, LoaderCircle, Plus, RotateCcw, Undo2 } from "lucide-vue-next";
+import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, validatePlan, resolveBaselineId, resolvePlan, globalFields, thresholdField, planColors, maxPlans } from "./comparison.js";
 import { downloadFile } from "./utils.js";
 import PlanEditor from "./components/PlanEditor.vue";
 import SummaryCards from "./components/SummaryCards.vue";
 import AnalysisPanel from "./components/AnalysisPanel.vue";
+import ParameterField from "./components/ParameterField.vue";
+import GlyphBackground from "./components/GlyphBackground.vue";
 
 const config = ref(createComparisonConfig());
 const draft = ref(null);
 const draftIsNew = ref(false);
 const draftErrors = computed(() => {
   if (!draft.value) return {};
-  const errors = validatePlan(draft.value);
+  const errors = validatePlan(draft.value, config.value.globalSimulation);
   const others = config.value.plans.filter(plan => plan.id !== draft.value.id);
   if (others.some(plan => plan.name.trim() === draft.value.name.trim())) errors.planName = "方案名称已存在，请换一个名称";
   if (others.some(plan => plan.model.currency !== draft.value.model.currency)) errors.currency = "对比方案需使用相同币种";
@@ -82,7 +84,8 @@ function editPlan(id) {
   const plan = config.value.plans.find(plan => plan.id === id);
   if (!plan) return;
   draftIsNew.value = false;
-  draft.value = clone(plan);
+  draft.value = clone(resolvePlan(plan, config.value.globalSimulation));
+  draft.value.useGlobal ??= {};
 }
 function savePlan() {
   if (!draft.value || Object.keys(draftErrors.value).length) return;
@@ -122,7 +125,7 @@ function addPlan(source) {
     plan.pricing = JSON.parse(JSON.stringify(config.value.plans[0].pricing));
   }
   draftIsNew.value = true;
-  draft.value = plan;
+  draft.value = resolvePlan(plan, config.value.globalSimulation);
 }
 function copyPlan(id) {
   const plan = config.value.plans.find(plan => plan.id === id);
@@ -168,14 +171,23 @@ function editInvalidPlan() {
 </script>
 
 <template>
+  <GlyphBackground />
   <header class="app-header">
-    <a class="brand" href="./"><span class="brand-mark"><Asterisk :size="32" :stroke-width="1.6" /></span><strong>Token Lab<span>A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
+    <a class="brand" href="./"><span class="brand-mark"><img src="/token-lab.svg" width="36" height="36" alt="" /></span><strong>Token Lab<span>A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
     <nav class="header-actions" aria-label="配置操作"><span class="local-badge"><i></i>本地模拟</span><button aria-label="导入配置" @click="importInput.click()"><ArrowUpFromLine :size="15" /><span>导入配置</span></button><button aria-label="导出配置" :disabled="!!Object.keys(errors).length" @click="exportConfig"><ArrowDownToLine :size="15" /><span>导出配置</span></button><input ref="importInput" type="file" accept=".json,application/json" hidden @change="importConfig" /></nav>
   </header>
   <div class="workspace comparison-workspace">
     <main>
-      <div class="page-heading"><div><p class="eyebrow">会话成本实验室 / TOKEN LAB</p><h1>每一份成本，都更清楚<span>。</span></h1><p>从一个想法，到更好的方案。探索模型、流程与费用之间的关系。</p></div></div>
+      <h1 class="sr-only">Token Lab · 会话成本实验室</h1>
       <div v-if="notice || undo" class="notice" role="status"><Check :size="15" /><span>{{ notice || '可以撤销最近一次修改。' }}</span><button v-if="undo" class="undo-button" @click="undoChange"><Undo2 :size="14" />撤销{{ undo.label }}</button><button class="icon-button" aria-label="关闭通知" @click="notice = ''; undo = null"><X :size="14" /></button></div>
+      <section class="global-settings" aria-labelledby="global-settings-title">
+        <div><h2 id="global-settings-title"><SlidersHorizontal :size="17" />全局配置</h2><p>各方案默认使用以下数值，也可在方案内单独设置。</p></div>
+        <div class="global-settings-fields" @focusin="remember('修改全局配置')">
+          <ParameterField v-for="field in globalFields.filter(([key]) => !key.startsWith('compression'))" :key="field[0]" :object="config.globalSimulation" :field="field" :error="errors['globalSimulation.' + field[0]]" />
+          <label class="field"><span>压缩触发方式</span><select v-model="config.globalSimulation.compressionThresholdType" aria-label="压缩触发方式" :aria-invalid="!!errors['globalSimulation.compressionThresholdType']"><option value="TURN">按活跃用户轮次</option><option value="TOKEN">按上下文 Token</option></select><small v-if="errors['globalSimulation.compressionThresholdType']" class="error">{{ errors['globalSimulation.compressionThresholdType'] }}</small></label>
+          <ParameterField :key="thresholdField(config.globalSimulation)[0]" :object="config.globalSimulation" :field="thresholdField(config.globalSimulation)" :error="errors['globalSimulation.' + thresholdField(config.globalSimulation)[0]]" />
+        </div>
+      </section>
       <div class="results-heading comparison-heading"><div><h2>对比方案 <span class="plan-count">{{ config.plans.length }}/{{ maxPlans }}</span></h2><p>完整会话 · 包含压缩费用</p></div><div class="plan-toolbar"><button @click="reset"><RotateCcw :size="14" />恢复默认方案</button><button class="primary-button" :disabled="config.plans.length >= maxPlans" @click="addPlan()"><Plus :size="15" />新增方案</button></div></div>
       <div v-if="!config.plans.length" class="empty-state"><Plus :size="30" /><h2>从一个方案开始</h2><p>点击上方「新增方案」，或恢复默认的按需、全量方案。</p></div>
       <div v-else-if="Object.keys(errors).length" class="empty-state" role="alert"><SlidersHorizontal :size="30" /><h2>请修正实验参数</h2><p>{{ Object.values(errors)[0] }}</p><button @click="editInvalidPlan">编辑待修正方案</button></div>
@@ -189,5 +201,5 @@ function editInvalidPlan() {
       <footer><span class="footer-mark">T / L</span><p>初始前缀按期望命中率计费 · 每轮流程结束后检查压缩 · 最后一轮触发的压缩也计费<br />所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。</p><span>COMPARE / V4</span></footer>
     </main>
   </div>
-  <PlanEditor v-if="draft" :plan="draft" :is-new="draftIsNew" :errors="draftErrors" @save="savePlan" @close="draft = null" />
+  <PlanEditor v-if="draft" :plan="draft" :global-simulation="config.globalSimulation" :is-new="draftIsNew" :errors="draftErrors" @save="savePlan" @close="draft = null" />
 </template>

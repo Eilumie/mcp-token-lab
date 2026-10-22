@@ -9,10 +9,10 @@ export function trendOption(results, metric, currency) {
     color: results.map((r, i) => displayPlanColor(r.color ?? planColors[i % planColors.length])),
     animation: false,
     grid: { left: 16, right: 24, top: 48, bottom: 16, outerBoundsMode: "same", outerBoundsContain: "axisLabel" },
-    legend: { type: "scroll", left: 10, right: 10, top: 4, icon: "roundRect", itemWidth: 16, itemHeight: 5, textStyle: { color: "#756f64", fontSize: 11 } },
+    legend: { type: "scroll", left: 10, right: 10, top: 4, icon: "roundRect", itemWidth: 16, itemHeight: 5, textStyle: { color: "#737d90", fontSize: 11 } },
     tooltip: { trigger: "axis", valueFormatter: format },
-    xAxis: { type: "value", min: Math.max(...results.map(r => r.rounds.length)) === 1 ? 0.5 : 1, max: Math.max(...results.map(r => r.rounds.length)) === 1 ? 1.5 : Math.max(...results.map(r => r.rounds.length)), minInterval: 1, axisLabel: { color: "#817b70", formatter: value => Number.isInteger(value) ? "第 " + value + " 轮" : "" }, axisLine: { lineStyle: { color: "#dedad0" } }, splitLine: { show: false } },
-    yAxis: { type: "value", axisLabel: { color: "#817b70", formatter: format }, splitLine: { lineStyle: { color: "#ebe7de", type: "dashed" } } },
+    xAxis: { type: "value", min: Math.max(...results.map(r => r.rounds.length)) === 1 ? 0.5 : 1, max: Math.max(...results.map(r => r.rounds.length)) === 1 ? 1.5 : Math.max(...results.map(r => r.rounds.length)), minInterval: 1, axisLabel: { color: "#8790a0", formatter: value => Number.isInteger(value) ? "第 " + value + " 轮" : "" }, axisLine: { lineStyle: { color: "#e3e7ee" } }, splitLine: { show: false } },
+    yAxis: { type: "value", axisLabel: { color: "#8790a0", formatter: format }, splitLine: { lineStyle: { color: "#edf0f5", type: "dashed" } } },
     series: results.map((result, planIndex) => {
       const step = Math.max(1, Math.ceil(result.rounds.length / 250));
       const keep = new Set([0, result.rounds.length - 1]);
@@ -46,13 +46,13 @@ export function sourceOption(results, currency) {
     animation: false,
     color: sourceColors,
     grid: { left: 12, right: 35, top: 18, bottom: 48, outerBoundsMode: "same", outerBoundsContain: "axisLabel" },
-    legend: { type: "scroll", bottom: 0, left: 10, right: 10, textStyle: { fontSize: 10, color: "#756f64" } },
+    legend: { type: "scroll", bottom: 0, left: 10, right: 10, textStyle: { fontSize: 10, color: "#737d90" } },
     tooltip: {
       trigger: "item", confine: true,
       formatter: p => `${escapeHtml(p.name)}<br/>${escapeHtml(p.seriesName ?? "费用")}：${money(p.value, currency, true)}`,
     },
-    xAxis: { type: "value", axisLabel: { formatter: v => money(v, currency), color: "#817b70" }, splitLine: { lineStyle: { color: "#ebe7de", type: "dashed" } } },
-    yAxis: { type: "category", inverse: true, data: results.map((r, i) => r.planName ?? `方案 ${i + 1}`), axisTick: { show: false }, axisLine: { show: false }, axisLabel: { color: "#625d54", width: 130, overflow: "truncate" } },
+    xAxis: { type: "value", axisLabel: { formatter: v => money(v, currency), color: "#8790a0" }, splitLine: { lineStyle: { color: "#edf0f5", type: "dashed" } } },
+    yAxis: { type: "category", inverse: true, data: results.map((r, i) => r.planName ?? `方案 ${i + 1}`), axisTick: { show: false }, axisLine: { show: false }, axisLabel: { color: "#596477", width: 130, overflow: "truncate" } },
     series: [...sources].map(([key, name]) => ({
       id: key, name, type: "bar", stack: "cost", barMaxWidth: 28,
       emphasis: { focus: "series" },

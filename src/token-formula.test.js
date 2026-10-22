@@ -51,7 +51,9 @@ test("流程支持公式、嵌套参数和旧乘积数组，并给出步骤位�
 test("公式可导入导出，并用于初始上下文和模型输出的实际计费", () => {
   const config = createComparisonConfig();
   const plan = config.plans[0];
+  plan.useGlobal.turnTotalCount = false;
   plan.simulation.turnTotalCount = 1;
+  plan.useGlobal.expectedPrefixCacheHitRate = false;
   plan.simulation.expectedPrefixCacheHitRate = 0;
   plan.simulation.flow = {
     initial: [{ type: "action", text: "背景", token: "initialContext.agentPromptToken / 2" }],

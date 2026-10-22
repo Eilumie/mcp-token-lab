@@ -1,32 +1,34 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createConfig } from "./config.js";
-import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, resolveBaselineId, compareSources, planColors, maxPlans } from "./comparison.js";
+import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, resolveBaselineId, compareSources, planColors, maxPlans, globalKeys, resolvePlan } from "./comparison.js";
 import { simulate } from "./session-report.js";
 import { sourceOption, trendOption } from "./charts.js";
 import { buildCsv } from "./export.js";
 
 const small = () => {
   const config = createComparisonConfig();
-  config.plans.forEach(p => p.simulation.turnTotalCount = 3);
+  config.globalSimulation.turnTotalCount = 3;
   return config;
 };
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`);
 
-test("默认基准随最低费用方案变化，同价保留首项，手动选择优先", () => {
+test("默认基准随最高费用方案变化，同价保留首项，手动选择优先", () => {
   const config = small();
   const results = simulate(config);
   assert.equal(config.baselineMode, "auto");
-  const cheapest = results.reduce((best, result) => result.cost.total < best.cost.total ? result : best);
-  assert.equal(resolveBaselineId(config, results), cheapest.planId);
+  const highest = results.reduce((best, result) => result.cost.total > best.cost.total ? result : best);
+  assert.equal(resolveBaselineId(config, results), highest.planId);
   const changed = structuredClone(results);
-  changed[1].cost.total = 0;
+  changed[0].cost.total = changed[1].cost.total + 1;
+  assert.equal(resolveBaselineId(config, changed), changed[0].planId);
+  changed[1].cost.total = changed[0].cost.total + 1;
   assert.equal(resolveBaselineId(config, changed), changed[1].planId);
-  changed[0].cost.total = 0;
+  changed[0].cost.total = changed[1].cost.total;
   assert.equal(resolveBaselineId(config, changed), changed[0].planId);
   config.baselineMode = "manual";
-  config.baselineId = results[1].planId;
-  assert.equal(resolveBaselineId(config, results), results[1].planId);
+  config.baselineId = results[0].planId;
+  assert.equal(resolveBaselineId(config, results), results[0].planId);
   assert.equal(resolveBaselineId(config, []), null);
   assert.deepEqual(readComparisonConfig(config), config);
   delete config.baselineMode;
@@ -53,6 +55,7 @@ test("三个方案可使用任意独立流程、费率、轮次", () => {
   const config = small();
   config.plans.push(createPlan({ source: config.plans[0], name: "精简流程", color: planColors[2] }));
   const extra = config.plans[2];
+  extra.useGlobal.turnTotalCount = false;
   extra.simulation.turnTotalCount = 7;
   extra.simulation.flow = { initial: [], turn: [{ type: "llm", text: "直接回复", token: 2 }] };
   extra.model.inputCachedPrice = 0;
@@ -74,6 +77,7 @@ test("来源表按 key 对齐自定义来源，多个图表和 CSV 包含全部�
   const config = small();
   config.plans.push(createPlan({ source: config.plans[1], name: "第三方案", color: planColors[2] }));
   config.plans.forEach((p, i) => {
+    p.useGlobal.turnTotalCount = false;
     p.simulation.turnTotalCount = i + 1;
     p.simulation.flow = { initial: [], turn: [{ type: "llm", text: `独有来源${i}`, token: i + 1 }] };
   });
@@ -245,4 +249,145 @@ test("旧模式配置在导入时验证，新配置拒绝模式条件", () => {
   config.plans[0].simulation.flow.turn[0].toolsMode = "LAZY_TOOLS_SCHEMA";
   assert.throws(() => readComparisonConfig(config), /不支持字段/);
   assert.throws(() => simulate(config), /不支持字段/);
+});
+
+
+test("全局轮次和 Tools 驱动模拟，独立覆盖与恢复继承按字段生效", () => {
+  const config = small();
+  config.globalSimulation.toolsTotalCount = 120;
+  const initial = simulate(config);
+  assert.deepEqual(initial.map(r => r.rounds.length), [3, 3]);
+  const plan = config.plans[1];
+  plan.useGlobal.turnTotalCount = false;
+  plan.simulation.turnTotalCount = 2;
+  plan.useGlobal.toolsTotalCount = false;
+  plan.simulation.toolsTotalCount = 20;
+  const overridden = simulate(config);
+  config.globalSimulation.turnTotalCount = 5;
+  config.globalSimulation.toolsTotalCount = 180;
+  const updated = simulate(config);
+  assert.deepEqual(updated.map(r => r.rounds.length), [5, 2]);
+  assert.deepEqual(updated[1], overridden[1]);
+  assert.ok(updated[0].initialContext > initial[0].initialContext);
+  plan.useGlobal.toolsTotalCount = true;
+  assert.ok(simulate(config)[1].initialContext > overridden[1].initialContext);
+  plan.useGlobal.turnTotalCount = true;
+  assert.deepEqual(simulate(config).map(r => r.rounds.length), [5, 5]);
+  const imported = readComparisonConfig(JSON.parse(JSON.stringify(config)));
+  assert.deepEqual(imported, config);
+  assert.deepEqual(simulate(imported), simulate(config));
+  const copy = createPlan({ source: plan, name: "继承副本" });
+  copy.useGlobal.turnTotalCount = false;
+  assert.equal(plan.useGlobal.turnTotalCount, true);
+});
+
+test("旧 v4 导入保持不同轮次和 Tools 数量，不被全局值覆盖", () => {
+  const old = small();
+  delete old.globalSimulation;
+  old.plans.forEach((p, i) => {
+    delete p.useGlobal;
+    p.simulation.turnTotalCount = i + 2;
+    p.simulation.toolsTotalCount = 30 + i * 20;
+  });
+  const imported = readComparisonConfig(old);
+  assert.deepEqual(simulate(imported), simulate(old));
+  imported.globalSimulation.turnTotalCount = 9;
+  imported.globalSimulation.toolsTotalCount = 200;
+  assert.deepEqual(simulate(imported), simulate(old));
+});
+
+test("全局值、继承设置与跨字段约束均校验实际生效参数", () => {
+  for (const mutate of [
+    c => c.globalSimulation.turnTotalCount = 0,
+    c => c.globalSimulation.turnTotalCount = 1001,
+    c => c.globalSimulation.toolsTotalCount = 1.5,
+    c => c.globalSimulation.toolsTotalCount = -1,
+    c => c.globalSimulation.toolsTotalCount = "",
+    c => c.globalSimulation.toolsTotalCount = 1,
+    c => c.globalSimulation = null,
+    c => c.plans[0].useGlobal.turnTotalCount = "true",
+  ]) {
+    const config = small();
+    mutate(config);
+    assert.ok(Object.keys(validateComparison(config)).length);
+    assert.throws(() => simulate(config));
+    assert.throws(() => readComparisonConfig(config));
+  }
+  const config = small();
+  config.plans[0].simulation.toolsTotalCount = 1;
+  assert.deepEqual(validateComparison(config), {});
+  assert.deepEqual(readComparisonConfig(config), config);
+  config.plans[0].useGlobal.toolsTotalCount = false;
+  assert.ok(validateComparison(config)["plans.0.turnAvgToolsCount"]);
+});
+
+
+test("新增全局 Skills、命中率和压缩设置参与计算，覆盖后不随全局改变", () => {
+  const config = small();
+  Object.assign(config.globalSimulation, { turnTotalCount: 8, skillsTotalCount: 40, expectedPrefixCacheHitRate: 0.4, compressionThresholdTurnCount: 4 });
+  const plan = config.plans[1];
+  for (const key of ["skillsTotalCount", "expectedPrefixCacheHitRate", "compressionThresholdType", "compressionThresholdTurnCount", "compressionThresholdToken"]) plan.useGlobal[key] = false;
+  Object.assign(plan.simulation, { skillsTotalCount: 10, expectedPrefixCacheHitRate: 0.8, compressionThresholdType: "TURN", compressionThresholdTurnCount: 6 });
+  const before = simulate(config);
+  assert.equal(before[0].expectedPrefixCacheHitRate, 0.4);
+  assert.equal(before[1].expectedPrefixCacheHitRate, 0.8);
+  assert.deepEqual(before[0].compressions.map(c => c.round), [4, 6, 8]);
+  Object.assign(config.globalSimulation, { skillsTotalCount: 80, expectedPrefixCacheHitRate: 0, compressionThresholdType: "TOKEN", compressionThresholdToken: 9999 });
+  const after = simulate(config);
+  assert.ok(after[0].initialContext > before[0].initialContext);
+  assert.equal(after[0].compressions.length, 0);
+  assert.equal(after[0].expectedPrefixCacheHitRate, 0);
+  assert.deepEqual(after[1], before[1]);
+  const imported = readComparisonConfig(JSON.parse(JSON.stringify(config)));
+  assert.deepEqual(imported, config);
+  assert.deepEqual(simulate(imported), after);
+  for (const key of globalKeys) plan.useGlobal[key] = true;
+  const inherited = resolvePlan(plan, config.globalSimulation).simulation;
+  for (const key of globalKeys) assert.equal(inherited[key], config.globalSimulation[key]);
+  assert.equal(simulate(config)[1].compressions.length, 0);
+});
+
+test("仅含轮次和 Tools 的旧全局配置可导入，新增字段保持原方案值", () => {
+  const old = small();
+  const addedKeys = globalKeys.filter(key => !["turnTotalCount", "toolsTotalCount"].includes(key));
+  for (const key of addedKeys) {
+    delete old.globalSimulation[key];
+    for (const plan of old.plans) delete plan.useGlobal[key];
+  }
+  Object.assign(old.plans[1].simulation, { skillsTotalCount: 50, expectedPrefixCacheHitRate: 0.55, compressionThresholdType: "TOKEN", compressionThresholdToken: 15 });
+  const imported = readComparisonConfig(old);
+  const before = simulate(imported);
+  for (const key of addedKeys) assert.equal(resolvePlan(imported.plans[1], imported.globalSimulation).simulation[key], old.plans[1].simulation[key]);
+  Object.assign(imported.globalSimulation, { skillsTotalCount: 900, expectedPrefixCacheHitRate: 0.1, compressionThresholdType: "TOKEN", compressionThresholdToken: 1000 });
+  assert.deepEqual(simulate(imported), before);
+  assert.deepEqual(readComparisonConfig(imported), imported);
+  assert.equal(old.globalSimulation.skillsTotalCount, undefined);
+});
+
+test("新增全局字段校验范围、整数和方案保留轮次，触发方式与阈值可分别覆盖", () => {
+  for (const mutate of [
+    c => c.globalSimulation.skillsTotalCount = -1,
+    c => c.globalSimulation.skillsTotalCount = 2.5,
+    c => c.globalSimulation.expectedPrefixCacheHitRate = 90,
+    c => c.globalSimulation.expectedPrefixCacheHitRate = -0.1,
+    c => c.globalSimulation.compressionThresholdType = "UNKNOWN",
+    c => c.globalSimulation.compressionThresholdTurnCount = 2,
+    c => c.globalSimulation.compressionThresholdTurnCount = 3.5,
+    c => Object.assign(c.globalSimulation, { compressionThresholdType: "TOKEN", compressionThresholdToken: 0 }),
+  ]) {
+    const config = small(); mutate(config);
+    assert.throws(() => simulate(config));
+    assert.throws(() => readComparisonConfig(config));
+  }
+  const config = small();
+  const plan = config.plans[0];
+  plan.useGlobal.compressionThresholdType = false;
+  plan.simulation.compressionThresholdType = "TOKEN";
+  config.globalSimulation.compressionThresholdToken = 20.5;
+  assert.equal(resolvePlan(plan, config.globalSimulation).simulation.compressionThresholdToken, 20.5);
+  assert.deepEqual(validateComparison(config), {});
+  plan.useGlobal.compressionThresholdToken = false;
+  plan.simulation.compressionThresholdToken = 12.5;
+  assert.equal(resolvePlan(plan, config.globalSimulation).simulation.compressionThresholdToken, 12.5);
+  assert.deepEqual(readComparisonConfig(config), config);
 });

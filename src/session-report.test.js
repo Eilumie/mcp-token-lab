@@ -25,6 +25,7 @@ const simulateTemplates = config => {
   const comparison = createComparisonConfig();
   comparison.plans.forEach(plan => {
     const flow = plan.simulation.flow;
+    plan.useGlobal = { turnTotalCount: false, toolsTotalCount: false };
     plan.simulation = { ...structuredClone(config.simulation), flow };
     plan.model = { ...config.model };
   });
