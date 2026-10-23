@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { Upload, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, ArrowDown, ArrowUp, ArrowUpRight, MoreHorizontal, Check, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
+import { Github, Upload, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, ArrowDown, ArrowUp, ArrowUpRight, MoreHorizontal, Check, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
 import { globalFields, thresholdField, resolveBaselineId } from '../src/comparison.js';
 import GlyphBackground from '../src/components/GlyphBackground.vue';
 import ParameterField from '../src/components/ParameterField.vue';
@@ -9,7 +9,7 @@ import SummaryCards from '../src/components/SummaryCards.vue';
 import SparklesText from '../src/components/SparklesText.vue';
 import PlanFlowPreview from './PlanFlowPreview.vue';
 import { useHeaderOpacity } from '../src/use-header-opacity.js';
-const headerNeonOpacity = useHeaderOpacity();
+const headerSurfaceOpacity = useHeaderOpacity();
 const props = defineProps({ config: Object, results: Array, busy: Boolean, errors: Object, failure: String, canUndo: Boolean });
 const emit = defineEmits(['import','export','remember','reset','add','edit','baseline','copy','remove','undo']);
 const menu = ref('');
@@ -31,9 +31,9 @@ function action(type,id) { menu.value='';emit(type,id); }
 <template>
   <div class="restored-home">
     <GlyphBackground />
-    <header class="app-header" :style="{ '--header-neon-opacity': headerNeonOpacity }">
-      <a class="brand" href="./design.html"><span class="brand-mark"><img src="/token-lab.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-neon">Token Lab</b><span class="brand-tagline header-neon">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
-      <nav class="header-actions" aria-label="配置操作"><span class="local-badge header-neon"><i></i>本地模拟</span><button class="header-neon" @click="emit('import')"><Upload :size="15"/><span>导入配置</span></button><button class="header-neon" :disabled="!!Object.keys(errors).length" @click="emit('export')"><Download :size="15"/><span>导出配置</span></button></nav>
+    <header class="app-header" :style="{ '--header-surface-opacity': headerSurfaceOpacity }">
+      <a class="brand" href="./design.html"><span class="brand-mark header-floating"><img src="/token-lab.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
+      <nav class="header-actions" aria-label="配置操作"><a class="header-github header-floating" href="https://github.com/zhangHongEn/token-lab" target="_blank" rel="noopener noreferrer" aria-label="在新标签页打开 GitHub 仓库"><Github :size="16" /><span>GitHub</span></a><button class="header-floating" @click="emit('import')"><Upload :size="15"/><span>导入配置</span></button><button class="header-floating" :disabled="!!Object.keys(errors).length" @click="emit('export')"><Download :size="15"/><span>导出配置</span></button></nav>
     </header>
     <div class="workspace comparison-workspace"><main>
       <h1 class="sr-only">Token Lab · 会话成本实验室</h1>
