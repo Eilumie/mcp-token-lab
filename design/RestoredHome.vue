@@ -6,7 +6,10 @@ import GlyphBackground from '../src/components/GlyphBackground.vue';
 import ParameterField from '../src/components/ParameterField.vue';
 import AnalysisPanel from '../src/components/AnalysisPanel.vue';
 import SummaryCards from '../src/components/SummaryCards.vue';
+import SparklesText from '../src/components/SparklesText.vue';
 import PlanFlowPreview from './PlanFlowPreview.vue';
+import { useHeaderOpacity } from '../src/use-header-opacity.js';
+const headerNeonOpacity = useHeaderOpacity();
 const props = defineProps({ config: Object, results: Array, busy: Boolean, errors: Object, failure: String, canUndo: Boolean });
 const emit = defineEmits(['import','export','remember','reset','add','edit','baseline','copy','remove','undo']);
 const menu = ref('');
@@ -15,7 +18,7 @@ function togglePlan(id) { const next=new Set(expanded.value);next.has(id)?next.d
 watch(() => props.config.plans.map(p=>p.id), ids => {expanded.value=new Set([...expanded.value].filter(id=>ids.includes(id)));});
 const baselineId = computed(() => resolveBaselineId(props.config, props.results));
 const baseline = computed(() => props.results.find(r => r.planId === baselineId.value));
-const best = computed(() => [...props.results].sort((a,b) => a.cost.total-b.cost.total)[0]);
+const lowestCost = computed(() => Math.min(...props.results.map(r => r.cost.total)));
 const analysisConfig = computed(() => ({...props.config, baselineId:baselineId.value}));
 const palette = ['#4b7160','#8c91a0','#9a80aa','#bd945e','#6792a5','#ab7e88','#8f984c','#788ca3'];
 const shortName = name => name.replace('百炼 · ', '').replace(' · 固定价格', '');
@@ -28,9 +31,9 @@ function action(type,id) { menu.value='';emit(type,id); }
 <template>
   <div class="restored-home">
     <GlyphBackground />
-    <header class="app-header">
-      <a class="brand" href="./design.html"><span class="brand-mark"><img src="/token-lab.svg" width="36" height="36" alt="" /></span><strong>Token Lab<span>A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
-      <nav class="header-actions" aria-label="配置操作"><span class="local-badge"><i></i>本地模拟</span><button @click="emit('import')"><Upload :size="15"/><span>导入配置</span></button><button :disabled="!!Object.keys(errors).length" @click="emit('export')"><Download :size="15"/><span>导出配置</span></button></nav>
+    <header class="app-header" :style="{ '--header-neon-opacity': headerNeonOpacity }">
+      <a class="brand" href="./design.html"><span class="brand-mark"><img src="/token-lab.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-neon">Token Lab</b><span class="brand-tagline header-neon">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
+      <nav class="header-actions" aria-label="配置操作"><span class="local-badge header-neon"><i></i>本地模拟</span><button class="header-neon" @click="emit('import')"><Upload :size="15"/><span>导入配置</span></button><button class="header-neon" :disabled="!!Object.keys(errors).length" @click="emit('export')"><Download :size="15"/><span>导出配置</span></button></nav>
     </header>
     <div class="workspace comparison-workspace"><main>
       <h1 class="sr-only">Token Lab · 会话成本实验室</h1>
@@ -47,8 +50,8 @@ function action(type,id) { menu.value='';emit(type,id); }
       <div class="comparison-table-wrap" :aria-busy="busy">
         <table class="comparison-table"><thead><tr><th>方案 / 模型</th><th>会话总费用</th><th>相对基准</th><th>输入命中率</th><th>初始上下文</th><th>峰值请求输入</th><th>模型请求</th><th><span class="sr-only">操作</span></th></tr></thead><tbody>
           <template v-for="(r,i) in results" :key="r.planId">
-          <tr class="plan-summary-row" :class="{'best-row':best?.planId===r.planId && r.cost.total<baseline.cost.total,'row-expanded':expanded.has(r.planId)}">
-            <td><div class="plan-identity"><button class="row-expand-button" :aria-label="(expanded.has(r.planId)?'收起':'展开')+'方案详情 '+r.planName" :aria-expanded="expanded.has(r.planId)" :aria-controls="'plan-detail-'+r.planId" @click="togglePlan(r.planId)"><ChevronDown v-if="expanded.has(r.planId)" :size="15"/><ChevronRight v-else :size="15"/></button><span class="plan-icon" :style="{color:palette[i]}"><Workflow :size="19"/></span><div><button class="plan-title" :aria-expanded="expanded.has(r.planId)" @click="togglePlan(r.planId)">{{ r.planName }}</button><span v-if="r.planId===baselineId" class="badge">基准</span><small>{{ shortName(r.model.name) }}</small></div></div></td>
+          <tr class="plan-summary-row" :class="{'row-expanded':expanded.has(r.planId)}">
+            <td><div class="plan-identity"><button class="row-expand-button" :aria-label="(expanded.has(r.planId)?'收起':'展开')+'方案详情 '+r.planName" :aria-expanded="expanded.has(r.planId)" :aria-controls="'plan-detail-'+r.planId" @click="togglePlan(r.planId)"><ChevronDown v-if="expanded.has(r.planId)" :size="15"/><ChevronRight v-else :size="15"/></button><span class="plan-icon" :style="{color:palette[i]}"><Workflow :size="19"/></span><div><button class="plan-title" :aria-expanded="expanded.has(r.planId)" @click="togglePlan(r.planId)"><SparklesText v-if="r.cost.total === lowestCost" :phase="i">{{ r.planName }}</SparklesText><template v-else>{{ r.planName }}</template></button><span v-if="r.planId===baselineId" class="badge">基准</span><small>{{ shortName(r.model.name) }}</small></div></div></td>
             <td class="price-cell">{{ m(r.cost.total) }}<span class="micro">USD</span></td>
             <td><span v-if="r.planId===baselineId" class="muted">—</span><span v-else class="delta" :class="{positive:r.cost.total>baseline.cost.total}"><ArrowDown v-if="r.cost.total<baseline.cost.total" :size="12"/><ArrowUp v-else :size="12"/>{{ baseline.cost.total ? pct(Math.abs(r.cost.total-baseline.cost.total)/baseline.cost.total) : '—' }}</span></td>
             <td>{{ pct(r.hitRate) }}<div class="mini-track"><span :style="{width:pct(r.hitRate)}"></span></div></td>

@@ -13,7 +13,6 @@
 .restored-home .comparison-table th:last-child{border-radius:0 16px 0 0}
 .restored-home .comparison-table td{padding:19px 15px;text-align:left;color:#303848;font-size:13px;border-bottom:1px solid #eceef2}
 .restored-home .comparison-table tr:last-child td{border-bottom:0}
-.restored-home .comparison-table .best-row{background:#fbfdfb}
 .restored-home .comparison-table .plan-identity{display:flex;align-items:center;gap:12px;min-width:200px;margin:0}
 .restored-home .comparison-table .plan-icon{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;background:#f1f5f1;border:1px solid #e8ede8}
 .restored-home .comparison-table .plan-title{padding:0;min-height:0;border:0;background:none;font-size:14px;font-weight:550;color:#293140;box-shadow:none;border-radius:0}

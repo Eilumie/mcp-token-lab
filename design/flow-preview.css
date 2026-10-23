@@ -2,7 +2,7 @@
 .restored-home .comparison-table .row-expand-button{display:grid;place-items:center;min-height:26px;width:22px;height:26px;padding:0;border:0;border-radius:4px;background:transparent;color:#949ca9;flex:none}
 .restored-home .comparison-table .row-expand-button:hover{background:#f0f2f5;color:#515c70}
 .restored-home .comparison-table .plan-identity{gap:9px}
-.restored-home .comparison-table .row-expanded{background:#f8faf8}
+.restored-home .comparison-table .row-expanded{background:#f8fafb}
 .restored-home .comparison-table .plan-detail-row>td{display:table-cell;padding:0!important;white-space:normal;border-bottom:1px solid #e5e9ee;background:#f8fafb}
 .restored-home .plan-expanded-content{display:grid;grid-template-columns:minmax(360px,400px) minmax(0,1fr);gap:0;padding:22px;align-items:start}
 .restored-home .expanded-cost-card{min-width:0;padding-right:22px}

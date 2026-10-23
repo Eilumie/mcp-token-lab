@@ -8,7 +8,9 @@ import SummaryCards from "./components/SummaryCards.vue";
 import AnalysisPanel from "./components/AnalysisPanel.vue";
 import ParameterField from "./components/ParameterField.vue";
 import GlyphBackground from "./components/GlyphBackground.vue";
+import { useHeaderOpacity } from "./use-header-opacity.js";
 
+const headerNeonOpacity = useHeaderOpacity();
 const config = ref(createComparisonConfig());
 const draft = ref(null);
 const draftIsNew = ref(false);
@@ -172,9 +174,9 @@ function editInvalidPlan() {
 
 <template>
   <GlyphBackground />
-  <header class="app-header">
-    <a class="brand" href="./"><span class="brand-mark"><img src="/token-lab.svg" width="36" height="36" alt="" /></span><strong>Token Lab<span>A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
-    <nav class="header-actions" aria-label="配置操作"><span class="local-badge"><i></i>本地模拟</span><button aria-label="导入配置" @click="importInput.click()"><ArrowUpFromLine :size="15" /><span>导入配置</span></button><button aria-label="导出配置" :disabled="!!Object.keys(errors).length" @click="exportConfig"><ArrowDownToLine :size="15" /><span>导出配置</span></button><input ref="importInput" type="file" accept=".json,application/json" hidden @change="importConfig" /></nav>
+  <header class="app-header" :style="{ '--header-neon-opacity': headerNeonOpacity }">
+    <a class="brand" href="./"><span class="brand-mark"><img src="/token-lab.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-neon">Token Lab</b><span class="brand-tagline header-neon">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
+    <nav class="header-actions" aria-label="配置操作"><span class="local-badge header-neon"><i></i>本地模拟</span><button class="header-neon" aria-label="导入配置" @click="importInput.click()"><ArrowUpFromLine :size="15" /><span>导入配置</span></button><button class="header-neon" aria-label="导出配置" :disabled="!!Object.keys(errors).length" @click="exportConfig"><ArrowDownToLine :size="15" /><span>导出配置</span></button><input ref="importInput" type="file" accept=".json,application/json" hidden @change="importConfig" /></nav>
   </header>
   <div class="workspace comparison-workspace">
     <main>
