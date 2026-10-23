@@ -430,7 +430,7 @@
 .restored-home { isolation: isolate; min-height: 100dvh; }
 .restored-home .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .restored-home .glyph-background { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
-.restored-home .app-header { height: 88px; padding-inline: max(24px, calc((100vw - 1176px) / 2)); background: rgb(250 251 252 / 82%); backdrop-filter: blur(14px); border-bottom-color: transparent; }
+.restored-home .app-header { height: 88px; padding-inline: max(24px, calc((100vw - 1176px) / 2)); background: transparent; border-bottom-color: transparent; }
 .restored-home .brand { gap: 12px; }
 .restored-home .brand strong { font-size: 23px; font-weight: 650; letter-spacing: -.8px; }
 .restored-home .brand strong span { font-size: 8px; font-weight: 500; letter-spacing: 1.3px; margin-top: 5px; }

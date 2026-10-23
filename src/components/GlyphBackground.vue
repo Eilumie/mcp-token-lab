@@ -20,9 +20,9 @@ function draw() {
       // Smooth falloff reaches zero at the rim: no visible circle or hard mask.
       const t = Math.max(0, 1 - distance / 190);
       const focus = t * t * (3 - 2 * t);
-      const scale = 1 + focus * 0.28;
-      const px = pointer ? x + (x - pointer.x) * focus * 0.035 : x;
-      const py = pointer ? y + (y - pointer.y) * focus * 0.035 : y;
+      const scale = 1 + focus * 0.36;
+      const px = pointer ? x + (x - pointer.x) * focus * 0.05 : x;
+      const py = pointer ? y + (y - pointer.y) * focus * 0.05 : y;
       context.font = `${10 * scale}px ui-monospace, SFMono-Regular, Menlo, monospace`;
       context.fillStyle = `rgba(88, 98, 118, ${0.035 + (seed % 3) * 0.008 + focus * 0.22})`;
       context.fillText(characters[seed % characters.length], px, py);
