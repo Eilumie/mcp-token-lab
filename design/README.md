@@ -14,7 +14,7 @@ http://localhost:5174/design.html
 npx vite build --config design/vite.config.js
 ```
 
-构建结果位于 `output/design-preview/`，入口为 `design.html`。此命令不会上传 CDN。
+构建结果位于被 Git 忽略的 `output/design-preview/`，入口为 `design.html`。此命令只生成本地预览文件，不会上传 CDN。
 
 ## 当前界面
 
@@ -46,7 +46,7 @@ npx vite build --config design/vite.config.js
 - 将 Agent Prompt 公式由 `initialContext.agentPromptToken` 改为两倍：步骤预览由 4K 变为 8K，会话成本由 $77.79 变为 $82.00；保存更新对比，撤销恢复原结果。
 - 未知公式变量会显示错误并阻止保存；取消可返回原方案。
 - 压缩请求筛选得到 12 次请求，分页第二页显示剩余 4 条。
-- 原项目测试结果为 51 / 52：既有测试要求拒绝 `Math.random()`，现有引擎允许该函数。本次未改动引擎或其测试。
+- 公式求值只允许确定性的数学函数；`Math.random()` 等非确定性函数会被拒绝。
 
 2026-10-23 首页调整验证：独立构建通过；表格编辑可进入原三栏编辑页；切换基准正确更新差异百分比，撤销恢复原基准；浏览器未发现运行错误。
 

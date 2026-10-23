@@ -8,7 +8,7 @@
 
 Vue 3 · Vite · ECharts · Web Worker
 
-[快速开始](#快速开始) · [核心功能](#核心功能) · [自定义流程](#自定义流程) · [计算与配置文档](docs/simulation.md)
+[快速开始](#快速开始) · [核心功能](#核心功能) · [自定义流程](#自定义流程) · [计算与配置文档](docs/simulation.md) · [GitHub](https://github.com/zhangHongEn/token-lab)
 
 </div>
 
@@ -145,14 +145,16 @@ console.log("预计会话费用：", totals.totalPrice);
 # 运行计算、流程、配置迁移与多方案测试
 npm test
 
-# 仅构建静态页面
-npx vite build
+# 构建静态页面（只生成 dist，不上传任何服务）
+npm run build
 
 # 预览构建产物
 npm run preview
 ```
 
-当前仓库的 `npm run build` 包含 CDN 上传步骤。本地开发和验证请使用 `npx vite build`。
+`npm run build` 只生成可部署的静态文件到 `dist/`，不会上传 CDN，也不会访问公司内部服务。部署请使用你自己的静态托管平台或 CI 流程。
+
+GitHub Actions 会在每次提交和 Pull Request 中自动运行 `npm test` 与 `npm run build`。
 
 ## 项目结构
 

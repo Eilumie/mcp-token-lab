@@ -1,10 +1,24 @@
 {
-  "name": "token-calculator",
-  "private": true,
+  "name": "token-lab",
+  "version": "1.0.0",
+  "description": "A browser-based simulator for Agent token usage, caching, compression, and cost.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zhangHongEn/token-lab.git"
+  },
+  "homepage": "https://github.com/zhangHongEn/token-lab#readme",
+  "bugs": {
+    "url": "https://github.com/zhangHongEn/token-lab/issues"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "packageManager": "npm@10.9.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && npx @chagee/cdn-cli upload -t W486e21e6 -p ./dist --refresh-cdn  -e prod",
+    "build": "vite build",
     "preview": "vite preview",
     "test": "node --test src/*.test.js"
   },
