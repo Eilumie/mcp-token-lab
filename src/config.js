@@ -69,7 +69,7 @@ export function validate(config) {
   }
   if (s.turnAvgSkillsCount > s.skillsTotalCount) errors.turnAvgSkillsCount = "不能超过 Skills 总数";
   if (s.turnAvgToolsCount > s.toolsTotalCount) errors.turnAvgToolsCount = "不能超过 Tools 总数";
-  if (!["TURN", "TOKEN"].includes(s.compressionThresholdType)) errors.compressionThresholdType = "请选择压缩方式";
+  if (!["TURN", "TOKEN"].includes(s.compressionThresholdType)) errors.compressionThresholdType = "请选择压缩阈值类型";
   if (s.compressionThresholdType === "TURN" && s.compressionThresholdTurnCount <= s.compressionKeepTurns) errors.compressionThresholdTurnCount = "阈值必须大于保留轮次";
   if (s.compressionThresholdType === "TOKEN" && s.compressionThresholdToken <= 0) errors.compressionThresholdToken = "阈值必须大于 0";
   try { validateFlow(s.flow, s); } catch (error) { errors.flow = error.message; }

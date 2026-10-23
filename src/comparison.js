@@ -34,7 +34,7 @@ export function validateGlobals(globalSimulation) {
     else if (unit !== "%" && unit !== "K" && !Number.isSafeInteger(value)) errors[key] = "请输入整数";
     if (key === "compressionThresholdToken" && value <= 0) errors[key] = "压缩阈值必须大于 0";
   }
-  if (!["TURN", "TOKEN"].includes(globalSimulation?.compressionThresholdType)) errors.compressionThresholdType = "请选择压缩触发方式";
+  if (!["TURN", "TOKEN"].includes(globalSimulation?.compressionThresholdType)) errors.compressionThresholdType = "请选择压缩阈值类型";
   return errors;
 }
 

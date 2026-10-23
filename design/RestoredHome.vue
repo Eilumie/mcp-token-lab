@@ -43,7 +43,7 @@ function action(type,id) { menu.value='';emit(type,id); }
         <div class="global-settings-fields" @focusin="emit('remember')">
           <GlobalModelField :config="config" :error="errors.globalModelId" />
           <ParameterField v-for="field in globalFields.filter(([key]) => !key.startsWith('compression'))" :key="field[0]" :object="config.globalSimulation" :field="field" :error="errors['globalSimulation.' + field[0]]"/>
-          <label class="field"><span>压缩触发方式</span><select v-model="config.globalSimulation.compressionThresholdType" aria-label="压缩触发方式"><option value="TURN">按活跃用户轮次</option><option value="TOKEN">按上下文 Token</option></select></label>
+          <label class="field"><span>压缩阈值类型</span><select v-model="config.globalSimulation.compressionThresholdType" aria-label="压缩阈值类型"><option value="TURN">用户轮次</option><option value="TOKEN">上下文</option></select></label>
           <ParameterField :key="thresholdField(config.globalSimulation)[0]" :object="config.globalSimulation" :field="thresholdField(config.globalSimulation)" :error="errors['globalSimulation.' + thresholdField(config.globalSimulation)[0]]"/>
         </div>
       </section>

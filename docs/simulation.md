@@ -131,7 +131,7 @@ const totals = session.getConsumptionTokens();
 
 ### 全局参数与方案覆盖
 
-`globalSimulation` 保存用户轮次、Skills / Tools 总数、Prefix 命中率、压缩触发方式及两种压缩阈值。`useGlobal` 按字段记录是否继承；新方案默认全部继承。计算、校验和草稿预览均使用实际生效的值。
+`globalSimulation` 保存用户轮次、Skills / Tools 总数、Prefix 命中率、压缩阈值类型及两种压缩阈值。`useGlobal` 按字段记录是否继承；新方案默认全部继承。计算、校验和草稿预览均使用实际生效的值。
 
 命中率在配置中为 0–1，页面显示为 0–100%。压缩方式为 `TURN` 或 `TOKEN`，页面仅显示当前方式的阈值（轮 / K Token），切换方式时保留两种阈值。方式和阈值可以分别覆盖，轮次阈值仍必须大于该方案的保留轮次。
 

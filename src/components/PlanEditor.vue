@@ -72,7 +72,7 @@ onBeforeUnmount(() => {
       <section v-if="section === 'params' || section === 'cache'" class="plan-global-settings" aria-label="方案全局参数设置">
         <InheritedParameter v-for="field in globalFields.filter(([key]) => section === 'params' ? ['turnTotalCount', 'skillsTotalCount', 'toolsTotalCount'].includes(key) : key === 'expectedPrefixCacheHitRate')" :key="field[0]" :plan="plan" :global-simulation="globalSimulation" :field="field" :error="errors[field[0]]" />
         <template v-if="section === 'cache'">
-          <InheritedParameter :plan="plan" :global-simulation="globalSimulation" :field="['compressionThresholdType', '压缩触发方式']" :options="[{ value: 'TURN', label: '按活跃用户轮次' }, { value: 'TOKEN', label: '按上下文 Token' }]" :error="errors.compressionThresholdType" />
+          <InheritedParameter :plan="plan" :global-simulation="globalSimulation" :field="['compressionThresholdType', '压缩阈值类型']" :options="[{ value: 'TURN', label: '用户轮次' }, { value: 'TOKEN', label: '上下文' }]" :error="errors.compressionThresholdType" />
           <InheritedParameter :key="thresholdField(plan.simulation)[0]" :plan="plan" :global-simulation="globalSimulation" :field="thresholdField(plan.simulation)" :error="errors[thresholdField(plan.simulation)[0]]" />
         </template>
       </section>
