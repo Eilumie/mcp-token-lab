@@ -42,7 +42,7 @@ function action(type,id) { menu.value='';emit(type,id); }
           <ParameterField :key="thresholdField(config.globalSimulation)[0]" :object="config.globalSimulation" :field="thresholdField(config.globalSimulation)" :error="errors['globalSimulation.' + thresholdField(config.globalSimulation)[0]]"/>
         </div>
       </section>
-      <div class="results-heading comparison-heading"><div><h2>对比方案 <span class="plan-count">{{ config.plans.length }}/8</span></h2><p>完整会话 · 包含压缩费用</p></div><div class="plan-toolbar"><button @click="emit('reset')"><RotateCcw :size="14"/>恢复默认方案</button><button class="primary-button" :disabled="config.plans.length>=8" @click="emit('add')"><Plus :size="15"/>新增方案</button></div></div>
+      <div class="results-heading comparison-heading"><div><h2>对比方案 <span class="plan-count">{{ config.plans.length }}/8</span></h2></div><div class="plan-toolbar"><button @click="emit('reset')"><RotateCcw :size="14"/>恢复默认方案</button><button class="primary-button" :disabled="config.plans.length>=8" @click="emit('add')"><Plus :size="15"/>新增方案</button></div></div>
       <div v-if="Object.keys(errors).length || failure" class="error-box" role="alert">{{ Object.values(errors)[0] || failure }}</div>
       <div class="comparison-table-wrap" :aria-busy="busy">
         <table class="comparison-table"><thead><tr><th>方案 / 模型</th><th>会话总费用</th><th>相对基准</th><th>输入命中率</th><th>初始上下文</th><th>峰值请求输入</th><th>模型请求</th><th><span class="sr-only">操作</span></th></tr></thead><tbody>
