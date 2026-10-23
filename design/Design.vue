@@ -8,6 +8,7 @@ import { groups, getValue, setValue, createPresetConfig } from '../src/config.js
 import { modelPresets } from '../src/model-pricing.js';
 import { downloadFile } from '../src/utils.js';
 import EChart from '../src/components/EChart.vue';
+import RestoredHome from './RestoredHome.vue';
 const clone = x => JSON.parse(JSON.stringify(x));
 const config = ref(createComparisonConfig());
 const results = ref([]), busy = ref(false), failure = ref(''), toast = ref(''), tab = ref('overview'), selected = ref('plan-lazy');
@@ -120,67 +121,17 @@ const paramFields=computed(()=>groups.filter(g=>!['缓存与权限'].includes(g.
 
 <template>
   <div class="design-app">
-    <header class="topbar">
+    <header v-if="draft" class="topbar">
       <a class="brand" href="/design.html"><span class="brand-symbol"><Command :size="19" :stroke-width="1.6" /></span>Token Lab<span class="version">LAB</span></a>
       <span class="top-divider"></span><span class="breadcrumb">工作空间 <ChevronRight :size="12" /> 工具加载策略</span>
       <div class="top-actions"><span class="local-state"><i></i>本地模拟</span><button class="icon-btn" aria-label="使用说明" @click="help=true"><CircleHelp :size="17" /></button><span class="avatar">T</span></div>
     </header>
 
-    <main v-if="!draft" class="dashboard">
-      <div class="page-heading"><div><div class="eyebrow">EXPERIMENT / 001</div><h1>会话成本对比</h1><p>相同任务，不同路径。看清每一份 Token 的成本。</p></div><div class="heading-actions"><button class="btn" @click="fileInput.click()"><Upload :size="14" />导入</button><button class="btn" @click="exportConfig"><Download :size="14" />导出配置</button></div></div>
-      <section class="scope-strip" aria-label="全局实验参数">
-        <span class="scope-title"><SlidersHorizontal :size="15" />实验条件</span>
-        <label>会话轮次 <span class="compact-input"><input aria-label="全局会话轮次" type="number" min="1" max="1000" v-model.number="config.globalSimulation.turnTotalCount" @focus="remember" /><span>轮</span></span></label>
-        <label>Tools <span class="compact-input"><input aria-label="全局 Tools 总数" type="number" min="0" v-model.number="config.globalSimulation.toolsTotalCount" @focus="remember" /></span></label>
-        <label>Skills <span class="compact-input"><input aria-label="全局 Skills 总数" type="number" min="0" v-model.number="config.globalSimulation.skillsTotalCount" @focus="remember" /></span></label>
-        <span class="scope-extra">缓存期望 {{ pct(config.globalSimulation.expectedPrefixCacheHitRate) }}</span>
-        <button class="text-btn scope-more" :aria-expanded="globals" @click="globals=!globals">更多参数<ChevronDown :size="13" :class="{ flipped:globals }" /></button>
-      </section>
-      <div v-if="globals" class="global-expanded">
-        <label class="field">缓存期望命中率 <span class="input-unit"><input aria-label="缓存期望命中率" type="number" min="0" max="100" :value="config.globalSimulation.expectedPrefixCacheHitRate*100" @focus="remember" @input="config.globalSimulation.expectedPrefixCacheHitRate=Number($event.target.value)/100" /><span>%</span></span></label>
-        <label class="field">压缩触发方式<select v-model="config.globalSimulation.compressionThresholdType" @focus="remember"><option value="TURN">按活跃轮次</option><option value="TOKEN">按上下文长度</option></select></label>
-        <label class="field">压缩阈值<input v-if="config.globalSimulation.compressionThresholdType==='TURN'" aria-label="压缩轮次阈值" type="number" min="1" v-model.number="config.globalSimulation.compressionThresholdTurnCount" @focus="remember" /><input v-else aria-label="压缩 Token 阈值" type="number" min="1" v-model.number="config.globalSimulation.compressionThresholdToken" @focus="remember" /></label>
-        <p>方案默认继承实验条件，也可单独覆盖。</p>
-      </div>
-      <div v-if="Object.keys(errors).length || failure" class="error-box" role="alert">{{ Object.values(errors)[0] || failure }}</div>
-      <section class="comparison-section" :aria-busy="busy">
-        <div class="section-heading"><h2>对比方案 <span class="count">{{ config.plans.length }} / 8</span></h2><div class="inline-actions"><span class="micro">完整会话 · 包含压缩费用</span><button class="btn primary" :disabled="config.plans.length>=8" @click="add()"><Plus :size="15" />新建方案</button></div></div>
-        <div class="comparison-table-wrap">
-          <table class="comparison-table"><thead><tr><th>方案 / 模型</th><th>会话总费用</th><th>相对基准</th><th>输入命中率</th><th>峰值请求输入</th><th>模型请求</th><th></th></tr></thead><tbody>
-            <tr v-for="(r,i) in results" :key="r.planId" :class="{ 'best-row':best?.planId===r.planId && saving>0 }">
-              <td><div class="plan-identity"><span class="plan-icon" :style="{color:palette[i]}"><Workflow :size="19" /></span><div><button class="plan-title" @click="edit(config.plans.find(p=>p.id===r.planId))">{{ r.planName }}</button><span v-if="r.planId===baselineId" class="badge">基准</span><small>{{ shortName(r.model.name) }}</small></div></div></td>
-              <td class="price-cell">{{ m(r.cost.total) }}<span class="micro">USD</span></td>
-              <td><span v-if="r.planId===baselineId" class="muted">—</span><span v-else class="delta" :class="{positive:r.cost.total>baseline.cost.total}"><ArrowDown v-if="r.cost.total<baseline.cost.total" :size="12"/><ArrowUp v-else :size="12"/>{{ baseline.cost.total ? pct(Math.abs(r.cost.total-baseline.cost.total)/baseline.cost.total) : '—' }}</span></td>
-              <td>{{ pct(r.hitRate) }}<div class="mini-track"><span :style="{width:pct(r.hitRate)}"></span></div></td><td>{{ n(r.peakInput) }}<span class="unit">K</span></td><td>{{ r.requests.length }}<span class="unit">次</span></td>
-              <td><div class="row-actions"><button class="btn edit-btn" :aria-label="'编辑 '+r.planName" @click="edit(config.plans.find(p=>p.id===r.planId))">编辑<ArrowUpRight :size="13" /></button><div class="menu-anchor"><button class="icon-btn" :aria-label="r.planName+' 的更多操作'" :aria-expanded="menu===r.planId" @click="menu=menu===r.planId?'':r.planId"><MoreHorizontal :size="17" /></button><div v-if="menu===r.planId" class="dropdown"><button @click="setBase(r.planId)"><Check :size="13"/>设为基准</button><button :disabled="config.plans.length>=8" @click="add(config.plans.find(p=>p.id===r.planId))"><Copy :size="13"/>复制方案</button><button @click="remove(r.planId)"><Trash2 :size="13"/>删除方案</button></div></div></div></td>
-            </tr>
-          </tbody></table>
-          <div v-if="!results.length" class="empty-state">{{ busy ? '正在计算会话成本…' : '新建一个方案，开始探索成本。' }}</div>
-        </div>
-        <div v-if="saving>0" class="insight"><span class="insight-icon"><Zap :size="14" /></span><span><strong>{{ best.planName }}</strong> 比 {{ baseline.planName }} 节省 <strong>{{ m(saving) }}</strong><span class="muted"> / 每次会话</span></span><span class="insight-tail">{{ pct(saving/baseline.cost.total) }} 更低成本<ArrowDown :size="13" /></span></div>
-      </section>
-
-      <section v-if="results.length" class="analysis-section">
-        <div class="analysis-toolbar"><nav class="tabs" aria-label="分析视图"><button :class="{active:tab==='overview'}" @click="tab='overview'">分析总览</button><button :class="{active:tab==='sources'}" @click="tab='sources'">费用归因</button><button :class="{active:tab==='requests'}" @click="tab='requests'">请求追踪<span>{{ selectedResult?.requests.length }}</span></button></nav><div class="analysis-control"><span class="micro">分析方案</span><select v-model="selected" aria-label="分析方案"><option v-for="r in results" :value="r.planId">{{ r.planName }}</option></select></div></div>
-        <div v-if="tab==='overview'" class="overview-grid">
-          <article class="panel cost-panel"><div class="panel-heading"><div><h3>费用构成</h3><p>每一美元，花在了哪里</p></div><span class="badge plain">{{ selectedResult.planName }}</span></div>
-            <div class="cost-total"><strong>{{ m(selectedResult.cost.total) }}</strong><span>会话总费用</span></div>
-            <div class="cost-stack" role="img" aria-label="缓存输入、未命中输入和模型输出的费用占比"><span v-for="[key,name,color] in costParts" :style="{width:(selectedResult.cost.total?selectedResult.cost[key]/selectedResult.cost.total*100:0)+'%',background:color}" :title="name+' '+m(selectedResult.cost[key])"></span></div>
-            <div class="cost-legend"><div v-for="[key,name,color] in costParts"><span><i :style="{background:color}"></i>{{ name }}</span><strong>{{ m(selectedResult.cost[key]) }}</strong><small>{{ pct(selectedResult.cost.total?selectedResult.cost[key]/selectedResult.cost.total:0) }}</small></div></div>
-            <div class="source-heading"><span>主要费用来源</span><button class="text-btn" @click="tab='sources'">查看全部<ArrowUpRight :size="12" /></button></div>
-            <div class="source-list"><div v-for="(s,i) in topSources" class="source-row"><span class="source-index">{{ String(i+1).padStart(2,'0') }}</span><span class="source-name">{{ s.name }}</span><div class="source-track"><i :style="{width:(s.cost.total/(topSources[0]?.cost.total||1)*100)+'%'}"></i></div><strong>{{ m(s.cost.total) }}</strong></div></div>
-          </article>
-          <article class="panel trend-panel"><div class="panel-heading"><div><h3>会话趋势</h3><p>{{ trend==='cost'?'随着会话推进，成本如何累积':'每轮结束后的有效上下文长度' }}</p></div><div class="segmented"><button :class="{active:trend==='cost'}" @click="trend='cost'">累计费用</button><button :class="{active:trend==='context'}" @click="trend='context'">上下文</button></div></div>
-            <div class="chart-legends"><span v-for="(r,i) in results"><i :class="{dashed:i===1}" :style="{borderColor:palette[i]}"></i>{{ r.planName }}<strong>{{ trend==='cost'?m(r.cost.total):n(r.finalContext)+'K' }}</strong></span></div>
-            <EChart :option="chartOption" role="img" aria-label="各方案随用户轮次的累计费用或上下文趋势" />
-            <div class="trend-bottom"><span><Layers :size="14"/>上下文压缩</span><strong>{{ selectedResult.compressions.length }} 次</strong><span class="micro">累计费用</span><strong>{{ m(selectedResult.compressionCost) }}</strong></div>
-          </article>
-        </div>
-        <article v-if="tab==='sources'" class="panel detail-panel"><div class="panel-heading"><div><h3>费用归因</h3><p>按内容来源拆解输入与输出成本 · {{ selectedResult.planName }}</p></div><span class="micro">单位 USD / K Token</span></div><div class="detail-scroll"><table class="detail-table"><thead><tr><th>内容来源</th><th>缓存输入</th><th>未命中输入</th><th>模型输出</th><th>总费用</th><th>占比</th></tr></thead><tbody><tr v-for="s in sources"><td>{{ s.name }}</td><td>{{ n(s.hit) }} K</td><td>{{ n(s.miss) }} K</td><td>{{ n(s.output) }} K</td><td><strong>{{ m(s.cost.total) }}</strong></td><td>{{ pct(s.cost.total/selectedResult.cost.total) }}</td></tr></tbody></table></div></article>
-        <article v-if="tab==='requests'" class="panel detail-panel"><div class="panel-heading"><div><h3>请求追踪</h3><p>逐次查看模型调用、缓存命中与压缩</p></div><div class="inline-actions"><select v-model="requestFilter" aria-label="请求类型"><option value="all">全部请求</option><option value="normal">普通请求</option><option value="compression">压缩请求</option></select><button class="btn" @click="exportCsv"><Download :size="14"/>导出 CSV</button></div></div><div class="detail-scroll"><table class="detail-table"><thead><tr><th>请求</th><th>轮次</th><th>调用步骤</th><th>输入 / K</th><th>命中 / K</th><th>输出 / K</th><th>费用</th></tr></thead><tbody><tr v-for="q in pageRequests"><td class="muted">#{{ String(q.id).padStart(3,'0') }}</td><td>{{ q.round }}</td><td>{{ q.stage }}<span v-if="q.compression" class="badge">压缩</span></td><td>{{ n(q.input) }}</td><td>{{ n(q.hit) }}</td><td>{{ n(q.output) }}</td><td>{{ m(q.cost.total) }}</td></tr></tbody></table></div><div class="pagination"><span>共 {{ filteredRequests.length }} 次请求</span><button class="btn" :disabled="requestPage===0" @click="requestPage--">上一页</button><span>{{ requestPage+1 }} / {{ Math.max(1,Math.ceil(filteredRequests.length/8)) }}</span><button class="btn" :disabled="(requestPage+1)*8>=filteredRequests.length" @click="requestPage++">下一页</button></div></article>
-      </section>
-      <footer class="page-footer"><span><span class="footer-dot"></span>{{ busy?'计算中…':'计算在本地完成' }}<span class="footer-separator">·</span>无需 API Key</span><span>费率为内置快照 · 结果仅用于估算<button v-if="lastConfig" class="text-btn" @click="undo"><RotateCcw :size="12"/>撤销修改</button></span></footer>
-    </main>
+    <RestoredHome v-if="!draft" :config="config" :results="results" :busy="busy" :errors="errors" :failure="failure" :can-undo="!!lastConfig"
+      @import="fileInput.click()" @export="exportConfig" @remember="remember" @undo="undo"
+      @reset="remember();config=createComparisonConfig();notify('已恢复默认方案')"
+      @add="add()" @edit="edit(config.plans.find(p=>p.id===$event))" @baseline="setBase"
+      @copy="add(config.plans.find(p=>p.id===$event))" @remove="remove" />
 
     <main v-else class="editor-workspace">
       <div class="editor-top"><div class="editor-title"><button class="icon-btn back-btn" aria-label="取消编辑并返回" @click="draft=null"><ArrowLeft :size="18" /></button><div><div class="eyebrow">{{ isNew?'NEW SCENARIO':'EDIT SCENARIO' }}</div><h1>{{ draft.name }}</h1></div><span class="badge">独立草稿</span></div><div class="inline-actions"><button class="btn" @click="draft=null">取消</button><button class="btn primary" :disabled="!!Object.keys(draftErrors).length" @click="save"><Check :size="15"/>保存并对比</button></div></div>
