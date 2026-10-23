@@ -1,15 +1,18 @@
 <script setup>
-import { computed } from 'vue';
-import { Upload, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, ArrowDown, ArrowUp, ArrowUpRight, MoreHorizontal, Check, Copy, Trash2 } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import { Upload, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, ArrowDown, ArrowUp, ArrowUpRight, MoreHorizontal, Check, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
 import { globalFields, thresholdField, resolveBaselineId } from '../src/comparison.js';
 import GlyphBackground from '../src/components/GlyphBackground.vue';
 import ParameterField from '../src/components/ParameterField.vue';
 import AnalysisPanel from '../src/components/AnalysisPanel.vue';
 import SummaryCards from '../src/components/SummaryCards.vue';
+import PlanFlowPreview from './PlanFlowPreview.vue';
 const props = defineProps({ config: Object, results: Array, busy: Boolean, errors: Object, failure: String, canUndo: Boolean });
 const emit = defineEmits(['import','export','remember','reset','add','edit','baseline','copy','remove','undo']);
-import { ref } from 'vue';
 const menu = ref('');
+const expanded = ref(new Set());
+function togglePlan(id) { const next=new Set(expanded.value);next.has(id)?next.delete(id):next.add(id);expanded.value=next; }
+watch(() => props.config.plans.map(p=>p.id), ids => {expanded.value=new Set([...expanded.value].filter(id=>ids.includes(id)));});
 const baselineId = computed(() => resolveBaselineId(props.config, props.results));
 const baseline = computed(() => props.results.find(r => r.planId === baselineId.value));
 const best = computed(() => [...props.results].sort((a,b) => a.cost.total-b.cost.total)[0]);
@@ -41,19 +44,25 @@ function action(type,id) { menu.value='';emit(type,id); }
       </section>
       <div class="results-heading comparison-heading"><div><h2>对比方案 <span class="plan-count">{{ config.plans.length }}/8</span></h2><p>完整会话 · 包含压缩费用</p></div><div class="plan-toolbar"><button @click="emit('reset')"><RotateCcw :size="14"/>恢复默认方案</button><button class="primary-button" :disabled="config.plans.length>=8" @click="emit('add')"><Plus :size="15"/>新增方案</button></div></div>
       <div v-if="Object.keys(errors).length || failure" class="error-box" role="alert">{{ Object.values(errors)[0] || failure }}</div>
-      <SummaryCards v-if="results.length" :results="results" :config="analysisConfig"
-        @edit="action('edit',$event)" @copy="action('copy',$event)"
-        @remove="action('remove',$event)" @baseline="action('baseline',$event)" />
       <div class="comparison-table-wrap" :aria-busy="busy">
         <table class="comparison-table"><thead><tr><th>方案 / 模型</th><th>会话总费用</th><th>相对基准</th><th>输入命中率</th><th>峰值请求输入</th><th>模型请求</th><th><span class="sr-only">操作</span></th></tr></thead><tbody>
-          <tr v-for="(r,i) in results" :key="r.planId" :class="{'best-row':best?.planId===r.planId && r.cost.total<baseline.cost.total}">
-            <td><div class="plan-identity"><span class="plan-icon" :style="{color:palette[i]}"><Workflow :size="19"/></span><div><button class="plan-title" @click="emit('edit',r.planId)">{{ r.planName }}</button><span v-if="r.planId===baselineId" class="badge">基准</span><small>{{ shortName(r.model.name) }}</small></div></div></td>
+          <template v-for="(r,i) in results" :key="r.planId">
+          <tr class="plan-summary-row" :class="{'best-row':best?.planId===r.planId && r.cost.total<baseline.cost.total,'row-expanded':expanded.has(r.planId)}">
+            <td><div class="plan-identity"><button class="row-expand-button" :aria-label="(expanded.has(r.planId)?'收起':'展开')+'方案详情 '+r.planName" :aria-expanded="expanded.has(r.planId)" :aria-controls="'plan-detail-'+r.planId" @click="togglePlan(r.planId)"><ChevronDown v-if="expanded.has(r.planId)" :size="15"/><ChevronRight v-else :size="15"/></button><span class="plan-icon" :style="{color:palette[i]}"><Workflow :size="19"/></span><div><button class="plan-title" :aria-expanded="expanded.has(r.planId)" @click="togglePlan(r.planId)">{{ r.planName }}</button><span v-if="r.planId===baselineId" class="badge">基准</span><small>{{ shortName(r.model.name) }}</small></div></div></td>
             <td class="price-cell">{{ m(r.cost.total) }}<span class="micro">USD</span></td>
             <td><span v-if="r.planId===baselineId" class="muted">—</span><span v-else class="delta" :class="{positive:r.cost.total>baseline.cost.total}"><ArrowDown v-if="r.cost.total<baseline.cost.total" :size="12"/><ArrowUp v-else :size="12"/>{{ baseline.cost.total ? pct(Math.abs(r.cost.total-baseline.cost.total)/baseline.cost.total) : '—' }}</span></td>
             <td>{{ pct(r.hitRate) }}<div class="mini-track"><span :style="{width:pct(r.hitRate)}"></span></div></td>
             <td>{{ n(r.peakInput) }}<span class="unit">K</span></td><td>{{ r.requests.length }}<span class="unit">次</span></td>
             <td><div class="row-actions"><button class="edit-btn" :aria-label="'编辑 '+r.planName" @click="emit('edit',r.planId)">编辑<ArrowUpRight :size="13"/></button><div class="menu-anchor"><button class="icon-btn" :aria-label="r.planName+' 的更多操作'" :aria-expanded="menu===r.planId" @click="menu=menu===r.planId?'':r.planId"><MoreHorizontal :size="17"/></button><div v-if="menu===r.planId" class="dropdown"><button @click="action('baseline',r.planId)"><Check :size="13"/>设为基准</button><button :disabled="config.plans.length>=8" @click="action('copy',r.planId)"><Copy :size="13"/>复制方案</button><button @click="action('remove',r.planId)"><Trash2 :size="13"/>删除方案</button></div></div></div></td>
           </tr>
+          <tr v-if="expanded.has(r.planId)" class="plan-detail-row"><td colspan="7">
+            <div :id="'plan-detail-'+r.planId" class="plan-expanded-content">
+              <div class="expanded-cost-card"><SummaryCards :results="results" :config="analysisConfig" :visible-plan-id="r.planId"
+                @edit="action('edit',$event)" @copy="action('copy',$event)" @remove="action('remove',$event)" @baseline="action('baseline',$event)" /></div>
+              <PlanFlowPreview v-if="config.plans.some(p=>p.id===r.planId)" :plan="config.plans.find(p=>p.id===r.planId)" :global-simulation="config.globalSimulation" @edit="action('edit',$event)" />
+            </div>
+          </td></tr>
+          </template>
         </tbody></table>
         <div v-if="!results.length" class="empty-state">{{ busy?'正在计算会话成本…':'新增一个方案，开始探索成本。' }}</div>
       </div>

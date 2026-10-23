@@ -5,7 +5,7 @@ import { maxPlans } from "../comparison.js";
 import { displayPlanColor } from "../theme.js";
 import { ratio } from "../session-report.js";
 import { money, token, percent, number } from "../utils.js";
-const props = defineProps({ results: Array, config: Object });
+const props = defineProps({ results: Array, config: Object, visiblePlanId: String });
 defineEmits(["edit", "copy", "remove", "baseline"]);
 const baseline = computed(() => props.results.find(r => r.planId === props.config.baselineId) || props.results[0]);
 const currency = computed(() => props.results[0].model.currency);
@@ -21,7 +21,7 @@ const costParts = [["cached", "命中输入", "hit"], ["fresh", "未命中输入
 
 <template>
   <div class="comparison-cards">
-    <article v-for="result in results" :key="result.planId" class="strategy-card" :class="{ baseline: result.planId === config.baselineId }" :style="{ '--plan-color': displayPlanColor(result.color) }">
+    <article v-for="result in results.filter(item => !visiblePlanId || item.planId === visiblePlanId)" :key="result.planId" class="strategy-card" :class="{ baseline: result.planId === config.baselineId }" :style="{ '--plan-color': displayPlanColor(result.color) }">
       <div class="strategy-heading"><span class="strategy-icon"><Workflow :size="20" /></span><div><h2>{{ result.planName }}</h2><span>{{ result.rounds.length }} 轮 · 自定义流程</span></div><button class="icon-button" :aria-label="'编辑参数 ' + result.planName" @click="$emit('edit', result.planId)"><Pencil :size="14" /></button></div>
       <p class="result-model">{{ result.model.name }}</p>
       <div class="baseline-comparison" :title="money(result.cost.total, currency, true)">{{ m(result.cost.total) }}<span class="baseline-caption" :class="{ saving: result.cost.total < baseline.cost.total, increase: result.cost.total > baseline.cost.total }">Base<span v-if="result.planId !== baseline.planId" class="baseline-change" :class="{ increase: baseline.cost.total > 0 && result.cost.total > baseline.cost.total, saving: result.cost.total < baseline.cost.total }">{{ difference(result) }}</span></span></div>
@@ -44,5 +44,5 @@ const costParts = [["cached", "命中输入", "hit"], ["fresh", "未命中输入
       <div class="strategy-actions"><button class="baseline-button" :aria-label="'设为Base ' + result.planName" :aria-pressed="result.planId === config.baselineId" @click="$emit('baseline', result.planId)"><Star :size="13" />{{ result.planId === config.baselineId ? 'Base' : '设为Base' }}</button><button :aria-label="'复制方案 ' + result.planName" :disabled="config.plans.length >= maxPlans" @click="$emit('copy', result.planId)"><Copy :size="13" />复制</button><button :aria-label="'删除方案 ' + result.planName" @click="$emit('remove', result.planId)"><Trash2 :size="13" />删除</button></div>
     </article>
   </div>
-  <p v-if="results.length === 1" class="single-plan-note">当前为单方案模拟，新增方案后即可比较费用差异。</p>
+  <p v-if="results.length === 1 && !visiblePlanId" class="single-plan-note">当前为单方案模拟，新增方案后即可比较费用差异。</p>
 </template>
