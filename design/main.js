@@ -5,4 +5,5 @@ import './home-original.css';
 import './home.css';
 import './flow-preview.css';
 import '../src/header-surfaces.css';
+import '../src/global-settings.css';
 createApp(Design).mount('#app');
