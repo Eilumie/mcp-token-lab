@@ -11,7 +11,7 @@ export const groups = [
     ["turnAvgToolsCount", "每轮平均 Tools", "个", 0],
   ] },
   { title: "缓存与权限", fields: [
-    ["expectedPrefixCacheHitRate", "Prefix 期望命中率", "%", 0, 100],
+    ["expectedPrefixCacheHitRate", "Prefix 命中率", "%", 0, 100, "prefix相同时的预计命中率, 比如虽然prefix相同但缓存过期等多种场景会无法命中"],
     ["sessionAvgAllowToolsRate", "角色允许工具比例", "%", 0, 100],
   ] },
   { title: "初始上下文", fields: [

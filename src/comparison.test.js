@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createConfig } from "./config.js";
+import { createConfig, createPresetConfig } from "./config.js";
+import { modelPresets } from "./model-pricing.js";
 import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, resolveBaselineId, compareSources, planColors, maxPlans, globalKeys, resolvePlan } from "./comparison.js";
 import { simulate } from "./session-report.js";
 import { sourceOption, trendOption } from "./charts.js";
@@ -55,6 +56,7 @@ test("三个方案可使用任意独立流程、费率、轮次", () => {
   const config = small();
   config.plans.push(createPlan({ source: config.plans[0], name: "精简流程", color: planColors[2] }));
   const extra = config.plans[2];
+  extra.useGlobal.model = false;
   extra.useGlobal.turnTotalCount = false;
   extra.simulation.turnTotalCount = 7;
   extra.simulation.flow = { initial: [], turn: [{ type: "llm", text: "直接回复", token: 2 }] };
@@ -390,4 +392,56 @@ test("新增全局字段校验范围、整数和方案保留轮次，触发方�
   plan.simulation.compressionThresholdToken = 12.5;
   assert.equal(resolvePlan(plan, config.globalSimulation).simulation.compressionThresholdToken, 12.5);
   assert.deepEqual(readComparisonConfig(config), config);
+});
+
+test("全局模型使用内置费率驱动成本，独立方案保留价格，恢复继承和新增方案跟随选择", () => {
+  const config = small();
+  const preset = modelPresets.find(p => p.actual === "claude-opus-5-5");
+  const original = simulate(config);
+  const independent = config.plans[1];
+  independent.useGlobal.model = false;
+  config.globalModelId = preset.id;
+  // Inherited plans cannot override preset prices via a stale local snapshot.
+  config.plans[0].model.outputPrice = 999;
+  const changed = simulate(config);
+  assert.deepEqual(changed[0].model, createPresetConfig(preset).model);
+  assert.deepEqual(changed[0].pricing, createPresetConfig(preset).pricing);
+  assert.notEqual(changed[0].cost.total, original[0].cost.total);
+  assert.deepEqual(changed[1], original[1]);
+  independent.useGlobal.model = true;
+  assert.deepEqual(simulate(config)[1].model, changed[0].model);
+  const added = createPlan({ name: "继承全局模型的新方案" });
+  config.plans.push(added);
+  assert.deepEqual(simulate(config)[2].model, changed[0].model);
+  assert.equal(added.model.outputPrice, modelPresets[0].output);
+  const imported = readComparisonConfig(JSON.parse(JSON.stringify(config)));
+  assert.deepEqual(imported, config);
+  assert.deepEqual(simulate(imported), simulate(config));
+});
+
+test("旧配置导入保留各方案模型和自定义费率，全局模型仅接受有效预设", () => {
+  const old = small();
+  delete old.globalModelId;
+  old.plans.forEach((p, i) => {
+    delete p.useGlobal.model;
+    p.model.outputPrice = i + 0.123;
+    p.pricing = { id: "custom", label: "手动费率", source: "", date: "" };
+  });
+  const snapshot = structuredClone(old);
+  const before = simulate(old);
+  const imported = readComparisonConfig(old);
+  assert.deepEqual(old, snapshot);
+  imported.globalModelId = modelPresets.at(-1).id;
+  assert.ok(imported.plans.every(p => p.useGlobal.model === false));
+  assert.deepEqual(simulate(imported), before);
+  for (const id of ["custom", "missing", "", null, { outputPrice: 0 }]) {
+    const invalid = small();
+    invalid.globalModelId = id;
+    assert.equal(validateComparison(invalid).globalModelId, "请选择有效的全局模型");
+    assert.throws(() => simulate(invalid), /全局模型/);
+    assert.throws(() => readComparisonConfig(invalid), /全局模型/);
+  }
+  const invalid = small();
+  invalid.plans[0].useGlobal.model = "true";
+  assert.throws(() => readComparisonConfig(invalid), /全局参数/);
 });

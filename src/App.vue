@@ -7,6 +7,7 @@ import PlanEditor from "./components/PlanEditor.vue";
 import SummaryCards from "./components/SummaryCards.vue";
 import AnalysisPanel from "./components/AnalysisPanel.vue";
 import ParameterField from "./components/ParameterField.vue";
+import GlobalModelField from "./components/GlobalModelField.vue";
 import GlyphBackground from "./components/GlyphBackground.vue";
 import { useHeaderOpacity } from "./use-header-opacity.js";
 
@@ -16,7 +17,7 @@ const draft = ref(null);
 const draftIsNew = ref(false);
 const draftErrors = computed(() => {
   if (!draft.value) return {};
-  const errors = validatePlan(draft.value, config.value.globalSimulation);
+  const errors = validatePlan(draft.value, config.value.globalSimulation, config.value.globalModelId);
   const others = config.value.plans.filter(plan => plan.id !== draft.value.id);
   if (others.some(plan => plan.name.trim() === draft.value.name.trim())) errors.planName = "方案名称已存在，请换一个名称";
   if (others.some(plan => plan.model.currency !== draft.value.model.currency)) errors.currency = "对比方案需使用相同币种";
@@ -185,6 +186,7 @@ function editInvalidPlan() {
       <section class="global-settings" aria-labelledby="global-settings-title">
         <div><h2 id="global-settings-title"><SlidersHorizontal :size="17" />全局配置</h2><p>各方案默认使用以下数值，也可在方案内单独设置。</p></div>
         <div class="global-settings-fields" @focusin="remember('修改全局配置')">
+          <GlobalModelField :config="config" :error="errors.globalModelId" />
           <ParameterField v-for="field in globalFields.filter(([key]) => !key.startsWith('compression'))" :key="field[0]" :object="config.globalSimulation" :field="field" :error="errors['globalSimulation.' + field[0]]" />
           <label class="field"><span>压缩触发方式</span><select v-model="config.globalSimulation.compressionThresholdType" aria-label="压缩触发方式" :aria-invalid="!!errors['globalSimulation.compressionThresholdType']"><option value="TURN">按活跃用户轮次</option><option value="TOKEN">按上下文 Token</option></select><small v-if="errors['globalSimulation.compressionThresholdType']" class="error">{{ errors['globalSimulation.compressionThresholdType'] }}</small></label>
           <ParameterField :key="thresholdField(config.globalSimulation)[0]" :object="config.globalSimulation" :field="thresholdField(config.globalSimulation)" :error="errors['globalSimulation.' + thresholdField(config.globalSimulation)[0]]" />
@@ -203,5 +205,5 @@ function editInvalidPlan() {
       <footer><span class="footer-mark">T / L</span><p>初始前缀按期望命中率计费 · 每轮流程结束后检查压缩 · 最后一轮触发的压缩也计费<br />所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。</p><span>COMPARE / V4</span></footer>
     </main>
   </div>
-  <PlanEditor v-if="draft" :plan="draft" :global-simulation="config.globalSimulation" :is-new="draftIsNew" :errors="draftErrors" @save="savePlan" @close="draft = null" />
+  <PlanEditor v-if="draft" :plan="draft" :global-simulation="config.globalSimulation" :global-model-id="config.globalModelId" :is-new="draftIsNew" :errors="draftErrors" @save="savePlan" @close="draft = null" />
 </template>

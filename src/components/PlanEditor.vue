@@ -4,11 +4,12 @@ import { X, Check, SlidersHorizontal, Workflow, Layers, Cpu, ArrowRight } from "
 import { createDefaultFlow, createPreloadedFlow } from "../session-flow.js";
 import { groups, compressionFields, priceFields } from "../config.js";
 import ParameterPanel from "./ParameterPanel.vue";
+import PlanModelSettings from "./PlanModelSettings.vue";
 import FlowEditor from "./FlowEditor.vue";
 import InheritedParameter from "./InheritedParameter.vue";
 import { globalFields, thresholdField } from "../comparison.js";
 
-const props = defineProps({ plan: Object, globalSimulation: Object, errors: Object, isNew: Boolean });
+const props = defineProps({ plan: Object, globalSimulation: Object, globalModelId: String, errors: Object, isNew: Boolean });
 const emit = defineEmits(["save", "close"]);
 const dialog = ref(null);
 const body = ref(null);
@@ -75,7 +76,8 @@ onBeforeUnmount(() => {
           <InheritedParameter :key="thresholdField(plan.simulation)[0]" :plan="plan" :global-simulation="globalSimulation" :field="thresholdField(plan.simulation)" :error="errors[thresholdField(plan.simulation)[0]]" />
         </template>
       </section>
-      <ParameterPanel v-if="section !== 'flow'" :config="plan" :errors="errors" :section="section" />
+      <PlanModelSettings v-if="section === 'model'" :plan="plan" :global-model-id="globalModelId" :errors="errors" />
+      <ParameterPanel v-else-if="section !== 'flow'" :config="plan" :errors="errors" :section="section" />
       <FlowEditor v-show="section === 'flow'" :simulation="plan.simulation" :error="errors.flow" />
     </div>
     <div class="editor-footer"><span><Check :size="14" />独立方案，不影响其他配置</span><button @click="$emit('close')">取消</button><button class="primary-button" @click="submit">{{ isNew ? '创建并对比' : '保存并对比' }}<ArrowRight :size="15" /></button></div>

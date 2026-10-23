@@ -129,7 +129,7 @@ export function simulate(config) {
   const errors = validateComparison(config);
   if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
   return config.plans.map(plan => {
-    plan = resolvePlan(plan, config.globalSimulation);
+    plan = resolvePlan(plan, config.globalSimulation, config.globalModelId);
     const session = new Session({ ...plan.simulation, model: plan.model });
     session.reset();
     return {

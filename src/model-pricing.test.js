@@ -68,6 +68,7 @@ test("国内、海外模型可直接比较，导入与 CSV 均为 USD，费用�
   Object.assign(config.plans[0], createPresetConfig(bailianPresets[0]));
   Object.assign(config.plans[1], createPresetConfig(overseasPresets.find(p => p.actual === "claude-opus-5-5")));
   for (const plan of config.plans) {
+    plan.useGlobal.model = false;
     plan.useGlobal.turnTotalCount = false;
     plan.simulation.turnTotalCount = 1;
     plan.simulation.flow = { initial: [{ type: "action", text: "输入", token: 1 }], turn: [{ type: "llm", text: "输出", token: 1 }] };
