@@ -1,7 +1,7 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
-import { Github, Upload, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, ArrowDown, ArrowUp, ArrowUpRight, MoreHorizontal, Check, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
-import { globalFields, thresholdField, resolveBaselineId } from '../src/comparison.js';
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import { Github, Upload, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, ArrowDown, ArrowUp, Check, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
+import { globalFields, thresholdField, resolveBaselineId, maxPlans } from '../src/comparison.js';
 import GlyphBackground from '../src/components/GlyphBackground.vue';
 import ParameterField from '../src/components/ParameterField.vue';
 import GlobalModelField from '../src/components/GlobalModelField.vue';
@@ -16,7 +16,10 @@ const emit = defineEmits(['import','export','remember','reset','add','edit','bas
 const menu = ref('');
 const expanded = ref(new Set());
 function togglePlan(id) { const next=new Set(expanded.value);next.has(id)?next.delete(id):next.add(id);expanded.value=next; }
-watch(() => props.config.plans.map(p=>p.id), ids => {expanded.value=new Set([...expanded.value].filter(id=>ids.includes(id)));});
+watch(() => props.config.plans.map(p=>p.id), ids => {
+  expanded.value=new Set([...expanded.value].filter(id=>ids.includes(id)));
+  if (!ids.includes(menu.value)) menu.value='';
+});
 const baselineId = computed(() => resolveBaselineId(props.config, props.results));
 const baseline = computed(() => props.results.find(r => r.planId === baselineId.value));
 const lowestCost = computed(() => Math.min(...props.results.map(r => r.cost.total)));
@@ -26,7 +29,37 @@ const shortName = name => name.replace('百炼 · ', '').replace(' · 固定价�
 const m = n => '$' + Number(n || 0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const n = value => Number(value || 0).toLocaleString('en-US',{maximumFractionDigits:2});
 const pct = value => value == null ? '—' : (value * 100).toFixed(1) + '%';
-function action(type,id) { menu.value='';emit(type,id); }
+function closeMenu(restoreFocus = false) {
+  const id = menu.value;
+  menu.value = '';
+  if (restoreFocus) document.getElementById('plan-menu-trigger-' + id)?.focus();
+}
+async function openMenu(id, last = false) {
+  menu.value = id;
+  await nextTick();
+  const items = document.getElementById('plan-menu-' + id)?.querySelectorAll('button:not(:disabled)');
+  (last ? items?.[items.length - 1] : items?.[0])?.focus();
+}
+function moveMenuFocus(event) {
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault();
+  const items = [...event.currentTarget.querySelectorAll('button:not(:disabled)')];
+  const index = items.indexOf(document.activeElement);
+  const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+  items[next]?.focus();
+}
+function dismissMenu(event) {
+  if (menu.value && !document.getElementById('plan-menu-trigger-' + menu.value)?.parentElement.contains(event.target)) closeMenu();
+}
+onMounted(() => {
+  document.addEventListener('pointerdown', dismissMenu);
+  document.addEventListener('focusin', dismissMenu);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', dismissMenu);
+  document.removeEventListener('focusin', dismissMenu);
+});
+function action(type,id) { closeMenu(true);emit(type,id); }
 </script>
 
 <template>
@@ -59,7 +92,20 @@ function action(type,id) { menu.value='';emit(type,id); }
             <td>{{ n(r.initialContext) }}<span class="unit">K</span></td>
             <td>{{ r.requests.length }}<span class="unit">次</span></td>
             <td>{{ r.averageUserTurnsPerCompression === null ? '未触发压缩' : `平均 ${n(r.averageUserTurnsPerCompression)} 轮` }}</td>
-            <td><div class="row-actions"><button class="edit-btn" :aria-label="'编辑 '+r.planName" @click="emit('edit',r.planId)">编辑<ArrowUpRight :size="13"/></button><div class="menu-anchor"><button class="icon-btn" :aria-label="r.planName+' 的更多操作'" :aria-expanded="menu===r.planId" @click="menu=menu===r.planId?'':r.planId"><MoreHorizontal :size="17"/></button><div v-if="menu===r.planId" class="dropdown"><button @click="action('baseline',r.planId)"><Check :size="13"/>设为基准</button><button :disabled="config.plans.length>=8" @click="action('copy',r.planId)"><Copy :size="13"/>复制方案</button><button @click="action('remove',r.planId)"><Trash2 :size="13"/>删除方案</button></div></div></div></td>
+            <td class="plan-actions-cell">
+              <div class="row-actions">
+                <button class="plan-action-link" :aria-label="'编辑 '+r.planName" @click="action('edit',r.planId)">编辑</button>
+                <div class="plan-menu-anchor" @keydown.esc.stop.prevent="closeMenu(true)">
+                  <button :id="'plan-menu-trigger-'+r.planId" class="plan-action-link plan-menu-trigger" :class="{'is-open':menu===r.planId}" :aria-label="r.planName+' 的更多操作'" aria-haspopup="menu" :aria-expanded="menu===r.planId" :aria-controls="menu===r.planId?'plan-menu-'+r.planId:undefined" @click="menu===r.planId?closeMenu():openMenu(r.planId)" @keydown.down.prevent="openMenu(r.planId)" @keydown.up.prevent="openMenu(r.planId,true)">更多<ChevronDown :size="13"/></button>
+                  <div v-if="menu===r.planId" :id="'plan-menu-'+r.planId" class="plan-action-menu" role="menu" :aria-label="r.planName+' 的更多操作'" @keydown="moveMenuFocus">
+                    <button role="menuitem" tabindex="-1" :disabled="r.planId===baselineId" @click="action('baseline',r.planId)"><Check :size="14"/>{{ r.planId===baselineId?'当前基准':'设为基准' }}</button>
+                    <button role="menuitem" tabindex="-1" :disabled="config.plans.length>=maxPlans" :title="config.plans.length>=maxPlans?'最多支持 '+maxPlans+' 个方案':undefined" @click="action('copy',r.planId)"><Copy :size="14"/>复制方案</button>
+                    <div class="plan-menu-divider" role="separator"></div>
+                    <button class="plan-menu-danger" role="menuitem" tabindex="-1" @click="action('remove',r.planId)"><Trash2 :size="14"/>删除方案</button>
+                  </div>
+                </div>
+              </div>
+            </td>
           </tr>
           <tr v-if="expanded.has(r.planId)" class="plan-detail-row"><td colspan="7">
             <div :id="'plan-detail-'+r.planId" class="plan-expanded-content">
