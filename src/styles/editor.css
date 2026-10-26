@@ -99,3 +99,15 @@
   .editor-page .editor-nav > button { font-size: 10px; }
   .editor-page .editor-layout { border-radius: 14px; }
 }
+
+.editor-page .flow-undo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; margin-bottom: 16px; border: 1px solid #eadbd3; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink); font-size: 11px; }
+.editor-page .flow-undo > span { min-width: 0; overflow-wrap: anywhere; }
+.editor-page .flow-undo button { display: flex; align-items: center; gap: 5px; flex: none; padding: 5px; border: 0; background: transparent; color: var(--accent); font-size: 11px; }
+
+@media (min-width: 601px) {
+  .editor-page .editor-layout { overflow: clip; }
+  .editor-page .inspector { position: sticky; top: 88px; align-self: start; max-height: calc(100dvh - 104px); overflow-y: auto; scrollbar-gutter: stable; }
+}
+@media (min-width: 601px) and (max-width: 760px) {
+  .editor-page .inspector { top: 76px; max-height: calc(100dvh - 92px); }
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="22 38 212 212" role="img" aria-labelledby="title desc">
+  <title id="title">MCP Token Lab — T mark</title>
+  <desc id="desc">Minimal asymmetric T with two rounded horizontal segments and a smoothly curved vertical stem.</desc>
+  <g fill="none" stroke="#1C1C1C" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 46 77 H 103 C 121 77 133 91 133 109 V 199"/>
+    <path d="M 152 77 H 210"/>
+  </g>
+</svg>
