@@ -3,7 +3,7 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { ArrowRight, ArrowLeft, ArrowDown, ArrowUp, Plus, Check, ChevronRight, ChevronDown, SlidersHorizontal, Layers, Workflow, Cpu, Copy, Trash2, X, CircleHelp, PanelRight, Code2, FileText, Braces, CheckCheck } from 'lucide-vue-next';
 import { createComparisonConfig, createPlan, resolvePlan, validateComparison, validatePlan, readComparisonConfig, planColors, globalKeys } from './comparison.js';
 import { sourceNames } from './session-report.js';
-import { resolveStepToken, stepRuntime, tokenParameters } from './session-flow.js';
+import { resolveStepToken, stepRuntime, tokenParameters, previewStep, triggerLabel } from './session-flow.js';
 import { groups, getValue, setValue } from './config.js';
 import PlanModelSettings from './components/PlanModelSettings.vue';
 import FieldHint from './components/FieldHint.vue';
@@ -16,6 +16,7 @@ const clone = x => JSON.parse(JSON.stringify(x));
 const config = ref(createComparisonConfig());
 const results = ref([]), busy = ref(false), failure = ref(''), toast = ref('');
 const draft = ref(null), draftReport = ref(null), draftBusy = ref(false), draftFailure = ref(''), section = ref('flow'), phase = ref('initial'), stepIndex = ref(0), showVars = ref(false), help = ref(false), fileInput = ref(null);
+const previewRound = ref(1);
 const lastConfig = ref(null), isNew = ref(false), originalCost = ref(0);
 const shortName = name => name.replace('百炼 · ', '').replace(' · 固定价格', '');
 const m = n => '$' + Number(n || 0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -30,8 +31,17 @@ const draftErrors = computed(() => {
 });
 const currentStep = computed(() => draft.value?.simulation.flow[phase.value][stepIndex.value]);
 const effectiveDraft = computed(() => draft.value ? resolvePlan(draft.value, config.value.globalSimulation, config.value.globalModelId) : null);
-const stepAmount = (s, i, p = phase.value) => { try { return n(resolveStepToken(s.token, effectiveDraft.value.simulation, stepRuntime(draft.value.simulation.flow,p,i))); } catch { return '—'; } };
-const phaseTotal = p => draft.value?.simulation.flow[p].reduce((total,s,i) => {try{return total+(s.enabled === false ? 0 : resolveStepToken(s.token,effectiveDraft.value.simulation,stepRuntime(draft.value.simulation.flow,p,i)));}catch{return total;}},0);
+const previewTurnIndex = computed(() => Math.max(0, Math.min(Number(previewRound.value) || 1, effectiveDraft.value?.simulation.turnTotalCount || 1) - 1));
+const stepPreview = (i, p = phase.value) => previewStep(draft.value.simulation.flow, p, i, effectiveDraft.value.simulation, previewTurnIndex.value);
+const stepAmount = (s, i, p = phase.value) => { const result = stepPreview(i,p); return result.value === null ? '—' : n(result.value); };
+const phaseTotal = p => {
+  const steps = draft.value.simulation.flow[p].map((s,i) => stepPreview(i,p));
+  return steps.some(s => s.error) ? '—' : n(steps.reduce((sum,s) => sum+s.value,0));
+};
+function setTrigger(type) {
+  if (type === 'always') delete currentStep.value.trigger;
+  else currentStep.value.trigger = { type, value: type === 'probability' ? 100 : 2 };
+}
 let reportWorker, draftWorker, reportTimer, draftTimer, toastTimer;
 function notify(text) { toast.value=text; clearTimeout(toastTimer); toastTimer=setTimeout(()=>toast.value='',3500); }
 function remember() { lastConfig.value=clone(config.value); }
@@ -61,7 +71,7 @@ watch(draft,()=>{
 onBeforeUnmount(()=>{reportWorker?.terminate();draftWorker?.terminate();clearTimeout(reportTimer);clearTimeout(draftTimer);clearTimeout(toastTimer);});
 function edit(plan, add=false) {
   isNew.value=add; originalCost.value=results.value.find(r=>r.planId===plan.id)?.cost.total||0;
-  draft.value=clone(resolvePlan(plan,config.value.globalSimulation)); section.value='flow'; phase.value='initial'; stepIndex.value=0; showVars.value=false; window.scrollTo(0,0);
+  draft.value=clone(resolvePlan(plan,config.value.globalSimulation)); section.value='flow'; phase.value='initial'; stepIndex.value=0; previewRound.value=1; showVars.value=false; window.scrollTo(0,0);
 }
 function add(source) {
   if(config.value.plans.length>=8)return;
@@ -87,7 +97,7 @@ function moveStep(dir) {const steps=draft.value.simulation.flow[phase.value],i=s
 function deleteStep() {draft.value.simulation.flow[phase.value].splice(stepIndex.value,1);stepIndex.value=Math.max(0,stepIndex.value-1);}
 function setParam(key,event,unit) { const v=Number(event.target.value)/(unit==='%'?100:1);setValue(draft.value.simulation,key,v); if(globalKeys.includes(key))draft.value.useGlobal[key]=false; }
 function inherit(key) {draft.value.useGlobal[key]=!draft.value.useGlobal[key];if(draft.value.useGlobal[key])draft.value.simulation[key]=config.value.globalSimulation[key];}
-function fixedToken() { try { currentStep.value.token=resolveStepToken(currentStep.value.token,effectiveDraft.value.simulation,stepRuntime(draft.value.simulation.flow,phase.value,stepIndex.value)); } catch { currentStep.value.token=0; } }
+function fixedToken() { try { currentStep.value.token=resolveStepToken(currentStep.value.token,effectiveDraft.value.simulation,stepRuntime(draft.value.simulation.flow,phase.value,stepIndex.value,previewTurnIndex.value)); } catch { currentStep.value.token=0; } }
 function exportConfig(){ downloadFile('token-lab.json',JSON.stringify(config.value,null,2),'application/json');notify('已导出实验配置'); }
 async function importConfig(e){const f=e.target.files?.[0];if(!f)return;try{if(f.size>4000000)throw new Error('文件不能超过 4 MB');const c=readComparisonConfig(JSON.parse(await f.text()));remember();config.value=c;notify('配置已导入');}catch(e){notify('导入失败：'+e.message);}finally{e.target.value='';}}
 const sections=[['flow','执行流程',Workflow],['params','基本参数',SlidersHorizontal],['cache','缓存与压缩',Layers],['model','模型与费率',Cpu]];
@@ -115,17 +125,23 @@ const paramFields=computed(()=>groups.filter(g=>!['缓存与权限'].includes(g.
         <div class="editor-main">
           <div v-if="section==='flow'" class="flow-layout">
             <section class="flow-canvas"><div class="editor-section-head"><h2>执行流程</h2><p>先建立上下文，再定义每一轮的执行路径。</p></div><div class="phase-switch"><button :class="{active:phase==='initial'}" @click="phase='initial';stepIndex=0"><span>初始上下文</span><small>{{ draft.simulation.flow.initial.length }} 步</small></button><button :class="{active:phase==='turn'}" @click="phase='turn';stepIndex=0"><span>每轮流程</span><small>{{ draft.simulation.flow.turn.length }} 步</small></button></div>
-              <div class="flow-section-label"><span>{{ phase==='initial'?'会话开始时执行一次':'每个用户轮次重复执行' }}</span><span>{{ n(phaseTotal(phase)) }} K 合计</span></div>
-              <div class="flow-list"><button v-for="(s,i) in draft.simulation.flow[phase]" class="flow-step" :class="{selected:i===stepIndex,disabled:s.enabled===false}" @click="stepIndex=i;showVars=false"><span class="step-number">{{ String(i+1).padStart(2,'0') }}</span><span class="step-icon" :class="{llm:s.type==='llm'}"><Cpu v-if="s.type==='llm'" :size="16"/><FileText v-else :size="16"/></span><span class="step-text"><strong>{{ label(s) }}</strong><small>{{ s.enabled===false?'已停用':s.type==='llm'?'调用模型':'追加上下文' }}<span>·</span>{{ typeof s.token==='number'?'固定长度':'公式' }}</small></span><span class="step-token">{{ stepAmount(s,i) }}<small>K</small></span><ChevronRight :size="13"/></button></div>
+              <label v-if="phase==='turn'" class="flow-round-preview">预览第 <input type="number" min="1" :max="effectiveDraft.simulation.turnTotalCount" step="1" :value="previewTurnIndex+1" aria-label="编辑流程预览轮次" @input="previewRound=Math.max(1,Math.min(effectiveDraft.simulation.turnTotalCount,Math.trunc(Number($event.target.value))||1))" /> 轮消息</label>
+              <div class="flow-section-label"><span>{{ phase==='initial'?'会话开始时执行一次':`第 ${previewTurnIndex+1} 轮实际触发` }}</span><span>{{ phaseTotal(phase) }} K 合计</span></div>
+              <div class="flow-list"><button v-for="(s,i) in draft.simulation.flow[phase]" class="flow-step" :class="{selected:i===stepIndex,disabled:s.enabled===false}" @click="stepIndex=i;showVars=false"><span class="step-number">{{ String(i+1).padStart(2,'0') }}</span><span class="step-icon" :class="{llm:s.type==='llm'}"><Cpu v-if="s.type==='llm'" :size="16"/><FileText v-else :size="16"/></span><span class="step-text"><strong>{{ label(s) }}</strong><small>{{ s.enabled===false?'已停用':s.type==='llm'?'调用模型':'追加上下文' }}<span>·</span>{{ typeof s.token==='number'?'固定长度':'公式' }}</small><small v-if="phase==='turn'" class="step-trigger">{{ triggerLabel(s) }}<span v-if="s.enabled!==false && !stepPreview(i).runs && !stepPreview(i).error"> · 本轮未触发</span></small></span><span class="step-token">{{ stepAmount(s,i) }}<small>K</small></span><ChevronRight :size="13"/></button></div>
               <div class="add-steps"><button class="btn" @click="addStep()"><Plus :size="14"/>追加上下文</button><button v-if="phase==='turn'" class="btn" @click="addStep('llm')"><Cpu :size="14"/>调用模型</button></div><div class="flow-tip"><Layers :size="15"/><span>{{ phase==='initial'?'初始内容会被后续模型调用重复读取。':'每轮流程结束后，系统按配置检查并压缩上下文。' }}</span></div>
             </section>
             <aside v-if="currentStep" class="inspector"><div class="inspector-top"><span><PanelRight :size="15"/>步骤属性</span><span class="micro">{{ String(stepIndex+1).padStart(2,'0') }}</span></div><div class="inspector-body"><div class="inspector-summary"><span class="large-step-icon"><Cpu v-if="currentStep.type==='llm'" :size="22"/><FileText v-else :size="22"/></span><div><h3>{{ label(currentStep) }}</h3><span class="micro">{{ phase==='initial'?'初始上下文':'每轮流程' }} / 步骤 {{ stepIndex+1 }}</span></div><label class="toggle"><input type="checkbox" aria-label="启用当前步骤" :checked="currentStep.enabled!==false" @change="currentStep.enabled=$event.target.checked"/><span></span></label></div>
               <label class="field">步骤名称<input :value="label(currentStep)" @input="currentStep.text=$event.target.value" aria-label="步骤名称" /></label>
               <label v-if="phase==='turn'" class="field">步骤类型<select v-model="currentStep.type"><option value="action">追加上下文</option><option value="llm">调用模型</option></select></label>
+              <div v-if="phase==='turn'" class="trigger-settings">
+                <label class="field">触发方式<select :value="currentStep.trigger?.type || 'always'" aria-label="触发方式" @change="setTrigger($event.target.value)"><option value="always">每轮触发</option><option value="probability">按百分比触发</option><option value="interval">每 N 轮消息触发</option></select></label>
+                <label v-if="currentStep.trigger" class="field">{{ currentStep.trigger.type==='probability'?'触发概率':'消息轮次间隔' }}<span class="input-unit"><input v-model.number="currentStep.trigger.value" type="number" :min="currentStep.trigger.type==='probability'?0:1" :max="currentStep.trigger.type==='probability'?100:undefined" :step="currentStep.trigger.type==='probability'?'any':1" :aria-label="currentStep.trigger.type==='probability'?'触发概率':'消息轮次间隔'"/><span>{{ currentStep.trigger.type==='probability'?'%':'轮' }}</span></span></label>
+                <p v-if="currentStep.trigger" class="field-help">{{ currentStep.trigger.type==='probability'?'每轮独立抽样，重复预览结果一致；实际触发比例可能有波动。':'从第 N 轮开始，在第 N、2N、3N…轮触发，压缩不重置计数。' }}仅控制当前节点，其他节点按各自设置执行。</p>
+              </div>
               <div class="field"><span>Token 长度</span><div class="segmented token-mode"><button :class="{active:typeof currentStep.token!=='number'}" @click="currentStep.token=String(currentStep.token)"><Braces :size="13"/>公式</button><button :class="{active:typeof currentStep.token==='number'}" @click="fixedToken">固定数值</button></div></div>
               <div v-if="typeof currentStep.token!=='number'" class="formula-block"><div class="code-caption"><Code2 :size="12"/>EXPRESSION<span>K TOKEN</span></div><textarea v-model="currentStep.token" aria-label="Token 公式" spellcheck="false"></textarea><button class="text-btn" @click="showVars=!showVars"><Plus :size="12"/>插入变量<ChevronDown :size="12"/></button><div v-if="showVars" class="variable-list"><button v-for="(name,key) in tokenParameters" @click="currentStep.token=String(currentStep.token).trim() ? String(currentStep.token)+' + '+key : key;showVars=false"><span>{{ name }}</span><code>{{ key }}</code></button></div></div>
               <label v-else class="field"><span class="input-unit"><input type="number" min="0" v-model.number="currentStep.token" aria-label="固定 Token 长度"/><span>K Token</span></span></label>
-              <div class="preview-result"><span><Check :size="13"/>当前预览</span><strong>{{ stepAmount(currentStep,stepIndex) }}<small>K Token</small></strong></div><p class="field-help">1 K = 1,000 Token。公式会随实验参数自动更新。</p>
+              <div class="preview-result"><span><Check :size="13"/>{{ currentStep.enabled===false?'已停用':phase==='turn' && !stepPreview(stepIndex).runs && !stepPreview(stepIndex).error?'本轮未触发':'当前预览' }}</span><strong>{{ stepAmount(currentStep,stepIndex) }}<small>K Token</small></strong></div><p class="field-help">1 K = 1,000 Token。公式会随实验参数自动更新。</p>
               <details class="context-vars"><summary>可用参数值<ChevronDown :size="12"/></summary><div v-for="(name,key) in tokenParameters"><span>{{ name }}</span><code>{{ getValue(effectiveDraft.simulation,key) }}</code></div></details>
               <div class="step-tools"><button class="icon-btn" aria-label="上移步骤" :disabled="stepIndex===0" @click="moveStep(-1)"><ArrowUp :size="15"/></button><button class="icon-btn" aria-label="下移步骤" :disabled="stepIndex===draft.simulation.flow[phase].length-1" @click="moveStep(1)"><ArrowDown :size="15"/></button><button class="icon-btn" aria-label="复制步骤" @click="draft.simulation.flow[phase].splice(stepIndex+1,0,clone(currentStep));stepIndex++"><Copy :size="15"/></button><button class="text-btn delete-step" @click="deleteStep"><Trash2 :size="14"/>删除步骤</button></div>
             </div></aside>

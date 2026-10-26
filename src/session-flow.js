@@ -26,12 +26,58 @@ export const runtimeParameters = {
   llmIndex: "当前步骤前已执行的模型调用数",
 };
 
-// 预览与校验使用相同计数规则：停用步骤不计数，初始阶段固定为 0。
+export function validateStepTrigger(trigger) {
+  if (!trigger || typeof trigger !== "object" || Array.isArray(trigger)) throw new TypeError("trigger 必须是触发配置对象");
+  if (!["probability", "interval"].includes(trigger.type)) throw new RangeError("trigger.type 必须是 probability 或 interval");
+  const unknown = Object.keys(trigger).find(key => !["type", "value"].includes(key));
+  if (unknown) throw new RangeError(`trigger 不支持字段 ${unknown}`);
+  if (trigger.type === "probability" && (!Number.isFinite(trigger.value) || trigger.value < 0 || trigger.value > 100)) {
+    throw new RangeError("触发概率必须是 0–100 的有限数值（%）");
+  }
+  if (trigger.type === "interval" && (!Number.isSafeInteger(trigger.value) || trigger.value < 1)) {
+    throw new RangeError("触发间隔必须是正整数（用户消息轮次）");
+  }
+}
+
+// 固定种子的无状态抽样：只依赖用户轮次和节点位置，预览、Worker、reset 结果一致。
+// 不消耗随机序列，跳过其他节点或插入压缩请求不会改变同一位置的抽样结果。
+function triggerSample(turnIndex, stepIndex) {
+  let seed = Math.imul(turnIndex + 1, 0x9e3779b1) ^ Math.imul(stepIndex + 1, 0x85ebca6b);
+  seed = Math.imul(seed ^ (seed >>> 16), 0x21f0aaad);
+  seed = Math.imul(seed ^ (seed >>> 15), 0x735a2d97);
+  return ((seed ^ (seed >>> 15)) >>> 0) / 0x100000000;
+}
+
+export function shouldRunStep(step, turnIndex, stepIndex) {
+  if (step.enabled === false) return false;
+  if (step.trigger === undefined) return true;
+  validateStepTrigger(step.trigger);
+  return step.trigger.type === "interval"
+    ? (turnIndex + 1) % step.trigger.value === 0
+    : triggerSample(turnIndex, stepIndex) < step.trigger.value / 100;
+}
+
+export function triggerLabel(step) {
+  if (!step.trigger) return "每轮触发";
+  return step.trigger.type === "interval" ? `每 ${step.trigger.value} 轮触发` : `${step.trigger.value}% 概率触发`;
+}
+
+// 预览与执行使用相同计数规则：停用和未触发的调用不计数，初始阶段固定为 0。
 export function stepRuntime(flow, phase, index, turnIndex = 0) {
   return phase === "initial" ? { turnIndex: 0, llmIndex: 0 } : {
     turnIndex,
-    llmIndex: flow.turn.slice(0, index).filter(step => step?.type === "llm" && step.enabled !== false).length,
+    llmIndex: flow.turn.slice(0, index).filter((step, i) => step?.type === "llm" && shouldRunStep(step, turnIndex, i)).length,
   };
+}
+
+export function previewStep(flow, phase, index, config, turnIndex = 0) {
+  const step = flow[phase][index];
+  try {
+    const runs = phase === "initial" ? step.enabled !== false : shouldRunStep(step, turnIndex, index);
+    return { runs, value: runs ? resolveStepToken(step.token, config, stepRuntime(flow, phase, index, turnIndex)) : 0, error: "" };
+  } catch (error) {
+    return { runs: false, value: null, error: error.message };
+  }
 }
 
 export function createDefaultFlow() {
@@ -111,10 +157,23 @@ export function validateFlow(flow, config) {
       }
       if (typeof step.text !== "string" || !step.text.trim()) throw new TypeError(`${prefix} 需要非空名称`);
       if (step.enabled !== undefined && typeof step.enabled !== "boolean") throw new TypeError(`${prefix} enabled 必须是布尔值`);
-      const unknown = Object.keys(step).find(key => !["type", "text", "token", "enabled"].includes(key));
+      const unknown = Object.keys(step).find(key => !["type", "text", "token", "enabled", "trigger"].includes(key));
       if (unknown) throw new RangeError(`${prefix} 不支持字段 ${unknown}`);
       try {
-        resolveStepToken(step.token, config, stepRuntime(flow, phase, index));
+        if (step.trigger !== undefined) {
+          if (phase === "initial") throw new RangeError("初始上下文不支持 trigger；请在每轮流程中设置触发方式");
+          validateStepTrigger(step.trigger);
+        }
+        // 间隔节点以首次触发轮次校验，避免将只在后续轮次有效的公式按首轮误判。
+        let turnIndex = step.trigger?.type === "interval" ? step.trigger.value - 1 : 0;
+        if (step.trigger?.type === "probability" && step.trigger.value > 0 && step.enabled !== false) {
+          // 只寻找有限的代表轮次；完整运行仍会检查后续所有实际执行的公式。
+          const limit = Math.min(config.turnTotalCount || 1, 1000);
+          for (let candidate = 0; candidate < limit; candidate++) {
+            if (shouldRunStep(step, candidate, index)) { turnIndex = candidate; break; }
+          }
+        }
+        resolveStepToken(step.token, config, stepRuntime(flow, phase, index, turnIndex));
       } catch (error) {
         throw new RangeError(`${prefix}：${error.message}`);
       }

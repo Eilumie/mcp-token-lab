@@ -1,5 +1,5 @@
 import { createSessionConfig } from "./session-defaults.js";
-import { resolveStepToken, validateFlow } from "./session-flow.js";
+import { resolveStepToken, shouldRunStep, validateFlow } from "./session-flow.js";
 
 export const contentSize = actions => actions.reduce((sum, action) => sum + (action.type === "llm" ? 0 : action.token), 0);
 const flatten = snapshot => snapshot.turns.flatMap(turn => turn.actions);
@@ -98,8 +98,8 @@ export default class Session {
   runPlan(turn) {
     let llmIndex = 0;
     for (const [index, step] of this.config.flow.turn.entries()) {
-      if (step.enabled === false) continue;
       const runtime = { turnIndex: turn.turnIndex ?? 0, llmIndex };
+      if (!shouldRunStep(step, runtime.turnIndex, index)) continue;
       let output;
       try { output = this.createAction(step, runtime); }
       catch (error) {

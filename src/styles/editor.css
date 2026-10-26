@@ -81,6 +81,11 @@
 .editor-page .help-panel { border-radius: 16px; box-shadow: 0 20px 70px #18203920; }
 .editor-page .help-panel h2 { color: var(--ink); }
 .editor-page .help-panel p { color: var(--muted); }
+.editor-page .flow-round-preview { display: flex; align-items: center; justify-content: flex-end; gap: 7px; margin-top: 16px; color: var(--muted); font-size: 11px; }
+.editor-page .flow-round-preview input { width: 64px; padding: 6px 8px; border: 1px solid var(--control-line); border-radius: 7px; background: var(--paper); color: var(--ink); }
+.editor-page .step-text .step-trigger { display: block; color: var(--accent-ink); line-height: 1.6; }
+.editor-page .trigger-settings { border-top: 1px solid var(--line); padding-top: 18px; margin-bottom: 20px; }
+.editor-page .trigger-settings .field-help { margin-top: -8px; }
 
 @media (max-width: 850px) {
   .editor-page .editor-workspace { padding: 12px 18px 24px; }

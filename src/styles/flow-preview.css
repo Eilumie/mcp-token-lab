@@ -49,6 +49,8 @@
 .home-page .node-arrow{position:absolute;left:calc(50% - 6px);bottom:-15px;color:#c1c9d0}
 .home-page .node-disabled{opacity:.48;background:#f4f5f7;border-style:dashed!important}
 .home-page .node-disabled .node-text strong{text-decoration:line-through}
+.home-page .preview-flow-nodes>li.node-skipped{background:#f7f8fa;border-style:dashed}
+.home-page .node-text .node-trigger{color:var(--accent)}
 .home-page .preview-flow-nodes>li.node-error{border-color:#d79987}
 .home-page .node-expression{padding:0 10px}
 .home-page .node-expression[open]{padding-bottom:8px}
