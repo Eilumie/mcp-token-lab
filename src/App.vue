@@ -1,209 +1,142 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
-import { Github, ArrowDownToLine, ArrowUpFromLine, SlidersHorizontal, X, Check, LoaderCircle, Plus, RotateCcw, Undo2 } from "lucide-vue-next";
-import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, validatePlan, resolveBaselineId, resolvePlan, globalFields, thresholdField, planColors, maxPlans } from "./comparison.js";
-import { downloadFile } from "./utils.js";
-import PlanEditor from "./components/PlanEditor.vue";
-import SummaryCards from "./components/SummaryCards.vue";
-import AnalysisPanel from "./components/AnalysisPanel.vue";
-import ParameterField from "./components/ParameterField.vue";
-import GlobalModelField from "./components/GlobalModelField.vue";
-import GlyphBackground from "./components/GlyphBackground.vue";
-import { useHeaderOpacity } from "./use-header-opacity.js";
-
-const headerSurfaceOpacity = useHeaderOpacity();
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import { ArrowRight, ArrowLeft, ArrowDown, ArrowUp, Plus, Check, ChevronRight, ChevronDown, SlidersHorizontal, Layers, Workflow, Cpu, Copy, Trash2, X, CircleHelp, PanelRight, Code2, FileText, Braces, CheckCheck, Command } from 'lucide-vue-next';
+import { createComparisonConfig, createPlan, resolvePlan, validateComparison, validatePlan, readComparisonConfig, planColors, globalKeys } from './comparison.js';
+import { sourceNames } from './session-report.js';
+import { resolveStepToken, stepRuntime, tokenParameters } from './session-flow.js';
+import { groups, getValue, setValue } from './config.js';
+import PlanModelSettings from './components/PlanModelSettings.vue';
+import FieldHint from './components/FieldHint.vue';
+import { downloadFile } from './utils.js';
+import Home from './components/Home.vue';
+const clone = x => JSON.parse(JSON.stringify(x));
 const config = ref(createComparisonConfig());
-const draft = ref(null);
-const draftIsNew = ref(false);
+const results = ref([]), busy = ref(false), failure = ref(''), toast = ref('');
+const draft = ref(null), draftReport = ref(null), draftBusy = ref(false), draftFailure = ref(''), section = ref('flow'), phase = ref('initial'), stepIndex = ref(0), showVars = ref(false), help = ref(false), fileInput = ref(null);
+const lastConfig = ref(null), isNew = ref(false), originalCost = ref(0);
+const shortName = name => name.replace('百炼 · ', '').replace(' · 固定价格', '');
+const m = n => '$' + Number(n || 0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const n = value => Number(value || 0).toLocaleString('en-US',{maximumFractionDigits:2});
+const label = step => sourceNames[step.text] || step.text;
+const errors = computed(() => validateComparison(config.value));
 const draftErrors = computed(() => {
   if (!draft.value) return {};
-  const errors = validatePlan(draft.value, config.value.globalSimulation, config.value.globalModelId);
-  const others = config.value.plans.filter(plan => plan.id !== draft.value.id);
-  if (others.some(plan => plan.name.trim() === draft.value.name.trim())) errors.planName = "方案名称已存在，请换一个名称";
-  if (others.some(plan => plan.model.currency !== draft.value.model.currency)) errors.currency = "对比方案需使用相同币种";
-  return errors;
+  const e = validatePlan(draft.value, config.value.globalSimulation, config.value.globalModelId);
+  if(config.value.plans.some(p => p.id !== draft.value.id && p.name.trim() === draft.value.name.trim())) e.planName = '方案名称已存在';
+  return e;
 });
-const errors = computed(() => validateComparison(config.value));
-const notice = ref("");
-const undo = shallowRef(null);
-const clone = value => JSON.parse(JSON.stringify(value));
-function remember(label) { undo.value = { config: clone(config.value), label }; }
-function undoChange() {
-  if (!undo.value) return;
-  config.value = undo.value.config;
-  notice.value = `已撤销${undo.value.label}。`;
-  undo.value = null;
+const currentStep = computed(() => draft.value?.simulation.flow[phase.value][stepIndex.value]);
+const effectiveDraft = computed(() => draft.value ? resolvePlan(draft.value, config.value.globalSimulation, config.value.globalModelId) : null);
+const stepAmount = (s, i, p = phase.value) => { try { return n(resolveStepToken(s.token, effectiveDraft.value.simulation, stepRuntime(draft.value.simulation.flow,p,i))); } catch { return '—'; } };
+const phaseTotal = p => draft.value?.simulation.flow[p].reduce((total,s,i) => {try{return total+(s.enabled === false ? 0 : resolveStepToken(s.token,effectiveDraft.value.simulation,stepRuntime(draft.value.simulation.flow,p,i)));}catch{return total;}},0);
+let reportWorker, draftWorker, reportTimer, draftTimer, toastTimer;
+function notify(text) { toast.value=text; clearTimeout(toastTimer); toastTimer=setTimeout(()=>toast.value='',3500); }
+function remember() { lastConfig.value=clone(config.value); }
+function undo() { if(lastConfig.value) { config.value=lastConfig.value; lastConfig.value=null; notify('已撤销上一次修改'); } }
+watch(config,()=>{
+  clearTimeout(reportTimer); reportWorker?.terminate(); busy.value=false; failure.value='';
+  if(Object.keys(errors.value).length){ results.value=[]; return; }
+  busy.value=true;
+  reportTimer=setTimeout(()=>{
+    const w=new Worker(new URL('./session.worker.js',import.meta.url),{type:'module'}); reportWorker=w;
+    w.onmessage=({data})=>{ if(reportWorker!==w)return; busy.value=false; failure.value=data.error||''; results.value=data.results||[]; w.terminate(); };
+    w.onerror=()=>{busy.value=false;failure.value='模拟暂时失败，请调整参数重试';w.terminate();};
+    w.postMessage(clone(config.value));
+  },120);
+},{deep:true,immediate:true});
+watch(draft,()=>{
+  clearTimeout(draftTimer); draftWorker?.terminate(); draftReport.value=null; draftBusy.value=false; draftFailure.value='';
+  if(!draft.value || Object.keys(draftErrors.value).length)return;
+  draftBusy.value=true;
+  draftTimer=setTimeout(()=>{
+    const w=new Worker(new URL('./session.worker.js',import.meta.url),{type:'module'}); draftWorker=w;
+    w.onmessage=({data})=>{ if(draftWorker!==w)return; draftBusy.value=false; draftReport.value=data.results?.[0]; draftFailure.value=data.error||''; w.terminate(); };
+    w.onerror=()=>{draftBusy.value=false;draftFailure.value='预览计算失败，请调整参数重试';w.terminate();};
+    w.postMessage({...clone(config.value),plans:[clone(draft.value)],baselineId:draft.value.id});
+  },240);
+},{deep:true});
+onBeforeUnmount(()=>{reportWorker?.terminate();draftWorker?.terminate();clearTimeout(reportTimer);clearTimeout(draftTimer);clearTimeout(toastTimer);});
+function edit(plan, add=false) {
+  isNew.value=add; originalCost.value=results.value.find(r=>r.planId===plan.id)?.cost.total||0;
+  draft.value=clone(resolvePlan(plan,config.value.globalSimulation)); section.value='flow'; phase.value='initial'; stepIndex.value=0; showVars.value=false; window.scrollTo(0,0);
 }
-const report = shallowRef(null);
-const busy = ref(false);
-const failure = ref("");
-const importInput = ref(null);
-let worker, debounce, deadline;
-function cancel() {
-  clearTimeout(debounce);
-  clearTimeout(deadline);
-  worker?.terminate();
-  worker = null;
+function add(source) {
+  if(config.value.plans.length>=8)return;
+  const names=new Set(config.value.plans.map(p=>p.name)); let name=source ? source.name+' 副本' : '新方案'; let i=2; const base=name;
+  while(names.has(name))name=base+' '+i++;
+  edit(createPlan({source:source?clone(source):undefined,name,color:planColors[config.value.plans.length%8]}),true);
 }
-watch(config, () => {
-  cancel();
-  failure.value = "";
-  report.value = null;
-  busy.value = false;
-  if (Object.keys(errors.value).length || !config.value.plans.length) return;
-  busy.value = true;
-  const snapshot = JSON.parse(JSON.stringify(config.value));
-  debounce = setTimeout(() => {
-    const currentWorker = new Worker(new URL("./session.worker.js", import.meta.url), { type: "module" });
-    worker = currentWorker;
-    const finish = () => { clearTimeout(deadline); currentWorker.terminate(); if (worker === currentWorker) worker = null; busy.value = false; };
-    currentWorker.onmessage = ({ data }) => {
-      if (worker !== currentWorker) return;
-      finish();
-      if (data.error) { failure.value = data.error; return; }
-      snapshot.baselineId = resolveBaselineId(snapshot, data.results);
-      report.value = { results: data.results, config: snapshot };
-    };
-    currentWorker.onerror = () => { if (worker !== currentWorker) return; finish(); failure.value = "计算失败，请检查参数后重试。"; };
-    deadline = setTimeout(() => { if (worker !== currentWorker) return; finish(); failure.value = "计算超过 20 秒，请减少方案数量、轮次或压缩阈值。"; }, 20000);
-    currentWorker.postMessage(snapshot);
-  }, 220);
-}, { deep: true, immediate: true });
-onBeforeUnmount(cancel);
-const warnings = computed(() => {
-  if (!report.value) return [];
-  const { results } = report.value;
-  const messages = [];
-  if (new Set(results.map(r => r.rounds.length)).size > 1) messages.push("各方案的用户轮次不同，当前比较的是各自完整会话的总费用；可统一轮次后再评估节省幅度。");
-  for (const r of results) {
-    if (r.model.inputCachedPrice > r.model.inputNotCachedPrice) messages.push(`${r.planName}：命中单价高于未命中单价，缓存可能增加费用。`);
-    if (r.pricing?.contextWindow && r.peakInput * 1000 > r.pricing.contextWindow) messages.push(`${r.planName}：部分请求超过模型上下文上限，当前展示完整模拟消耗。`);
-    if (r.pricing?.tier && r.requests.some(q => q.input * 1000 <= r.pricing.tier.input_tokens_gt || q.input * 1000 > r.pricing.tier.input_tokens_lte)) messages.push(`${r.planName}：部分请求不在所选价格档位内，当前使用固定档位。`);
-    if (r.compressions.some(c => c.after >= c.before)) messages.push(`${r.planName}：部分压缩没有缩短上下文，可减小摘要长度或保留轮次。`);
-  }
-  return messages;
-});
-function editPlan(id) {
-  const plan = config.value.plans.find(plan => plan.id === id);
-  if (!plan) return;
-  draftIsNew.value = false;
-  draft.value = clone(resolvePlan(plan, config.value.globalSimulation));
-  draft.value.useGlobal ??= {};
+function save() {
+  if(Object.keys(draftErrors.value).length)return;
+  remember(); const p=clone(draft.value); p.name=p.name.trim(); const i=config.value.plans.findIndex(x=>x.id===p.id);
+  if(i>=0)config.value.plans.splice(i,1,p); else config.value.plans.push(p);
+  if(!config.value.baselineId)config.value.baselineId=p.id;
+  draft.value=null; notify('方案已保存，对比已更新');
 }
-function savePlan() {
-  if (!draft.value || Object.keys(draftErrors.value).length) return;
-  if (draftIsNew.value && config.value.plans.length >= maxPlans) return;
-  remember(draftIsNew.value ? "新增方案" : "编辑方案");
-  const plan = clone(draft.value);
-  plan.name = plan.name.trim();
-  const index = config.value.plans.findIndex(item => item.id === plan.id);
-  if (index < 0) config.value.plans.push(plan);
-  else config.value.plans.splice(index, 1, plan);
-  if (!config.value.baselineId) config.value.baselineId = plan.id;
-  notice.value = `已保存「${plan.name}」，正在更新对比。`;
-  draft.value = null;
+function setBase(id) { remember();config.value.baselineId=id;config.value.baselineMode='manual';notify('已更新对比基准'); }
+function remove(id) {
+  remember(); config.value.plans=config.value.plans.filter(p=>p.id!==id);
+  if(config.value.baselineId===id)config.value.baselineId=config.value.plans[0]?.id||null;
+  notify('已删除方案，可撤销');
 }
-function setBaseline(id) {
-  const plan = config.value.plans.find(plan => plan.id === id);
-  if (!plan) return;
-  if (config.value.baselineMode !== "auto" && config.value.baselineId === plan.id) return;
-  remember("切换基准");
-  config.value.baselineId = plan.id;
-  config.value.baselineMode = "manual";
-  notice.value = `已将「${plan.name}」设为Base。`;
-}
-function uniqueName(base) {
-  const names = new Set(config.value.plans.map(p => p.name.trim()));
-  let name = base, index = 2;
-  while (names.has(name)) name = `${base.slice(0, 50)} ${index++}`;
-  return name;
-}
-function addPlan(source) {
-  if (config.value.plans.length >= maxPlans) return;
-  const used = new Set(config.value.plans.map(p => p.color));
-  const color = planColors.find(c => !used.has(c)) || planColors[config.value.plans.length % planColors.length];
-  const plan = createPlan({ source: source ? JSON.parse(JSON.stringify(source)) : undefined, name: uniqueName(source ? `${source.name.slice(0, 45)} 副本` : "自定义方案"), color });
-  if (!source && config.value.plans.length) {
-    plan.model = JSON.parse(JSON.stringify(config.value.plans[0].model));
-    plan.pricing = JSON.parse(JSON.stringify(config.value.plans[0].pricing));
-  }
-  draftIsNew.value = true;
-  draft.value = resolvePlan(plan, config.value.globalSimulation);
-}
-function copyPlan(id) {
-  const plan = config.value.plans.find(plan => plan.id === id);
-  if (plan) addPlan(plan);
-}
-function removePlan(id) {
-  const plan = config.value.plans.find(plan => plan.id === id);
-  if (!plan) return;
-  remember("删除方案");
-  config.value.plans.splice(config.value.plans.indexOf(plan), 1);
-  if (config.value.baselineId === plan.id || report.value?.config.baselineId === plan.id) {
-    config.value.baselineId = config.value.plans[0]?.id ?? null;
-    config.value.baselineMode = "auto";
-  }
-  notice.value = `已删除「${plan.name}」。`;
-}
-function reset() {
-  remember("恢复默认方案");
-  config.value = createComparisonConfig();
-  notice.value = "已恢复两套默认方案，可撤销以找回之前的配置。";
-}
-function exportConfig() {
-  downloadFile("token-lab-plans.json", JSON.stringify(report.value?.config ?? config.value, null, 2), "application/json");
-  notice.value = "已导出全部方案、Base与费率快照。";
-}
-async function importConfig(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  try {
-    if (file.size > 4000000) throw new Error("配置文件不能超过 4MB。");
-    const imported = readComparisonConfig(JSON.parse(await file.text()));
-    remember("导入配置");
-    config.value = imported;
-    notice.value = "方案已导入。";
-  } catch (error) { notice.value = "导入失败：" + error.message; }
-  finally { event.target.value = ""; }
-}
-function editInvalidPlan() {
-  const key = Object.keys(errors.value).find(key => key.startsWith("plans."));
-  const plan = key ? config.value.plans[Number(key.split(".")[1])] : config.value.plans[0];
-  if (plan) editPlan(plan.id);
-}
+function addStep(type='action') { const steps=draft.value.simulation.flow[phase.value]; steps.push({type,text:type==='llm'?'新的模型调用':'新的上下文',token:1});stepIndex.value=steps.length-1; }
+function moveStep(dir) {const steps=draft.value.simulation.flow[phase.value],i=stepIndex.value,j=i+dir;if(j<0||j>=steps.length)return;[steps[i],steps[j]]=[steps[j],steps[i]];stepIndex.value=j;}
+function deleteStep() {draft.value.simulation.flow[phase.value].splice(stepIndex.value,1);stepIndex.value=Math.max(0,stepIndex.value-1);}
+function setParam(key,event,unit) { const v=Number(event.target.value)/(unit==='%'?100:1);setValue(draft.value.simulation,key,v); if(globalKeys.includes(key))draft.value.useGlobal[key]=false; }
+function inherit(key) {draft.value.useGlobal[key]=!draft.value.useGlobal[key];if(draft.value.useGlobal[key])draft.value.simulation[key]=config.value.globalSimulation[key];}
+function fixedToken() { try { currentStep.value.token=resolveStepToken(currentStep.value.token,effectiveDraft.value.simulation,stepRuntime(draft.value.simulation.flow,phase.value,stepIndex.value)); } catch { currentStep.value.token=0; } }
+function exportConfig(){ downloadFile('token-lab.json',JSON.stringify(config.value,null,2),'application/json');notify('已导出实验配置'); }
+async function importConfig(e){const f=e.target.files?.[0];if(!f)return;try{if(f.size>4000000)throw new Error('文件不能超过 4 MB');const c=readComparisonConfig(JSON.parse(await f.text()));remember();config.value=c;notify('配置已导入');}catch(e){notify('导入失败：'+e.message);}finally{e.target.value='';}}
+const sections=[['flow','执行流程',Workflow],['params','基本参数',SlidersHorizontal],['cache','缓存与压缩',Layers],['model','模型与费率',Cpu]];
+const paramFields=computed(()=>groups.filter(g=>!['缓存与权限'].includes(g.title)));
 </script>
 
 <template>
-  <GlyphBackground />
-  <header class="app-header" :style="{ '--header-surface-opacity': headerSurfaceOpacity }">
-    <a class="brand" href="./"><span class="brand-mark header-floating"><img src="/token-lab.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
-    <nav class="header-actions" aria-label="配置操作"><a class="header-github header-floating" href="https://github.com/zhangHongEn/token-lab" target="_blank" rel="noopener noreferrer" aria-label="在新标签页打开 GitHub 仓库"><Github :size="16" /><span>GitHub</span></a><button class="header-floating" aria-label="导入配置" @click="importInput.click()"><ArrowUpFromLine :size="15" /><span>导入配置</span></button><button class="header-floating" aria-label="导出配置" :disabled="!!Object.keys(errors).length" @click="exportConfig"><ArrowDownToLine :size="15" /><span>导出配置</span></button><input ref="importInput" type="file" accept=".json,application/json" hidden @change="importConfig" /></nav>
-  </header>
-  <div class="workspace comparison-workspace">
-    <main>
-      <h1 class="sr-only">Token Lab · 会话成本实验室</h1>
-      <div v-if="notice || undo" class="notice" role="status"><Check :size="15" /><span>{{ notice || '可以撤销最近一次修改。' }}</span><button v-if="undo" class="undo-button" @click="undoChange"><Undo2 :size="14" />撤销{{ undo.label }}</button><button class="icon-button" aria-label="关闭通知" @click="notice = ''; undo = null"><X :size="14" /></button></div>
-      <section class="global-settings" aria-labelledby="global-settings-title">
-        <div><h2 id="global-settings-title"><SlidersHorizontal :size="17" />全局配置</h2><p>各方案默认使用以下数值，也可在方案内单独设置。</p></div>
-        <div class="global-settings-fields" @focusin="remember('修改全局配置')">
-          <GlobalModelField :config="config" :error="errors.globalModelId" />
-          <ParameterField v-for="field in globalFields.filter(([key]) => !key.startsWith('compression'))" :key="field[0]" :object="config.globalSimulation" :field="field" :error="errors['globalSimulation.' + field[0]]" />
-          <label class="field"><span>压缩阈值类型</span><select v-model="config.globalSimulation.compressionThresholdType" aria-label="压缩阈值类型" :aria-invalid="!!errors['globalSimulation.compressionThresholdType']"><option value="TURN">用户轮次</option><option value="TOKEN">上下文</option></select><small v-if="errors['globalSimulation.compressionThresholdType']" class="error">{{ errors['globalSimulation.compressionThresholdType'] }}</small></label>
-          <ParameterField :key="thresholdField(config.globalSimulation)[0]" :object="config.globalSimulation" :field="thresholdField(config.globalSimulation)" :error="errors['globalSimulation.' + thresholdField(config.globalSimulation)[0]]" />
+  <div class="app-shell">
+    <header v-if="draft" class="topbar">
+      <a class="brand" href="./"><span class="brand-symbol"><Command :size="19" :stroke-width="1.6" /></span>Token Lab<span class="version">LAB</span></a>
+      <span class="top-divider"></span><span class="breadcrumb">工作空间 <ChevronRight :size="12" /> 工具加载策略</span>
+      <div class="top-actions"><span class="local-state"><i></i>本地模拟</span><button class="icon-btn" aria-label="使用说明" @click="help=true"><CircleHelp :size="17" /></button><span class="avatar">T</span></div>
+    </header>
+
+    <Home v-if="!draft" :config="config" :results="results" :busy="busy" :errors="errors" :failure="failure" :can-undo="!!lastConfig"
+      @import="fileInput.click()" @export="exportConfig" @remember="remember" @undo="undo"
+      @reset="remember();config=createComparisonConfig();notify('已恢复默认方案')"
+      @add="add()" @edit="edit(config.plans.find(p=>p.id===$event))" @baseline="setBase"
+      @copy="add(config.plans.find(p=>p.id===$event))" @remove="remove" />
+
+    <main v-else class="editor-workspace">
+      <div class="editor-top"><div class="editor-title"><button class="icon-btn back-btn" aria-label="取消编辑并返回" @click="draft=null"><ArrowLeft :size="18" /></button><div><div class="eyebrow">{{ isNew?'NEW SCENARIO':'EDIT SCENARIO' }}</div><h1>{{ draft.name }}</h1></div><span class="badge">独立草稿</span></div><div class="inline-actions"><button class="btn" @click="draft=null">取消</button><button class="btn primary" :disabled="!!Object.keys(draftErrors).length" @click="save"><Check :size="15"/>保存并对比</button></div></div>
+      <div class="editor-layout">
+        <aside class="editor-nav"><span class="nav-caption">方案设置</span><button v-for="[key,text,icon] in sections" :class="{active:section===key}" @click="section=key"><component :is="icon" :size="16"/>{{ text }}<ChevronRight v-if="section===key" :size="13" /></button><div class="nav-context"><span class="nav-caption">当前实验条件</span><p><span>会话轮次</span><strong>{{ effectiveDraft.simulation.turnTotalCount }} 轮</strong></p><p><span>Tools / Skills</span><strong>{{ effectiveDraft.simulation.toolsTotalCount }} / {{ effectiveDraft.simulation.skillsTotalCount }}</strong></p><p><span>当前模型</span></p><strong class="model-caption">{{ shortName(effectiveDraft.model.name) }}</strong></div><div class="nav-note"><CheckCheck :size="15"/><span>修改先在草稿中预览<br/>保存后更新对比结果</span></div></aside>
+        <div class="editor-main">
+          <div v-if="section==='flow'" class="flow-layout">
+            <section class="flow-canvas"><div class="editor-section-head"><h2>执行流程</h2><p>先建立上下文，再定义每一轮的执行路径。</p></div><div class="phase-switch"><button :class="{active:phase==='initial'}" @click="phase='initial';stepIndex=0"><span>初始上下文</span><small>{{ draft.simulation.flow.initial.length }} 步</small></button><button :class="{active:phase==='turn'}" @click="phase='turn';stepIndex=0"><span>每轮流程</span><small>{{ draft.simulation.flow.turn.length }} 步</small></button></div>
+              <div class="flow-section-label"><span>{{ phase==='initial'?'会话开始时执行一次':'每个用户轮次重复执行' }}</span><span>{{ n(phaseTotal(phase)) }} K 合计</span></div>
+              <div class="flow-list"><button v-for="(s,i) in draft.simulation.flow[phase]" class="flow-step" :class="{selected:i===stepIndex,disabled:s.enabled===false}" @click="stepIndex=i;showVars=false"><span class="step-number">{{ String(i+1).padStart(2,'0') }}</span><span class="step-icon" :class="{llm:s.type==='llm'}"><Cpu v-if="s.type==='llm'" :size="16"/><FileText v-else :size="16"/></span><span class="step-text"><strong>{{ label(s) }}</strong><small>{{ s.enabled===false?'已停用':s.type==='llm'?'调用模型':'追加上下文' }}<span>·</span>{{ typeof s.token==='number'?'固定长度':'公式' }}</small></span><span class="step-token">{{ stepAmount(s,i) }}<small>K</small></span><ChevronRight :size="13"/></button></div>
+              <div class="add-steps"><button class="btn" @click="addStep()"><Plus :size="14"/>追加上下文</button><button v-if="phase==='turn'" class="btn" @click="addStep('llm')"><Cpu :size="14"/>调用模型</button></div><div class="flow-tip"><Layers :size="15"/><span>{{ phase==='initial'?'初始内容会被后续模型调用重复读取。':'每轮流程结束后，系统按配置检查并压缩上下文。' }}</span></div>
+            </section>
+            <aside v-if="currentStep" class="inspector"><div class="inspector-top"><span><PanelRight :size="15"/>步骤属性</span><span class="micro">{{ String(stepIndex+1).padStart(2,'0') }}</span></div><div class="inspector-body"><div class="inspector-summary"><span class="large-step-icon"><Cpu v-if="currentStep.type==='llm'" :size="22"/><FileText v-else :size="22"/></span><div><h3>{{ label(currentStep) }}</h3><span class="micro">{{ phase==='initial'?'初始上下文':'每轮流程' }} / 步骤 {{ stepIndex+1 }}</span></div><label class="toggle"><input type="checkbox" aria-label="启用当前步骤" :checked="currentStep.enabled!==false" @change="currentStep.enabled=$event.target.checked"/><span></span></label></div>
+              <label class="field">步骤名称<input :value="label(currentStep)" @input="currentStep.text=$event.target.value" aria-label="步骤名称" /></label>
+              <label v-if="phase==='turn'" class="field">步骤类型<select v-model="currentStep.type"><option value="action">追加上下文</option><option value="llm">调用模型</option></select></label>
+              <div class="field"><span>Token 长度</span><div class="segmented token-mode"><button :class="{active:typeof currentStep.token!=='number'}" @click="currentStep.token=String(currentStep.token)"><Braces :size="13"/>公式</button><button :class="{active:typeof currentStep.token==='number'}" @click="fixedToken">固定数值</button></div></div>
+              <div v-if="typeof currentStep.token!=='number'" class="formula-block"><div class="code-caption"><Code2 :size="12"/>EXPRESSION<span>K TOKEN</span></div><textarea v-model="currentStep.token" aria-label="Token 公式" spellcheck="false"></textarea><button class="text-btn" @click="showVars=!showVars"><Plus :size="12"/>插入变量<ChevronDown :size="12"/></button><div v-if="showVars" class="variable-list"><button v-for="(name,key) in tokenParameters" @click="currentStep.token=String(currentStep.token).trim() ? String(currentStep.token)+' + '+key : key;showVars=false"><span>{{ name }}</span><code>{{ key }}</code></button></div></div>
+              <label v-else class="field"><span class="input-unit"><input type="number" min="0" v-model.number="currentStep.token" aria-label="固定 Token 长度"/><span>K Token</span></span></label>
+              <div class="preview-result"><span><Check :size="13"/>当前预览</span><strong>{{ stepAmount(currentStep,stepIndex) }}<small>K Token</small></strong></div><p class="field-help">1 K = 1,000 Token。公式会随实验参数自动更新。</p>
+              <details class="context-vars"><summary>可用参数值<ChevronDown :size="12"/></summary><div v-for="(name,key) in tokenParameters"><span>{{ name }}</span><code>{{ getValue(effectiveDraft.simulation,key) }}</code></div></details>
+              <div class="step-tools"><button class="icon-btn" aria-label="上移步骤" :disabled="stepIndex===0" @click="moveStep(-1)"><ArrowUp :size="15"/></button><button class="icon-btn" aria-label="下移步骤" :disabled="stepIndex===draft.simulation.flow[phase].length-1" @click="moveStep(1)"><ArrowDown :size="15"/></button><button class="icon-btn" aria-label="复制步骤" @click="draft.simulation.flow[phase].splice(stepIndex+1,0,clone(currentStep));stepIndex++"><Copy :size="15"/></button><button class="text-btn delete-step" @click="deleteStep"><Trash2 :size="14"/>删除步骤</button></div>
+            </div></aside>
+            <aside v-else class="inspector empty-state">添加一个步骤开始配置。</aside>
+          </div>
+          <section v-if="section==='params'" class="settings-page"><div class="editor-section-head"><h2>基本参数</h2><p>统一单位为 K Token，1 K = 1,000 Token。</p></div><label class="field name-field">方案名称<input v-model="draft.name" maxlength="60" aria-label="方案名称"/></label><div v-for="group in paramFields" class="settings-group"><h3>{{ group.title }}</h3><div class="fields-grid"><label v-for="[key,text,unit,min,max,help] in group.fields" class="field"><span>{{ text }}<FieldHint v-if="help" :text="help"/><button v-if="globalKeys.includes(key)" class="inherit-btn" :class="{inherited:draft.useGlobal[key]}" @click.prevent="inherit(key)">{{ draft.useGlobal[key]?'继承全局':'独立设置' }}</button></span><span class="input-unit"><input type="number" :aria-label="text" :min="min" :max="max" :value="getValue(effectiveDraft.simulation,key)" @input="setParam(key,$event,unit)"/><span>{{ unit }}</span></span></label></div></div></section>
+          <section v-if="section==='cache'" class="settings-page"><div class="editor-section-head"><h2>缓存与压缩</h2><p>在缓存收益与上下文长度之间，找到合适的平衡。</p></div><div class="settings-group"><h3>前缀缓存</h3><div class="fields-grid"><label v-for="[key,text,unit,min,max,help] in groups[1].fields" class="field"><span>{{ text }}<FieldHint v-if="help" :text="help"/><button v-if="globalKeys.includes(key)" class="inherit-btn" :class="{inherited:draft.useGlobal[key]}" @click.prevent="inherit(key)">{{ draft.useGlobal[key]?'继承全局':'独立设置' }}</button></span><span class="input-unit"><input type="number" min="0" max="100" :value="getValue(effectiveDraft.simulation,key)*100" @input="setParam(key,$event,'%')"/><span>%</span></span></label></div></div><div class="settings-group"><h3>上下文压缩</h3><div class="fields-grid"><label class="field">压缩阈值类型<select v-model="draft.simulation.compressionThresholdType" @change="draft.useGlobal.compressionThresholdType=false"><option value="TURN">用户轮次</option><option value="TOKEN">上下文</option></select></label><label class="field">压缩阈值<input v-if="draft.simulation.compressionThresholdType==='TURN'" type="number" :value="effectiveDraft.simulation.compressionThresholdTurnCount" @input="setParam('compressionThresholdTurnCount',$event)"/><input v-else type="number" :value="effectiveDraft.simulation.compressionThresholdToken" @input="setParam('compressionThresholdToken',$event)"/></label><label class="field">保留最近轮次<span class="input-unit"><input type="number" min="0" v-model.number="draft.simulation.compressionKeepTurns"/><span>轮</span></span></label><label class="field">摘要长度<span class="input-unit"><input type="number" min="0" v-model.number="draft.simulation.compressionTargetToken"/><span>K</span></span></label></div><p class="field-help">每轮结束后检查压缩条件。压缩模型调用产生的费用会计入总成本。</p></div></section>
+          <section v-if="section==='model'" class="settings-page"><div class="editor-section-head"><h2>模型与费率</h2><p>默认继承全局模型，也可为当前方案独立设置。</p></div><PlanModelSettings :plan="draft" :global-model-id="config.globalModelId" :errors="draftErrors" /></section>
         </div>
-      </section>
-      <div class="results-heading comparison-heading"><div><h2>对比方案 <span class="plan-count">{{ config.plans.length }}/{{ maxPlans }}</span></h2></div><div class="plan-toolbar"><button @click="reset"><RotateCcw :size="14" />恢复默认方案</button><button class="primary-button" :disabled="config.plans.length >= maxPlans" @click="addPlan()"><Plus :size="15" />新增方案</button></div></div>
-      <div v-if="!config.plans.length" class="empty-state"><Plus :size="30" /><h2>从一个方案开始</h2><p>点击上方「新增方案」，或恢复默认的按需、全量方案。</p></div>
-      <div v-else-if="Object.keys(errors).length" class="empty-state" role="alert"><SlidersHorizontal :size="30" /><h2>请修正实验参数</h2><p>{{ Object.values(errors)[0] }}</p><button @click="editInvalidPlan">编辑待修正方案</button></div>
-      <div v-else-if="failure" class="empty-state" role="alert"><h2>暂时无法完成模拟</h2><p>{{ failure }}</p><div class="failed-plan-actions"><button v-for="plan in config.plans" :key="plan.id" @click="editPlan(plan.id)">编辑 {{ plan.name }}</button></div><button @click="config = JSON.parse(JSON.stringify(config))">重新计算</button></div>
-      <div v-else-if="busy" class="empty-state" role="status"><LoaderCircle class="spinner" :size="30" /><h2>正在模拟完整会话</h2><p>逐次记录请求、缓存与上下文压缩…</p></div>
-      <template v-else-if="report">
-        <div v-for="warning in warnings" :key="warning" class="warning" role="status">{{ warning }}</div>
-        <SummaryCards :results="report.results" :config="report.config" @edit="editPlan" @copy="copyPlan" @remove="removePlan" @baseline="setBaseline" />
-        <AnalysisPanel :results="report.results" :config="report.config" />
-      </template>
-      <footer><span class="footer-mark">T / L</span><p>初始前缀按期望命中率计费 · 每轮流程结束后检查压缩 · 最后一轮触发的压缩也计费<br />所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。</p><span>COMPARE / V4</span></footer>
+      </div>
+      <div class="editor-result-bar" aria-live="polite"><div class="live-label"><span class="footer-dot"></span>实时成本预览</div><div v-if="Object.keys(draftErrors).length || draftFailure" class="error-text" role="alert">{{ Object.values(draftErrors)[0] || draftFailure }}</div><template v-else><div class="live-cost">{{ draftBusy?'计算中…':m(draftReport?.cost.total) }}<span>/ 会话</span></div><span v-if="draftReport && originalCost" class="live-delta">较编辑前 {{ draftReport.cost.total-originalCost>=0?'+':'−' }}{{ m(Math.abs(draftReport.cost.total-originalCost)) }}</span><div class="live-metrics"><span>初始上下文 <strong>{{ n(draftReport?.initialContext) }} K</strong></span><span>模型请求 <strong>{{ draftReport?.requests.length || '—' }} 次</strong></span></div></template><button class="text-btn" :disabled="!!Object.keys(draftErrors).length" @click="save">保存并返回对比<ArrowRight :size="14"/></button></div>
     </main>
+    <input ref="fileInput" type="file" accept=".json" hidden @change="importConfig"/>
+    <div v-if="toast" class="toast" role="status"><Check :size="15"/>{{ toast }}<button v-if="lastConfig" @click="undo">撤销</button><button class="icon-btn" aria-label="关闭提示" @click="toast=''"><X :size="13"/></button></div>
+    <div v-if="help" class="help-overlay" @click.self="help=false"><section class="help-panel" role="dialog" aria-modal="true" aria-labelledby="help-title"><button class="icon-btn help-close" aria-label="关闭说明" @click="help=false"><X :size="18"/></button><span class="eyebrow">TOKEN LAB / GUIDE</span><h2 id="help-title">从假设，到成本。</h2><p>1. 设置统一的会话轮次与工具规模。</p><p>2. 编辑方案，定义内容与模型调用流程。</p><p>3. 选择基准，比较成本和上下文变化。</p><p class="field-help">配置仅保存在本次页面会话，刷新前请导出。所有计算在浏览器内完成。</p><button class="btn primary" @click="help=false">开始探索<ArrowRight :size="14"/></button></section></div>
   </div>
-  <PlanEditor v-if="draft" :plan="draft" :global-simulation="config.globalSimulation" :global-model-id="config.globalModelId" :is-new="draftIsNew" :errors="draftErrors" @save="savePlan" @close="draft = null" />
 </template>

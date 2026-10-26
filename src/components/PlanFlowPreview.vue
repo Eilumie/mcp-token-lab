@@ -1,9 +1,9 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { FileText, Cpu, ArrowRight, ArrowDown, Layers, Repeat2, Check, Workflow } from 'lucide-vue-next';
-import { resolvePlan } from '../src/comparison.js';
-import { resolveStepToken, stepRuntime, tokenFormula } from '../src/session-flow.js';
-import { sourceNames } from '../src/session-report.js';
+import { resolvePlan } from '../comparison.js';
+import { resolveStepToken, stepRuntime, tokenFormula } from '../session-flow.js';
+import { sourceNames } from '../session-report.js';
 const props = defineProps({ plan: Object, globalSimulation: Object });
 defineEmits(['edit']);
 const round = ref(1);

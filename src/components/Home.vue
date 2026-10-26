@@ -1,15 +1,15 @@
 <script setup>
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { Github, Upload, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, ArrowDown, ArrowUp, Check, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
-import { globalFields, thresholdField, resolveBaselineId, maxPlans } from '../src/comparison.js';
-import GlyphBackground from '../src/components/GlyphBackground.vue';
-import ParameterField from '../src/components/ParameterField.vue';
-import GlobalModelField from '../src/components/GlobalModelField.vue';
-import AnalysisPanel from '../src/components/AnalysisPanel.vue';
-import SummaryCards from '../src/components/SummaryCards.vue';
-import SparklesText from '../src/components/SparklesText.vue';
+import { globalFields, thresholdField, resolveBaselineId, maxPlans } from '../comparison.js';
+import GlyphBackground from './GlyphBackground.vue';
+import ParameterField from './ParameterField.vue';
+import GlobalModelField from './GlobalModelField.vue';
+import AnalysisPanel from './AnalysisPanel.vue';
+import SummaryCards from './SummaryCards.vue';
+import SparklesText from './SparklesText.vue';
 import PlanFlowPreview from './PlanFlowPreview.vue';
-import { useHeaderOpacity } from '../src/use-header-opacity.js';
+import { useHeaderOpacity } from '../use-header-opacity.js';
 const headerSurfaceOpacity = useHeaderOpacity();
 const props = defineProps({ config: Object, results: Array, busy: Boolean, errors: Object, failure: String, canUndo: Boolean });
 const emit = defineEmits(['import','export','remember','reset','add','edit','baseline','copy','remove','undo']);
@@ -63,10 +63,10 @@ function action(type,id) { closeMenu(true);emit(type,id); }
 </script>
 
 <template>
-  <div class="restored-home">
+  <div class="home-page">
     <GlyphBackground />
     <header class="app-header" :style="{ '--header-surface-opacity': headerSurfaceOpacity }">
-      <a class="brand" href="./design.html"><span class="brand-mark header-floating"><img src="/token-lab.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
+      <a class="brand" href="./"><span class="brand-mark header-floating"><img src="/token-lab.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
       <nav class="header-actions" aria-label="配置操作"><a class="header-github header-floating" href="https://github.com/zhangHongEn/token-lab" target="_blank" rel="noopener noreferrer" aria-label="在新标签页打开 GitHub 仓库"><Github :size="16" /><span>GitHub</span></a><button class="header-floating" @click="emit('import')"><Upload :size="15"/><span>导入配置</span></button><button class="header-floating" :disabled="!!Object.keys(errors).length" @click="emit('export')"><Download :size="15"/><span>导出配置</span></button></nav>
     </header>
     <div class="workspace comparison-workspace"><main>

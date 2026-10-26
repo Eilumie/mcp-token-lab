@@ -1,11 +1,11 @@
 # 公开发布范围
 
-Token Lab 的公开仓库只包含可独立运行的浏览器端模拟器、测试、文档、设计源文件和必要的展示图片。
+Token Lab 的公开仓库只包含当前浏览器端模拟器、测试、文档和必要的展示图片。
 
 ## 纳入公开仓库
 
 - `src/`、`public/`、`index.html` 与 Vite 配置：应用源码和静态资源。
-- `design/`、`design.html` 与 `docs/`：设计源文件、使用文档和必要的展示截图。
+- `docs/`：使用文档和当前页面的展示截图。
 - `package.json`、`package-lock.json`、`.github/`、`LICENSE` 与项目说明：安装、授权和自动检查配置。
 
 ## 不纳入公开仓库
