@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
-import { ArrowRight, ArrowLeft, ArrowDown, ArrowUp, Plus, Check, ChevronRight, ChevronDown, SlidersHorizontal, Layers, Workflow, Cpu, Copy, Trash2, X, CircleHelp, PanelRight, Code2, FileText, Braces, CheckCheck, Command } from 'lucide-vue-next';
+import { ArrowRight, ArrowLeft, ArrowDown, ArrowUp, Plus, Check, ChevronRight, ChevronDown, SlidersHorizontal, Layers, Workflow, Cpu, Copy, Trash2, X, CircleHelp, PanelRight, Code2, FileText, Braces, CheckCheck } from 'lucide-vue-next';
 import { createComparisonConfig, createPlan, resolvePlan, validateComparison, validatePlan, readComparisonConfig, planColors, globalKeys } from './comparison.js';
 import { sourceNames } from './session-report.js';
 import { resolveStepToken, stepRuntime, tokenParameters } from './session-flow.js';
@@ -9,6 +9,9 @@ import PlanModelSettings from './components/PlanModelSettings.vue';
 import FieldHint from './components/FieldHint.vue';
 import { downloadFile } from './utils.js';
 import Home from './components/Home.vue';
+import GlyphBackground from './components/GlyphBackground.vue';
+import { useHeaderOpacity } from './use-header-opacity.js';
+const headerSurfaceOpacity = useHeaderOpacity();
 const clone = x => JSON.parse(JSON.stringify(x));
 const config = ref(createComparisonConfig());
 const results = ref([]), busy = ref(false), failure = ref(''), toast = ref('');
@@ -92,11 +95,11 @@ const paramFields=computed(()=>groups.filter(g=>!['缓存与权限'].includes(g.
 </script>
 
 <template>
-  <div class="app-shell">
-    <header v-if="draft" class="topbar">
-      <a class="brand" href="./"><span class="brand-symbol"><Command :size="19" :stroke-width="1.6" /></span>Token Lab<span class="version">LAB</span></a>
-      <span class="top-divider"></span><span class="breadcrumb">工作空间 <ChevronRight :size="12" /> 工具加载策略</span>
-      <div class="top-actions"><span class="local-state"><i></i>本地模拟</span><button class="icon-btn" aria-label="使用说明" @click="help=true"><CircleHelp :size="17" /></button><span class="avatar">T</span></div>
+  <div class="app-shell" :class="{ 'editor-page': draft }">
+    <GlyphBackground v-if="draft" />
+    <header v-if="draft" class="app-header" :style="{ '--header-surface-opacity': headerSurfaceOpacity }">
+      <a class="brand" href="./" @click.prevent="draft=null"><span class="brand-mark header-floating"><img src="/token-lab.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
+      <div class="header-actions"><span class="local-state header-floating"><i></i>本地模拟</span><button class="btn header-floating" aria-label="使用说明" @click="help=true"><CircleHelp :size="17" /><span>使用说明</span></button></div>
     </header>
 
     <Home v-if="!draft" :config="config" :results="results" :busy="busy" :errors="errors" :failure="failure" :can-undo="!!lastConfig"

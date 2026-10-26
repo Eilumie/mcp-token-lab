@@ -4,6 +4,7 @@ import "./styles/app.css";
 import "./styles/home-base.css";
 import "./styles/home.css";
 import "./styles/flow-preview.css";
+import "./styles/editor.css";
 import "./header-surfaces.css";
 import "./global-settings.css";
 
