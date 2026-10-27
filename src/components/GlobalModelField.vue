@@ -4,5 +4,5 @@ defineProps({ config: Object, error: String });
 </script>
 
 <template>
-  <label class="field global-model-field"><span>模型</span><select v-model="config.globalModelId" aria-label="全局模型" :aria-invalid="!!error"><option v-for="preset in modelPresets" :key="preset.id" :value="preset.id">{{ preset.name }}</option></select><small v-if="error" class="error">{{ error }}</small></label>
+  <label class="field global-model-field"><span>模型</span><select v-model="config.globalModelId" aria-label="全局模型" :aria-invalid="!!error"><option v-if="config.globalModel" value="custom">{{ config.globalModel.model.name }} · 手动费率</option><option v-for="preset in modelPresets" :key="preset.id" :value="preset.id">{{ preset.name }}</option></select><small v-if="error" class="error">{{ error }}</small></label>
 </template>

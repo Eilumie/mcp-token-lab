@@ -419,7 +419,23 @@ test("全局模型使用内置费率驱动成本，独立方案保留价格，�
   assert.deepEqual(simulate(imported), simulate(config));
 });
 
-test("旧配置导入保留各方案模型和自定义费率，全局模型仅接受有效预设", () => {
+test("手动全局模型费率影响继承方案并可导入导出，独立方案保持自己的费率", () => {
+  const config = createComparisonConfig();
+  config.globalSimulation.turnTotalCount = 2;
+  config.globalModelId = 'custom';
+  config.globalModel = { model: { name: '手动模型', currency: '$', inputCachedPrice: 1, inputNotCachedPrice: 2, outputPrice: 3 }, pricing: { id: 'custom', label: '手动费率', source: '', date: '' } };
+  config.plans[1].useGlobal.model = false;
+  const results = simulate(config);
+  assert.deepEqual(results[0].model, config.globalModel.model);
+  assert.notDeepEqual(results[1].model, config.globalModel.model);
+  const restored = readComparisonConfig(JSON.parse(JSON.stringify(config)));
+  assert.deepEqual(restored.globalModel, config.globalModel);
+  close(simulate(restored)[0].cost.total, results[0].cost.total);
+  restored.globalModel.model.outputPrice = -1;
+  assert.ok(validateComparison(restored).globalModelId);
+});
+
+test("旧配置导入保留各方案模型和自定义费率，无效全局模型被拒绝", () => {
   const old = small();
   delete old.globalModelId;
   old.plans.forEach((p, i) => {
@@ -437,7 +453,7 @@ test("旧配置导入保留各方案模型和自定义费率，全局模型仅�
   for (const id of ["custom", "missing", "", null, { outputPrice: 0 }]) {
     const invalid = small();
     invalid.globalModelId = id;
-    assert.equal(validateComparison(invalid).globalModelId, "请选择有效的全局模型");
+    assert.ok(validateComparison(invalid).globalModelId);
     assert.throws(() => simulate(invalid), /全局模型/);
     assert.throws(() => readComparisonConfig(invalid), /全局模型/);
   }

@@ -32,12 +32,12 @@ const label = step => sourceNames[step.text] || step.text;
 const errors = computed(() => validateComparison(config.value));
 const draftErrors = computed(() => {
   if (!draft.value) return {};
-  const e = validatePlan(draft.value, config.value.globalSimulation, config.value.globalModelId);
+  const e = validatePlan(draft.value, config.value.globalSimulation, config.value.globalModelId, config.value.globalModel);
   if(config.value.plans.some(p => p.id !== draft.value.id && p.name.trim() === draft.value.name.trim())) e.planName = '方案名称已存在';
   return e;
 });
 const currentStep = computed(() => draft.value?.simulation.flow[phase.value][stepIndex.value]);
-const effectiveDraft = computed(() => draft.value ? resolvePlan(draft.value, config.value.globalSimulation, config.value.globalModelId) : null);
+const effectiveDraft = computed(() => draft.value ? resolvePlan(draft.value, config.value.globalSimulation, config.value.globalModelId, config.value.globalModel) : null);
 const availableParameters = computed(() => ({ ...parameterLabels(effectiveDraft.value?.simulation), ...runtimeParameters }));
 function parameterValue(key) {
   try { return formulaVariables(effectiveDraft.value.simulation, stepRuntime(draft.value.simulation.flow, phase.value, stepIndex.value, previewTurnIndex.value))[key]; }
@@ -45,7 +45,7 @@ function parameterValue(key) {
 }
 function saveVariables(next) {
   if (variablesMode.value === 'global') { remember(); config.value = next; }
-  else { draft.value.simulation = { ...next.simulation, flow: draft.value.simulation.flow }; draft.value.useGlobal = next.useGlobal; }
+  else { draft.value.simulation = { ...next.simulation, flow: draft.value.simulation.flow }; draft.value.useGlobal = next.useGlobal; draft.value.model = next.model; draft.value.pricing = next.pricing; }
   variablesMode.value = null;
 }
 const previewTurnIndex = computed(() => Math.max(0, Math.min(Number(previewRound.value) || 1, effectiveDraft.value?.simulation.turnTotalCount || 1) - 1));
@@ -115,7 +115,7 @@ function fixedToken() { try { currentStep.value.token=resolveStepToken(currentSt
 function exportConfig(){ downloadFile('token-lab.json',JSON.stringify(config.value,null,2),'application/json');notify('已导出实验配置'); }
 async function importConfig(e){const f=e.target.files?.[0];if(!f)return;try{if(f.size>4000000)throw new Error('文件不能超过 4 MB');const c=readComparisonConfig(JSON.parse(await f.text()));remember();config.value=c;notify('配置已导入');}catch(e){notify('导入失败：'+e.message);}finally{e.target.value='';}}
 const sections=[['flow','执行流程',Workflow],['params','基本参数',SlidersHorizontal],['cache','缓存与压缩',Layers],['model','模型与费率',Cpu]];
-const paramFields=computed(()=>groups.filter(g=>!['缓存与权限'].includes(g.title)));
+const paramFields=computed(()=>groups.filter(g=>g.title !== '缓存'));
 </script>
 
 <template>
@@ -164,7 +164,7 @@ const paramFields=computed(()=>groups.filter(g=>!['缓存与权限'].includes(g.
           </div>
           <section v-if="section==='params'" class="settings-page"><div class="editor-section-head"><h2>基本参数</h2><p>每项可继承全局或自定义，统一单位为 K Token。</p></div><label class="field name-field">方案名称<input v-model="draft.name" maxlength="60" aria-label="方案名称"/></label><div v-for="group in paramFields" :key="group.title" class="settings-group"><h3>{{ group.title }}</h3><div class="fields-grid"><PlanVariableField v-for="field in group.fields" :key="field[0]" :plan="draft" :globals="config.globalSimulation" :field="field"/></div></div><button class="btn" @click="variablesMode='plan'">管理全部变量与自定义变量</button></section>
           <section v-if="section==='cache'" class="settings-page"><div class="editor-section-head"><h2>缓存与压缩</h2><p>在缓存收益与上下文长度之间，找到合适的平衡。</p></div><div class="settings-group"><h3>前缀缓存</h3><div class="fields-grid"><PlanVariableField v-for="field in groups[1].fields" :key="field[0]" :plan="draft" :globals="config.globalSimulation" :field="field"/></div></div><div class="settings-group"><h3>上下文压缩</h3><label class="field"><span>压缩阈值类型<button class="inherit-btn" :aria-pressed="!!draft.useGlobal.compressionThresholdType" @click.prevent="inherit('compressionThresholdType')">{{ draft.useGlobal.compressionThresholdType?'继承全局':'自定义' }}</button></span><select :value="effectiveDraft.simulation.compressionThresholdType" @change="draft.simulation.compressionThresholdType=$event.target.value;draft.useGlobal.compressionThresholdType=false"><option value="TURN">用户轮次</option><option value="TOKEN">上下文</option></select></label><div class="fields-grid"><PlanVariableField v-for="field in compressionFields.filter(([key])=>!key.startsWith('compressionThreshold') || key===(effectiveDraft.simulation.compressionThresholdType==='TURN'?'compressionThresholdTurnCount':'compressionThresholdToken'))" :key="field[0]" :plan="draft" :globals="config.globalSimulation" :field="field"/></div><p class="field-help">每轮结束后检查压缩条件。压缩模型调用产生的费用会计入总成本。</p></div></section>
-          <section v-if="section==='model'" class="settings-page"><div class="editor-section-head"><h2>模型与费率</h2><p>默认继承全局模型，也可为当前方案独立设置。</p></div><PlanModelSettings :plan="draft" :global-model-id="config.globalModelId" :errors="draftErrors" /></section>
+          <section v-if="section==='model'" class="settings-page"><div class="editor-section-head"><h2>模型与费率</h2><p>默认继承全局模型，也可为当前方案独立设置。</p></div><PlanModelSettings :plan="draft" :global-model-id="config.globalModelId" :global-model="config.globalModel" :errors="draftErrors" /></section>
         </div>
       </div>
       <div class="editor-result-bar" aria-live="polite"><div class="live-label"><span class="footer-dot"></span>实时成本预览</div><div v-if="Object.keys(draftErrors).length || draftFailure" class="error-text" role="alert">{{ Object.values(draftErrors)[0] || draftFailure }}</div><template v-else><div class="live-cost">{{ draftBusy?'计算中…':m(draftReport?.cost.total) }}<span>/ 会话</span></div><span v-if="draftReport && originalCost" class="live-delta">较编辑前 {{ draftReport.cost.total-originalCost>=0?'+':'−' }}{{ m(Math.abs(draftReport.cost.total-originalCost)) }}</span><div class="live-metrics"><span>初始上下文 <strong>{{ n(draftReport?.initialContext) }} K</strong></span><span>模型请求 <strong>{{ draftReport?.requests.length || '—' }} 次</strong></span></div></template><button class="text-btn" :disabled="!!Object.keys(draftErrors).length" @click="save">保存并返回对比<ArrowRight :size="14"/></button></div>

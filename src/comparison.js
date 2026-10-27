@@ -20,7 +20,7 @@ export const thresholdField = simulation => {
   return [field[0], "压缩阈值", ...field.slice(2)];
 };
 export const isGlobalField = key => globalKeys.includes(key);
-export function resolvePlan(plan, globalSimulation, globalModelId) {
+export function resolvePlan(plan, globalSimulation, globalModelId, globalModel) {
   if (!plan?.simulation) return plan;
   const simulation = { ...plan.simulation, initialContext: { ...plan.simulation.initialContext } };
   for (const key of globalKeys) if (globalSimulation && plan.useGlobal?.[key] && getValue(globalSimulation, key) !== undefined) setValue(simulation, key, getValue(globalSimulation, key));
@@ -30,7 +30,7 @@ export function resolvePlan(plan, globalSimulation, globalModelId) {
   }
   simulation.variables = variables;
   const preset = plan.useGlobal?.model && modelPresets.find(p => p.id === globalModelId);
-  return { ...plan, simulation, ...(preset ? createPresetConfig(preset) : {}) };
+  return { ...plan, simulation, ...(preset ? createPresetConfig(preset) : plan.useGlobal?.model && globalModelId === 'custom' && globalModel ? structuredClone(globalModel) : {}) };
 }
 export function validateGlobals(globalSimulation) {
   const errors = {};
@@ -75,9 +75,9 @@ export function resolveBaselineId(config, results) {
   return results.reduce((best, result) => result.cost.total > best.cost.total ? result : best).planId;
 }
 
-export function validatePlan(plan, globalSimulation, globalModelId) {
+export function validatePlan(plan, globalSimulation, globalModelId, globalModel) {
   if (!plan || typeof plan !== "object" || !plan.simulation || !plan.model) return { plan: "方案缺少参数或模型配置" };
-  const errors = validate(resolvePlan(plan, globalSimulation, globalModelId));
+  const errors = validate(resolvePlan(plan, globalSimulation, globalModelId, globalModel));
   try { validateVariables(plan.simulation.variables); } catch (error) { errors.variables = error.message; }
   if (plan.useGlobal !== undefined && (!plan.useGlobal || typeof plan.useGlobal !== "object" || Array.isArray(plan.useGlobal) || Object.entries(plan.useGlobal).some(([key, value]) => (!isGlobalField(key) && key !== "model" && !(key.startsWith("variables.") && (Object.hasOwn(plan.simulation.variables || {}, key.slice(10)) || Object.hasOwn(globalSimulation?.variables || {}, key.slice(10))))) || typeof value !== "boolean"))) errors.useGlobal = "全局参数设置无效";
   if (typeof plan.id !== "string" || !plan.id.trim()) errors.id = "方案需要唯一标识";
@@ -125,10 +125,14 @@ export function validateComparison(config) {
   if (config?.baselineMode !== undefined && !["auto", "manual"].includes(config.baselineMode)) errors.baselineMode = "Base模式无效";
   if (!Array.isArray(config?.plans) || config.plans.length > maxPlans) return { plans: `最多对比 ${maxPlans} 个方案` };
   if (config.globalSimulation !== undefined) for (const [key, message] of Object.entries(validateGlobals(config.globalSimulation))) errors[`globalSimulation.${key}`] = message;
-  if (config.globalModelId !== undefined && !modelPresets.some(p => p.id === config.globalModelId)) errors.globalModelId = "请选择有效的全局模型";
+  if (config.globalModelId !== undefined && !modelPresets.some(p => p.id === config.globalModelId) && config.globalModelId !== 'custom') errors.globalModelId = "请选择有效的全局模型";
+  if (config.globalModelId === 'custom') {
+    const model = config.globalModel?.model;
+    if (!model || !config.globalModel?.pricing || typeof config.globalModel.pricing !== 'object' || typeof model.name !== 'string' || !model.name.trim() || model.currency !== '$' || ['inputCachedPrice', 'inputNotCachedPrice', 'outputPrice'].some(key => !Number.isFinite(model[key]) || model[key] < 0)) errors.globalModelId = '请输入有效的全局模型名称和非负费率';
+  }
   const ids = new Set(), names = new Set();
   config.plans.forEach((plan, index) => {
-    for (const [key, message] of Object.entries(validatePlan(plan, config.globalSimulation, config.globalModelId))) errors[`plans.${index}.${key}`] = `方案 ${index + 1}：${message}`;
+    for (const [key, message] of Object.entries(validatePlan(plan, config.globalSimulation, config.globalModelId, config.globalModel))) errors[`plans.${index}.${key}`] = `方案 ${index + 1}：${message}`;
     if (!plan || typeof plan !== "object") return;
     if (ids.has(plan.id)) errors[`plans.${index}.id`] = "方案标识不能重复";
     if (typeof plan.name === "string" && names.has(plan.name.trim())) errors[`plans.${index}.planName`] = "方案名称不能重复";
@@ -166,6 +170,7 @@ export function readComparisonConfig(data) {
   const config = { version: 4, unit: "K", baselineId: data.baselineId, plans };
   config.globalSimulation = globalSimulation;
   config.globalModelId = data.globalModelId === undefined ? modelPresets[0].id : data.globalModelId;
+  if (data.globalModel !== undefined) config.globalModel = structuredClone(data.globalModel);
   // Exports predating global models keep each plan's original model and prices.
   if (data.globalModelId === undefined) plans.forEach(plan => { plan.useGlobal = { ...plan.useGlobal, model: false }; });
   if (data.globalSimulation === undefined) plans.forEach(plan => { plan.useGlobal = { ...Object.fromEntries(globalKeys.map(key => [key, false])), model: plan.useGlobal?.model === true }; });

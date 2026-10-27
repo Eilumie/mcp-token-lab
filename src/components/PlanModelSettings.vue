@@ -3,9 +3,9 @@ import { computed } from "vue";
 import { createPresetConfig, priceFields } from "../config.js";
 import { modelPresets } from "../model-pricing.js";
 import { resolvePlan } from "../comparison.js";
-const props = defineProps({ plan: Object, globalModelId: String, errors: Object });
+const props = defineProps({ plan: Object, globalModelId: String, globalModel: Object, errors: Object });
 const inherited = computed(() => !!props.plan.useGlobal?.model);
-const effective = computed(() => resolvePlan(props.plan, undefined, props.globalModelId));
+const effective = computed(() => resolvePlan(props.plan, undefined, props.globalModelId, props.globalModel));
 function toggleInheritance() {
   props.plan.useGlobal ??= {};
   props.plan.useGlobal.model = !inherited.value;
@@ -22,7 +22,7 @@ function markCustom() {
 <template>
   <section class="plan-model-settings">
     <label class="field"><span>模型<button type="button" class="inherit-btn" :class="{ inherited }" :aria-pressed="inherited" aria-label="继承全局模型" @click.prevent="toggleInheritance">{{ inherited ? '继承全局' : '独立设置' }}</button></span><select :value="effective.pricing.id" :disabled="inherited" aria-label="方案模型" @change="chooseModel"><option v-if="!modelPresets.some(p => p.id === effective.pricing.id)" :value="effective.pricing.id">当前自定义费率</option><option v-for="preset in modelPresets" :key="preset.id" :value="preset.id">{{ preset.name }}</option></select></label>
-    <p v-if="inherited" class="field-help">模型和费用跟随全局选择，使用所选模型的内置费率。</p>
+    <p v-if="inherited" class="field-help">模型和费用跟随全局配置。</p>
     <template v-else>
       <label class="field"><span>模型名称</span><input v-model="plan.model.name" maxlength="100" aria-label="模型名称" @input="markCustom" /><small v-if="errors?.name" class="error">{{ errors.name }}</small></label>
       <div class="fields-grid"><label v-for="[key, label] in priceFields" :key="key" class="field"><span>{{ label }} · USD / 1M Token</span><input type="number" min="0" step="any" v-model.number="plan.model[key]" :aria-label="label + '单价'" @input="markCustom" /><small v-if="errors?.[key]" class="error">{{ errors[key] }}</small></label></div>
