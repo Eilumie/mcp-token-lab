@@ -4,6 +4,7 @@ import { X } from 'lucide-vue-next';
 import { resolvePlan, validatePlan } from '../comparison.js';
 import { previewStep, tokenFormula } from '../session-flow.js';
 import { sourceNames } from '../session-report.js';
+import { locale, translateUi } from '../i18n.js';
 
 const props = defineProps({ plan: Object, globalSimulation: Object, globalModelId: String, globalModel: Object, phase: String, index: Number, inserting: Boolean });
 const emit = defineEmits(['close', 'save']);
@@ -14,6 +15,7 @@ if (props.inserting) flow.splice(props.index, 0, { type: 'action', text: '新的
 const step = flow[props.index];
 const originalName = step.text;
 const name = ref(sourceNames[step.text] || step.text);
+const displayedName = computed(() => locale.value === 'en' ? translateUi(name.value) : name.value);
 const formulaMode = ref(typeof step.token !== 'number');
 const formula = ref(tokenFormula(step.token));
 const dialog = ref(null);
@@ -43,7 +45,7 @@ onBeforeUnmount(() => previousFocus?.isConnected && previousFocus.focus());
       <form @submit.prevent="save">
         <header><div><h2 id="flow-node-dialog-title">{{ inserting ? '新增节点' : '编辑节点' }}</h2><p>{{ phase === 'initial' ? '初始上下文' : '每轮流程' }} · 第 {{ index + 1 }} 步</p></div><button type="button" class="close" aria-label="关闭" @click="emit('close')"><X :size="18" /></button></header>
         <div class="fields">
-          <label>节点名称<input v-model="name" maxlength="100" @input="updateName" /></label>
+          <label>节点名称<input :value="displayedName" maxlength="100" @input="name=$event.target.value;updateName()" /></label>
           <label v-if="phase === 'turn'">节点类型<select v-model="step.type"><option value="action">追加上下文</option><option value="llm">调用模型</option></select></label>
           <label class="enabled"><input type="checkbox" :checked="step.enabled !== false" @change="step.enabled = $event.target.checked" />启用节点</label>
           <label v-if="phase === 'turn'">触发方式<select :value="step.trigger?.type || 'always'" @change="setTrigger($event.target.value)"><option value="always">每轮触发</option><option value="probability">按百分比触发</option><option value="interval">每 N 轮消息触发</option></select></label>

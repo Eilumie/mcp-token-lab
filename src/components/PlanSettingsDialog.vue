@@ -5,10 +5,12 @@ import { compressionFields, groups } from '../config.js';
 import { resolvePlan, validatePlan } from '../comparison.js';
 import PlanVariableField from './PlanVariableField.vue';
 import VariablesDialog from './VariablesDialog.vue';
+import { locale, translateUi } from '../i18n.js';
 
 const props = defineProps({ config: Object, plan: Object });
 const emit = defineEmits(['close', 'save']);
 const local = ref(JSON.parse(JSON.stringify(props.plan)));
+const displayedName = computed(() => locale.value === 'en' && ['按需 Tools', '全量 Tools'].includes(local.value.name) ? translateUi(local.value.name) : local.value.name);
 const dialog = ref(null), showVariables = ref(false);
 const titleId = useId();
 const sections = [...groups, { title: '上下文压缩', fields: compressionFields }];
@@ -45,7 +47,7 @@ onBeforeUnmount(() => { dialog.value?.close(); if (previousFocus?.isConnected) p
     <dialog ref="dialog" class="plan-settings-dialog" :aria-labelledby="titleId" @cancel.prevent="emit('close')">
       <header><div><h2 :id="titleId"><SlidersHorizontal :size="18" />方案配置</h2><p>每项可继承全局或自定义，统一单位为 K Token。</p></div><button class="close" type="button" aria-label="关闭方案配置" @click="emit('close')"><X :size="18" /></button></header>
       <div class="settings-body">
-        <label class="field name-field">方案名称<input v-model="local.name" maxlength="60" aria-label="方案名称" /></label>
+        <label class="field name-field">方案名称<input :value="displayedName" @input="local.name=$event.target.value" maxlength="60" aria-label="方案名称" /></label>
         <section v-for="group in sections" :key="group.title"><h3>{{ group.title }}</h3><div class="settings-grid">
           <label v-if="group.title === '上下文压缩'" class="field"><span>压缩阈值类型<button type="button" class="inherit-btn" :aria-pressed="compressionTypeInherited" @click.prevent="toggleCompressionType">{{ compressionTypeInherited ? '继承全局' : '自定义' }}</button></span><select :value="effective.compressionThresholdType" aria-label="压缩阈值类型" @change="changeCompressionType"><option value="TURN">用户轮次</option><option value="TOKEN">上下文</option></select></label>
           <PlanVariableField v-for="field in group.fields" :key="field[0]" :plan="local" :globals="config.globalSimulation" :field="field" />
