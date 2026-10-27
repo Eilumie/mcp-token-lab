@@ -1,11 +1,9 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { ChartNoAxesCombined, ListTree, Rows3, ArrowDownToLine, ChevronLeft, ChevronRight, Layers, ArrowRight } from "lucide-vue-next";
-import { ratio } from "../session-report.js";
 import { money, token, percent, roundRange } from "../utils.js";
 import { exportCsv } from "../export.js";
 import { sourceOption, trendOption } from "../charts.js";
-import { compareSources } from "../comparison.js";
 import EChart from "./EChart.vue";
 const props = defineProps({ results: Array, config: Object });
 const tab = ref("sources");
@@ -23,7 +21,6 @@ const pageCount = computed(() => Math.ceil(result.value.rounds.length / 5));
 const rounds = computed(() => result.value.rounds.slice((page.value - 1) * 5, page.value * 5));
 const trend = computed(() => trendOption(props.results, metric.value, currency.value));
 const sourceChart = computed(() => sourceOption(props.results, currency.value));
-const sourceRows = computed(() => compareSources(props.results, plan.value));
 const m = (value, precise = false) => money(value, currency.value, precise);
 function openRound(round, planIndex = plan.value) {
   plan.value = planIndex;
@@ -56,10 +53,7 @@ function chartClick(event) {
     <div v-else-if="tab === 'sources'" class="analysis-body">
       <div class="section-heading"><div><h2>费用花在了哪里？</h2><p>按内容来源统计命中输入、未命中输入和输出费用。</p></div><button @click="exportCsv(results, config, 'sources')"><ArrowDownToLine :size="14" />导出归因 CSV</button></div>
       <EChart :style="{ height: Math.max(220, results.length * 65 + 80) + 'px' }" class="source-chart" :option="sourceChart" aria-label="各方案费用来源堆叠条形图" />
-      <div class="table-toolbar"><p>Token 分项：{{ planNames[plan] }}</p><div class="segmented"><button v-for="(name, i) in planNames" :key="name" :class="{ active: plan === i }" @click="plan = i">{{ name }}</button></div></div>
-      <div class="table-scroll"><table class="source-table"><thead><tr><th>内容来源</th><th>命中输入</th><th>未命中输入</th><th>输出</th><th v-for="r in results" :key="r.planId">{{ r.planName }}费用</th><th>当前方案占比</th></tr></thead><tbody><tr v-for="source in sourceRows" :key="source.key"><td>{{ source.name }}</td><td>{{ token(source.hit) }}</td><td>{{ token(source.miss) }}</td><td>{{ token(source.output) }}</td><td v-for="(cost, i) in source.costs" :key="results[i].planId">{{ m(cost, true) }}</td><td>{{ percent(ratio(source.cost, result.cost.total)) }}</td></tr></tbody><tfoot><tr><th>合计</th><td>{{ token(result.hit) }}</td><td>{{ token(result.miss) }}</td><td>{{ token(result.output) }}</td><td v-for="r in results" :key="r.planId">{{ m(r.cost.total, true) }}</td><td>{{ percent(ratio(result.cost.total, result.cost.total)) }}</td></tr></tfoot></table></div>
-      <p class="field-note attribution-note">“压缩保留轮次”归集保留内容在后续请求中的输入费用，不与原来源重复计费；模型输出归入生成时的来源。“压缩摘要”是内容来源，概览中的“压缩请求费用”则包含压缩时的全部输入和输出。</p>
-      <div class="cache-equivalent"><span>命中输入的未命中费用等值</span><strong>{{ token(result.equivalent) }}</strong><small>{{ result.equivalent === null ? '未命中单价为 0，无法折算。' : '仅折算费用，不改变输入长度或上下文占用。' }}</small></div>
+      <div v-for="r in results" :key="r.planId" class="cache-equivalent"><span>{{ r.planName }} · 命中输入的未命中费用等值</span><strong>{{ token(r.equivalent) }}</strong><small>{{ r.equivalent === null ? '未命中单价为 0，无法折算。' : '仅折算费用，不改变输入长度或上下文占用。' }}</small></div>
     </div>
     <div v-else class="analysis-body">
       <div class="section-heading"><div><h2>每一次请求，都可追溯。</h2><p>按用户轮次查看模型调用，压缩请求附在触发轮次之后。</p></div><button @click="exportCsv(results, config, 'requests')"><ArrowDownToLine :size="14" />导出请求 CSV</button></div>

@@ -180,16 +180,3 @@ export function readComparisonConfig(data) {
   return config;
 }
 
-// 以来源 key 对齐，独立流程的来源数量与顺序可以不同。
-export function compareSources(results, selectedIndex) {
-  const sources = new Map();
-  results.forEach(result => result.sources.forEach(source => sources.set(source.key, source.name)));
-  return [...sources].map(([key, name]) => {
-    const values = results.map(result => result.sources.find(source => source.key === key));
-    const selected = values[selectedIndex];
-    return {
-      key, name, hit: selected?.hit ?? 0, miss: selected?.miss ?? 0, output: selected?.output ?? 0,
-      costs: values.map(source => source?.cost.total ?? 0), cost: selected?.cost.total ?? 0,
-    };
-  }).sort((a, b) => Math.max(...b.costs) - Math.max(...a.costs));
-}

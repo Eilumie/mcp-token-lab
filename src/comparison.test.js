@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createConfig, createPresetConfig } from "./config.js";
 import { modelPresets } from "./model-pricing.js";
-import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, resolveBaselineId, compareSources, planColors, maxPlans, globalKeys, resolvePlan } from "./comparison.js";
+import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, resolveBaselineId, planColors, maxPlans, globalKeys, resolvePlan } from "./comparison.js";
 import { simulate } from "./session-report.js";
 import { sourceOption, trendOption } from "./charts.js";
 import { buildCsv } from "./export.js";
@@ -75,7 +75,7 @@ test("三个方案可使用任意独立流程、费率、轮次", () => {
   close(next[2].cost.total, 0.28);
 });
 
-test("来源表按 key 对齐自定义来源，多个图表和 CSV 包含全部方案", () => {
+test("多个图表和 CSV 包含全部方案", () => {
   const config = small();
   config.plans.push(createPlan({ source: config.plans[1], name: "第三方案", color: planColors[2] }));
   config.plans.forEach((p, i) => {
@@ -84,11 +84,6 @@ test("来源表按 key 对齐自定义来源，多个图表和 CSV 包含全部�
     p.simulation.flow = { initial: [], turn: [{ type: "llm", text: `独有来源${i}`, token: i + 1 }] };
   });
   const results = simulate(config);
-  const rows = compareSources(results, 2);
-  assert.deepEqual(rows.find(row => row.key === "独有来源0").costs.slice(1), [0, 0]);
-  const third = rows.find(row => row.key === "独有来源2");
-  assert.equal(third.output, 9);
-  close(third.costs[2], results[2].cost.total);
   const source = sourceOption(results, "$");
   assert.deepEqual(source.yAxis.data, config.plans.map(p => p.name));
   for (let i = 0; i < results.length; i++) close(source.series.reduce((sum, series) => sum + series.data[i], 0), results[i].cost.total);
