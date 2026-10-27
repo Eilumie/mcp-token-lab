@@ -14,7 +14,7 @@ import { useHeaderOpacity } from '../use-header-opacity.js';
 const brandIcon = `${import.meta.env.BASE_URL}icon/mcp-token-lab-logo.svg`;
 const headerSurfaceOpacity = useHeaderOpacity();
 const props = defineProps({ config: Object, results: Array, busy: Boolean, errors: Object, failure: String, canUndo: Boolean });
-const emit = defineEmits(['import','export','remember','reset','add','edit','baseline','copy','remove','undo','variables']);
+const emit = defineEmits(['import','export','remember','reset','add','baseline','copy','remove','undo','variables']);
 const menu = ref('');
 const settingsPlanId = ref(null);
 const settingsPlan = computed(() => props.config.plans.find(plan => plan.id === settingsPlanId.value));
@@ -111,7 +111,6 @@ function updateFlow(id, flow) {
             <td>{{ r.averageUserTurnsPerCompression === null ? '未触发压缩' : `平均 ${n(r.averageUserTurnsPerCompression)} 轮` }}</td>
             <td class="plan-actions-cell">
               <div class="row-actions">
-                <button class="plan-action-link" :aria-label="'编辑 '+r.planName" @click="action('edit',r.planId)">编辑</button>
                 <div class="plan-menu-anchor" @keydown.esc.stop.prevent="closeMenu(true)">
                   <button :id="'plan-menu-trigger-'+r.planId" class="plan-action-link plan-menu-trigger" :class="{'is-open':menu===r.planId}" :aria-label="r.planName+' 的更多操作'" aria-haspopup="menu" :aria-expanded="menu===r.planId" :aria-controls="menu===r.planId?'plan-menu-'+r.planId:undefined" @click="menu===r.planId?closeMenu():openMenu(r.planId)" @keydown.down.prevent="openMenu(r.planId)" @keydown.up.prevent="openMenu(r.planId,true)">更多<ChevronDown :size="13"/></button>
                   <div v-if="menu===r.planId" :id="'plan-menu-'+r.planId" class="plan-action-menu" role="menu" :aria-label="r.planName+' 的更多操作'" @keydown="moveMenuFocus">
@@ -127,7 +126,7 @@ function updateFlow(id, flow) {
           <tr v-if="expanded.has(r.planId)" class="plan-detail-row"><td colspan="7">
             <div :id="'plan-detail-'+r.planId" class="plan-expanded-content">
               <div class="expanded-cost-card"><SummaryCards :results="results" :config="analysisConfig" :visible-plan-id="r.planId"
-                @edit="action('edit',$event)" @copy="action('copy',$event)" @remove="action('remove',$event)" @baseline="action('baseline',$event)" /></div>
+                @copy="action('copy',$event)" @remove="action('remove',$event)" @baseline="action('baseline',$event)" /></div>
               <PlanFlowPreview v-if="config.plans.some(p=>p.id===r.planId)" :plan="config.plans.find(p=>p.id===r.planId)" :global-simulation="config.globalSimulation" :global-model-id="config.globalModelId" :global-model="config.globalModel" @settings="settingsPlanId=$event" @update-flow="updateFlow" />
             </div>
           </td></tr>

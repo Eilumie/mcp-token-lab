@@ -1,12 +1,12 @@
 <script setup>
 import { computed } from "vue";
-import { Workflow, Pencil, Copy, Trash2, Star } from "lucide-vue-next";
+import { Workflow, Copy, Trash2, Star } from "lucide-vue-next";
 import { maxPlans } from "../comparison.js";
 import { displayPlanColor } from "../theme.js";
 import { ratio } from "../session-report.js";
 import { money, token, percent, number } from "../utils.js";
 const props = defineProps({ results: Array, config: Object, visiblePlanId: String });
-defineEmits(["edit", "copy", "remove", "baseline"]);
+defineEmits(["copy", "remove", "baseline"]);
 const baseline = computed(() => props.results.find(r => r.planId === props.config.baselineId) || props.results[0]);
 const currency = computed(() => props.results[0].model.currency);
 const m = value => money(value, currency.value);
@@ -22,7 +22,7 @@ const costParts = [["cached", "命中输入", "hit"], ["fresh", "未命中输入
 <template>
   <div class="comparison-cards">
     <article v-for="result in results.filter(item => !visiblePlanId || item.planId === visiblePlanId)" :key="result.planId" class="strategy-card" :class="{ baseline: result.planId === config.baselineId }" :style="{ '--plan-color': displayPlanColor(result.color) }">
-      <div class="strategy-heading"><span class="strategy-icon"><Workflow :size="20" /></span><div><h2>{{ result.planName }}</h2><span>{{ result.rounds.length }} 轮 · 自定义流程</span></div><button class="icon-button" :aria-label="'编辑参数 ' + result.planName" @click="$emit('edit', result.planId)"><Pencil :size="14" /></button></div>
+      <div class="strategy-heading"><span class="strategy-icon"><Workflow :size="20" /></span><div><h2>{{ result.planName }}</h2><span>{{ result.rounds.length }} 轮 · 自定义流程</span></div></div>
       <p class="result-model">{{ result.model.name }}</p>
       <div class="baseline-comparison" :title="money(result.cost.total, currency, true)">{{ m(result.cost.total) }}<span class="baseline-caption" :class="{ saving: result.cost.total < baseline.cost.total, increase: result.cost.total > baseline.cost.total }">Base<span v-if="result.planId !== baseline.planId" class="baseline-change" :class="{ increase: baseline.cost.total > 0 && result.cost.total > baseline.cost.total, saving: result.cost.total < baseline.cost.total }">{{ difference(result) }}</span></span></div>
       <div class="token-metrics">
