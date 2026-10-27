@@ -20,7 +20,6 @@ export const tokenParameters = {
   compressionThresholdToken: "上下文触发阈值",
   compressionKeepTurns: "保留最近用户轮次",
   compressionTargetToken: "压缩摘要长度",
-  sessionAvgAllowToolsRate: "角色允许工具比例",
 };
 
 const reserved = new Set([...Object.keys(tokenParameters), ...Object.keys(tokenParameters).map(key => key.split('.')[0]),

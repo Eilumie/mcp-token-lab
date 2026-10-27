@@ -10,9 +10,8 @@ export const groups = [
     ["turnAvgSkillsCount", "每轮平均 Skills", "个", 0],
     ["turnAvgToolsCount", "每轮平均 Tools", "个", 0],
   ] },
-  { title: "缓存与权限", fields: [
+  { title: "缓存", fields: [
     ["expectedPrefixCacheHitRate", "Prefix 命中率", "%", 0, 100, "虽然prefix相同, 但缓存过期等多种场景会无法命中"],
-    ["sessionAvgAllowToolsRate", "角色允许工具比例", "%", 0, 100],
   ] },
   { title: "初始上下文", fields: [
     ["initialContext.agentPromptToken", "Agent Prompt", "K", 0],

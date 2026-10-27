@@ -90,8 +90,8 @@ function checkConservation(result) {
 test("10 轮基准，末轮压缩请求和最终上下文完整计入", () => {
   const results = simulateTemplates(setup({ turnTotalCount: 10, skillsTotalCount: 1 }));
   const expected = [
-    [41, 6.089, 1588.9941, 255.1049, 19, 25.799, 6.12874995],
-    [31, 51.989, 2365.2981, 332.7109, 18, 69.969, 8.18847795],
+    [41, 5.27, 1558.773, 251.747, 19, 24.98, 6.0431235],
+    [31, 51.17, 2342.448, 330.172, 18, 69.15, 8.123736],
   ];
   results.forEach((r, i) => {
     const [requests, initial, hit, miss, output, final, cost] = expected[i];

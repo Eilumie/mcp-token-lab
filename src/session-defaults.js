@@ -14,7 +14,6 @@ export function createSessionConfig() {
     toolsTotalCount: 90,
     turnAvgSkillsCount: 0.33,
     turnAvgToolsCount: 1.5,
-    sessionAvgAllowToolsRate: 0.7,
     skillIndexToken: 0.1,
     toolsIndexToken: 0.013,
     toolSchemaToken: 0.51,

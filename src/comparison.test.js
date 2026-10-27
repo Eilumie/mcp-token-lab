@@ -210,8 +210,8 @@ test("旧 v2 / v3 条件流程导入为显式步骤，保留基准费用与请�
     assert.ok(!JSON.stringify(migrated).includes("toolsMode"));
     const results = simulate(migrated);
     assert.deepEqual(results.map(r => r.requests.length), [41, 31]);
-    close(results[0].cost.total, 6.12874995);
-    close(results[1].cost.total, 8.18847795);
+    close(results[0].cost.total, 6.0431235);
+    close(results[1].cost.total, 8.123736);
     assert.deepEqual(readComparisonConfig(migrated), migrated);
     if (version === 3) assert.equal(migrated.baselineId, original.baselineId);
   }

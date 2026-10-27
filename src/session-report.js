@@ -4,7 +4,7 @@ import { validateComparison, resolvePlan } from "./comparison.js";
 export const sourceNames = {
   "agent prompt": "Agent Prompt", "skills discover list": "Skills 索引",
   "tools discover list": "Tools 索引", "tools schema list": "初始 Tools Schema",
-  "role allow tools": "角色允许工具列表", user_message: "用户消息",
+  user_message: "用户消息",
   read_skills_plan: "读取技能计划", read_skills: "Skills 内容",
   get_tools_schema_plan: "查询 Schema 计划", get_tools_schema: "按需 Tools Schema",
   call_tools_plan: "调用工具计划", call_tools: "Tools Result", agent_result: "Agent 最终回复",

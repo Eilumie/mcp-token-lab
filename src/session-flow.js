@@ -69,7 +69,6 @@ export function createDefaultFlow() {
       { type: "action", text: "agent prompt", token: "initialContext.agentPromptToken" },
       { type: "action", text: "skills discover list", token: "skillIndexToken * skillsTotalCount" },
       { type: "action", text: "tools discover list", token: "toolsTotalCount * toolsIndexToken" },
-      { type: "action", text: "role allow tools", token: "toolsTotalCount * toolsIndexToken * sessionAvgAllowToolsRate" },
     ],
     turn: [
       { type: "action", text: "user_message", token: "userMessageToken" },
