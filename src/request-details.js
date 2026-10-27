@@ -1,5 +1,6 @@
-// Classify content using the engine's recorded boundary, including positions of
-// model-call markers. No prefix matching or cache decisions are repeated here.
+// Display cache membership using only the engine's recorded notCachedIndex
+// boundary (cacheBoundary), including model-call marker positions. Expected
+// cache hit rates remain a billing concern and do not affect this view.
 export function cacheState(hit, miss) {
   if (hit === 0 && miss === 0) return "empty";
   if (hit === 0) return "miss";
@@ -18,7 +19,7 @@ export function requestInputTurns(report, request) {
     let hit = 0, miss = 0, actionCount = 0;
     for (const action of turn.actions) {
       if (action.position >= limit) break;
-      const cached = offset + action.position < request.cacheBoundary ? action.token * trace.cacheHitRate : 0;
+      const cached = offset + action.position < request.cacheBoundary ? action.token : 0;
       hit += cached;
       miss += action.token - cached;
       actionCount++;
@@ -33,7 +34,7 @@ export function requestInputActions(report, request, group) {
   if (!group) return [];
   const trace = report.requestTrace;
   return trace.turns[group.id].actions.filter(action => action.position < group.limit).map(action => {
-    const hit = group.offset + action.position < request.cacheBoundary ? action.token * trace.cacheHitRate : 0;
+    const hit = group.offset + action.position < request.cacheBoundary ? action.token : 0;
     const miss = action.token - hit;
     return { ...action, hit, miss, state: cacheState(hit, miss) };
   });
@@ -48,12 +49,21 @@ export function indexTurnRequests(report) {
   return index;
 }
 
+function requestCacheView(report, request) {
+  // Sum the boundary-classified input directly, rather than reusing weighted
+  // billing totals (even their floating-point sums can vary with the hit rate).
+  const groups = requestInputTurns(report, request);
+  const hit = groups.reduce((sum, group) => sum + group.hit, 0);
+  const miss = groups.reduce((sum, group) => sum + group.miss, 0);
+  return { ...request, hit, miss, input: hit + miss, state: cacheState(hit, miss) };
+}
+
 // A history turn may contain several calls. Include only calls that have
 // happened by the outer request, including the outer call itself.
-export function requestTurnLlms(outerRequest, group, index) {
+export function requestTurnLlms(outerRequest, group, index, report) {
   if (!group) return [];
   return (index.get(group.id) ?? []).filter(request => request.id <= outerRequest.id).map((request, ordinal) => ({
-    ...request, label: `LLM${ordinal + 1}`, state: cacheState(request.hit, request.miss),
+    ...requestCacheView(report, request), label: `LLM${ordinal + 1}`,
   }));
 }
 
@@ -67,7 +77,7 @@ export function requestRounds(report) {
   const requests = new Map((report?.requests ?? []).map(request => [request.id, request]));
   return (report?.rounds ?? []).map(round => {
     const models = round.requestIds.map(id => requests.get(id)).filter(Boolean).map((request, index) => ({
-      ...request, label: `LLM${index + 1}`, state: cacheState(request.hit, request.miss),
+      ...requestCacheView(report, request), label: `LLM${index + 1}`,
     }));
     const hit = models.reduce((sum, model) => sum + model.hit, 0);
     const miss = models.reduce((sum, model) => sum + model.miss, 0);

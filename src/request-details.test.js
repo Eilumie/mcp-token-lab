@@ -13,7 +13,7 @@ function makeSession(overrides = {}) {
   return session;
 }
 
-test('动作、轮次的 Token 分类与每次请求的真实快照及缓存记录一致', () => {
+test('动作、轮次的缓存展示仅依据真实请求边界，不应用期望命中率', () => {
   for (const rate of [0, .37, 1]) {
     const session = makeSession({ expectedPrefixCacheHitRate: rate });
     const report = structuredClone(buildReport(session));
@@ -24,13 +24,13 @@ test('动作、轮次的 Token 分类与每次请求的真实快照及缓存记�
       const input = engineRequests[index].input.turns.flatMap(turn => turn.actions);
       assert.deepEqual(actions.map(action => action.id), input.filter(action => action.type !== 'llm').map(action => action.actionIndex));
       assert.ok(!actions.some(action => action.id === engineRequests[index].output.actionIndex));
-      close(groups.reduce((sum, group) => sum + group.hit, 0), request.hit);
-      close(groups.reduce((sum, group) => sum + group.miss, 0), request.miss);
-      close(actions.reduce((sum, action) => sum + action.hit, 0), request.hit);
-      close(actions.reduce((sum, action) => sum + action.miss, 0), request.miss);
+      close(groups.reduce((sum, group) => sum + group.hit, 0), request.prefix);
+      close(groups.reduce((sum, group) => sum + group.miss, 0), request.input - request.prefix);
+      close(actions.reduce((sum, action) => sum + action.hit, 0), request.prefix);
+      close(actions.reduce((sum, action) => sum + action.miss, 0), request.input - request.prefix);
       for (const action of actions) {
         const position = input.findIndex(item => item.actionIndex === action.id);
-        close(action.hit, position < engineRequests[index].notCachedIndex ? input[position].token * rate : 0);
+        close(action.hit, position < engineRequests[index].notCachedIndex ? input[position].token : 0);
         close(action.hit + action.miss, action.token);
       }
     });
@@ -52,6 +52,32 @@ test('压缩后移除被替换的 Turn，保留摘要、保留轮次和历史请
   assert.ok(!requestInputTurns(report, compressionRequest).some(group => group.kind === 'compression'));
   assert.deepEqual(requestInputTurns(report, first).map(group => group.label), ['初始上下文', 'Turn 1']);
   assert.equal(report.requestTrace.contexts.length, report.rounds.length);
+});
+
+test('0%、37%、100% 期望命中率的请求明细相同，计费记录保持原值', () => {
+  const reports = [0, .37, 1].map(expectedPrefixCacheHitRate => buildReport(makeSession({ expectedPrefixCacheHitRate })));
+  const views = reports.map(report => {
+    const before = structuredClone(report);
+    const turns = requestRounds(report);
+    const view = turns.map(turn => ({
+      id: turn.id, hit: turn.hit, miss: turn.miss, state: turn.state,
+      models: turn.models.map(model => {
+        const groups = requestInputTurns(report, model);
+        const actions = groups.flatMap(group => requestInputActions(report, model, group));
+        assert.ok(actions.every(action => action.state !== 'partial'));
+        close(actions.reduce((sum, action) => sum + action.hit, 0), model.hit);
+        close(actions.reduce((sum, action) => sum + action.miss, 0), model.miss);
+        return { id: model.id, hit: model.hit, miss: model.miss, state: model.state, groups, actions };
+      }),
+    }));
+    assert.deepEqual(report, before);
+    return view;
+  });
+  assert.deepEqual(views[0], views[1]);
+  assert.deepEqual(views[1], views[2]);
+  assert.equal(reports[0].requests[0].hit, 0);
+  assert.ok(views[0][0].models[0].hit > 0);
+  assert.ok(reports[0].cost.total > reports[2].cost.total);
 });
 
 test('自定义流程的空输入、连续模型调用、零 Token 摘要不丢失动作', () => {
@@ -89,13 +115,13 @@ test('Turn 展开为实际 LLM 调用，当前轮不提前显示尚未发生的�
   const index = indexTurnRequests(report);
   const first = report.requests[0];
   const firstGroups = requestInputTurns(report, first);
-  assert.deepEqual(requestTurnLlms(first, firstGroups.find(group => group.kind === 'initial'), index), []);
-  const firstModels = requestTurnLlms(first, firstGroups.find(group => group.kind === 'user'), index);
+  assert.deepEqual(requestTurnLlms(first, firstGroups.find(group => group.kind === 'initial'), index, report), []);
+  const firstModels = requestTurnLlms(first, firstGroups.find(group => group.kind === 'user'), index, report);
   assert.deepEqual(firstModels.map(model => model.id), [first.id]);
   assert.equal(firstModels[0].label, 'LLM1');
   const nextRound = report.requests.find(request => request.round === 2);
   const historical = requestInputTurns(report, nextRound).find(group => group.label === 'Turn 1');
-  const models = requestTurnLlms(nextRound, historical, index);
+  const models = requestTurnLlms(nextRound, historical, index, report);
   assert.deepEqual(models.map(model => model.label), ['LLM1', 'LLM2', 'LLM3', 'LLM4']);
   assert.deepEqual(models.map(model => model.id), report.rounds[0].requestIds);
   for (const model of models) {
@@ -113,14 +139,14 @@ test('压缩调用与所属用户轮次的普通调用分开，LLM 输入保留�
   const after = report.requests.find(request => request.round === 11);
   const groups = requestInputTurns(report, after);
   const compressionGroup = groups.find(group => group.kind === 'compression');
-  const compressionModels = requestTurnLlms(after, compressionGroup, index);
+  const compressionModels = requestTurnLlms(after, compressionGroup, index, report);
   assert.equal(compressionModels.length, 1);
   assert.equal(compressionModels[0].compression, true);
   assert.equal(compressionModels[0].label, 'LLM1');
   const ordinaryTurn = groups.find(group => group.label === 'Turn 10');
-  assert.ok(requestTurnLlms(after, ordinaryTurn, index).every(model => !model.compression));
+  assert.ok(requestTurnLlms(after, ordinaryTurn, index, report).every(model => !model.compression));
   const userGroup = groups.find(group => group.label === 'Turn 11');
-  const [current] = requestTurnLlms(after, userGroup, index);
+  const [current] = requestTurnLlms(after, userGroup, index, report);
   const actions = modelInputActions(report, current);
   assert.ok(actions.some(action => action.summary && action.label === '压缩上下文 1'));
   close(actions.reduce((sum, action) => sum + action.token, 0), current.input);
