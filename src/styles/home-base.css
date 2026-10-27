@@ -99,6 +99,11 @@
 .home-page .analysis-panel { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .home-page .analysis-body { padding: 26px 25px; container-type: inline-size; }
 .home-page .trend-chart { height: 305px; margin-top: 20px; }
+.home-page .trend-metrics { display: inline-flex; gap: 3px; margin: 0; padding: 3px; border: 0; border-radius: 8px; background: #f1f3f6; }
+.home-page .trend-metrics label { position: relative; padding: 7px 11px; border-radius: 6px; color: var(--muted); font-size: 11px; cursor: pointer; white-space: nowrap; }
+.home-page .trend-metrics label.active { background: var(--paper); color: #7d4939; box-shadow: 0 1px 4px #46301c10; }
+.home-page .trend-metrics input { position: absolute; opacity: 0; }
+.home-page .trend-metrics label:has(input:focus-visible) { outline: 2px solid #91492f; outline-offset: 2px; }
 .home-page .source-chart { height: 300px; margin-top: 24px; }
 .home-page .chart-note { color: var(--muted); font-size: 10px; margin: 0; line-height: 1.8; }
 .home-page .analysis-sources { border-top: 1px solid var(--line); }
