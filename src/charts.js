@@ -29,8 +29,8 @@ export function trendOption(results, metric, currency) {
         data: rows.flatMap(r => metric === "context" && r.compression ? [[r.round, r.beforeCompression], [r.round, r.context]] : [[r.round, r[metric]]]),
         markPoint: {
           symbol: "circle", symbolSize: 8, label: { show: false },
-          tooltip: { formatter: p => "第 " + p.data.round + " 轮 · 上下文压缩<br/>点击查看请求明细" },
-          data: result.rounds.filter(r => r.compression).map(r => ({ coord: [r.round, r[metric]], round: r.round, planIndex })),
+          tooltip: { formatter: p => "第 " + p.data.round + " 轮 · 上下文压缩" },
+          data: result.rounds.filter(r => r.compression).map(r => ({ coord: [r.round, r[metric]], round: r.round })),
         },
       };
     }),

@@ -119,7 +119,7 @@ function action(type,id) { closeMenu(true);emit(type,id); }
         </tbody></table>
         <div v-if="!results.length" class="empty-state">{{ busy?'正在计算会话成本…':'新增一个方案，开始探索成本。' }}</div>
       </div>
-      <AnalysisPanel v-if="results.length" :results="results" :config="analysisConfig"/>
+      <AnalysisPanel v-if="results.length" :results="results"/>
       <footer><span class="footer-mark">T / L</span><p>初始前缀按期望命中率计费 · 每轮流程结束后检查压缩 · 最后一轮触发的压缩也计费<br/>所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。</p><button v-if="canUndo" class="undo-button" @click="emit('undo')"><RotateCcw :size="13"/>撤销修改</button><span>COMPARE / V4</span></footer>
     </main></div>
   </div>

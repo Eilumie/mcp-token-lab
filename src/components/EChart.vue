@@ -23,7 +23,6 @@ use([
 ]);
 
 const props = defineProps({ option: { type: Object, required: true } });
-const emit = defineEmits(["select"]);
 const container = ref(null);
 let chart;
 let resizeObserver;
@@ -31,7 +30,6 @@ let resizeObserver;
 onMounted(() => {
   chart = init(container.value, null, { renderer: "canvas" });
   chart.setOption(props.option);
-  chart.on("click", event => emit("select", event));
   resizeObserver = new ResizeObserver(() => chart?.resize());
   resizeObserver.observe(container.value);
 });
