@@ -66,7 +66,7 @@ const phases = computed(() => ['initial','turn'].map(key => {
 
 <template>
   <section class="plan-flow-preview" :aria-label="plan.name+' 执行流程'">
-    <div class="flow-preview-heading"><div><h3><Workflow :size="16"/>执行流程</h3></div><button class="flow-edit-link" @click="$emit('settings',plan.id)">方案配置<ArrowRight :size="13"/></button></div>
+    <div class="flow-preview-heading"><div><h3><Workflow :size="16"/>执行流程</h3></div><button class="flow-edit-link" @click="$emit('settings',plan.id)">配置变量</button></div>
     <div class="flow-preview-meta"><div class="flow-key"><span><FileText :size="12"/>追加上下文</span><span><Cpu :size="12"/>调用模型</span></div></div>
     <div class="flow-phase-grid">
       <ArrowRight class="phase-bridge" :size="17" aria-hidden="true"/>
