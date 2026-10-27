@@ -15,6 +15,7 @@ import FlowEditorList from './components/FlowEditorList.vue';
 import { useFlowEditor } from './use-flow-editor.js';
 import GlyphBackground from './components/GlyphBackground.vue';
 import { useHeaderOpacity } from './use-header-opacity.js';
+const brandIcon = `${import.meta.env.BASE_URL}icon/mcp-token-lab-logo.svg`;
 const headerSurfaceOpacity = useHeaderOpacity();
 const clone = x => JSON.parse(JSON.stringify(x));
 const config = ref(createComparisonConfig());
@@ -120,7 +121,7 @@ const paramFields=computed(()=>groups.filter(g=>g.title !== '缓存'));
   <div class="app-shell" :class="{ 'editor-page': draft }">
     <GlyphBackground v-if="draft" />
     <header v-if="draft" class="app-header" :style="{ '--header-surface-opacity': headerSurfaceOpacity }">
-      <a class="brand" href="./" @click.prevent="draft=null"><span class="brand-mark header-floating"><img src="/icon/mcp-token-lab-t.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">MCP Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
+      <a class="brand" href="./" @click.prevent="draft=null"><span class="brand-mark header-floating"><img :src="brandIcon" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">MCP Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
       <div class="header-actions"><span class="local-state header-floating"><i></i>本地模拟</span><button class="btn header-floating" aria-label="使用说明" @click="help=true"><CircleHelp :size="17" /><span>使用说明</span></button></div>
     </header>
 

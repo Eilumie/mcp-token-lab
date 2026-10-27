@@ -10,6 +10,7 @@ import SummaryCards from './SummaryCards.vue';
 import SparklesText from './SparklesText.vue';
 import PlanFlowPreview from './PlanFlowPreview.vue';
 import { useHeaderOpacity } from '../use-header-opacity.js';
+const brandIcon = `${import.meta.env.BASE_URL}icon/mcp-token-lab-logo.svg`;
 const headerSurfaceOpacity = useHeaderOpacity();
 const props = defineProps({ config: Object, results: Array, busy: Boolean, errors: Object, failure: String, canUndo: Boolean });
 const emit = defineEmits(['import','export','remember','reset','add','edit','baseline','copy','remove','undo','variables']);
@@ -66,7 +67,7 @@ function action(type,id) { closeMenu(true);emit(type,id); }
   <div class="home-page">
     <GlyphBackground />
     <header class="app-header" :style="{ '--header-surface-opacity': headerSurfaceOpacity }">
-      <a class="brand" href="./"><span class="brand-mark header-floating"><img src="/icon/mcp-token-lab-t.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">MCP Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
+      <a class="brand" href="./"><span class="brand-mark header-floating"><img :src="brandIcon" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">MCP Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
       <nav class="header-actions" aria-label="配置操作"><a class="header-github header-floating" href="https://github.com/zhangHongEn/token-lab" target="_blank" rel="noopener noreferrer" aria-label="在新标签页打开 GitHub 仓库"><Github :size="16" /><span>GitHub</span></a><button class="header-floating" @click="emit('import')"><Upload :size="15"/><span>导入配置</span></button><button class="header-floating" :disabled="!!Object.keys(errors).length" @click="emit('export')"><Download :size="15"/><span>导出配置</span></button></nav>
     </header>
     <div class="workspace comparison-workspace"><main>
