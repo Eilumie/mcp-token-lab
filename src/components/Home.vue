@@ -61,6 +61,12 @@ onBeforeUnmount(() => {
   document.removeEventListener('focusin', dismissMenu);
 });
 function action(type,id) { closeMenu(true);emit(type,id); }
+function updateFlow(id, flow) {
+  const plan = props.config.plans.find(p => p.id === id);
+  if (!plan) return;
+  emit('remember');
+  plan.simulation.flow = flow;
+}
 </script>
 
 <template>
@@ -112,7 +118,7 @@ function action(type,id) { closeMenu(true);emit(type,id); }
             <div :id="'plan-detail-'+r.planId" class="plan-expanded-content">
               <div class="expanded-cost-card"><SummaryCards :results="results" :config="analysisConfig" :visible-plan-id="r.planId"
                 @edit="action('edit',$event)" @copy="action('copy',$event)" @remove="action('remove',$event)" @baseline="action('baseline',$event)" /></div>
-              <PlanFlowPreview v-if="config.plans.some(p=>p.id===r.planId)" :plan="config.plans.find(p=>p.id===r.planId)" :global-simulation="config.globalSimulation" @edit="action('edit',$event)" />
+              <PlanFlowPreview v-if="config.plans.some(p=>p.id===r.planId)" :plan="config.plans.find(p=>p.id===r.planId)" :global-simulation="config.globalSimulation" :global-model-id="config.globalModelId" :global-model="config.globalModel" @edit="action('edit',$event)" @update-flow="updateFlow" />
             </div>
           </td></tr>
           </template>

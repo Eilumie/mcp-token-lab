@@ -110,3 +110,19 @@
 .home-page .node-value{font-size:13px}
 .home-page .node-expression summary{font-size:10px}
 .home-page .phase-header h4{font-size:13px}}
+.home-page .preview-flow-nodes>li:hover,.home-page .preview-flow-nodes>li:focus-within{z-index:2;border-color:#c9957f}
+.home-page .preview-node{cursor:pointer}
+.home-page .preview-node:focus-visible{outline:2px solid #a4654b;outline-offset:2px;border-radius:6px}
+.home-page .preview-grip{flex:none;color:#bdc4cb;cursor:grab}
+.home-page .preview-insert,.home-page .preview-remove{position:absolute;z-index:3;display:grid;place-items:center;width:20px;height:20px;min-height:0;padding:0;border:1px solid #e1d4cd;border-radius:50%;background:#fff;color:#a4654b;opacity:0;pointer-events:none;box-shadow:0 2px 5px #18203915}
+.home-page .preview-insert{left:calc(50% - 10px)}
+.home-page .preview-insert-before{top:-11px}.home-page .preview-insert-after{bottom:-11px}
+.home-page .preview-remove{right:-7px;top:-7px}
+.home-page .preview-flow-nodes>li:hover .preview-insert,.home-page .preview-flow-nodes>li:hover .preview-remove,.home-page .preview-flow-nodes>li:focus-within .preview-insert,.home-page .preview-flow-nodes>li:focus-within .preview-remove{opacity:1;pointer-events:auto}
+.home-page .preview-insert:hover,.home-page .preview-remove:hover{background:#f8f1ed;border-color:#c9957f}
+.home-page .preview-flow-nodes>li.drag-source{opacity:.4}
+.home-page .preview-flow-nodes>li.drop-before::before,.home-page .preview-flow-nodes>li.drop-after::after{content:'';position:absolute;left:0;right:0;height:2px;background:#a4654b}
+.home-page .preview-flow-nodes>li.drop-before::before{top:-9px}.home-page .preview-flow-nodes>li.drop-after::after{bottom:-9px}
+.home-page .preview-add-empty{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:4px 7px;border:0;background:transparent;color:#a4654b;font-size:11px}
+.home-page .flow-preview-error{color:#b3483d;font-size:11px;line-height:1.6;margin-top:12px}
+@media(hover:none){.home-page .preview-flow-nodes>li .preview-insert,.home-page .preview-flow-nodes>li .preview-remove{opacity:1;pointer-events:auto}}
