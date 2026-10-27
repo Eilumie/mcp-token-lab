@@ -1,5 +1,5 @@
 import { createSessionConfig } from "./session-defaults.js";
-import { modelPresets } from "./model-pricing.js";
+import { defaultModelPreset } from "./model-pricing.js";
 import { validateFlow } from "./session-flow.js";
 
 export const groups = [
@@ -46,7 +46,7 @@ export function setValue(object, path, value) {
 }
 export function createConfig() {
   const { model, ...simulation } = createSessionConfig();
-  return { version: 4, unit: "K", simulation, ...createPresetConfig(modelPresets[0]) };
+  return { version: 4, unit: "K", simulation, ...createPresetConfig(defaultModelPreset) };
 }
 export function createPresetConfig(preset) {
   return {

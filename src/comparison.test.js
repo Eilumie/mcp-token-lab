@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createConfig, createPresetConfig } from "./config.js";
-import { modelPresets } from "./model-pricing.js";
+import { defaultModelPreset, modelPresets } from "./model-pricing.js";
 import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, resolveBaselineId, planColors, maxPlans, globalKeys, resolvePlan } from "./comparison.js";
 import { simulate } from "./session-report.js";
 import { sourceOption, trendOption } from "./charts.js";
@@ -406,7 +406,7 @@ test("全局模型使用内置费率驱动成本，独立方案保留价格，�
   const added = createPlan({ name: "继承全局模型的新方案" });
   config.plans.push(added);
   assert.deepEqual(simulate(config)[2].model, changed[0].model);
-  assert.equal(added.model.outputPrice, modelPresets[0].output);
+  assert.equal(added.model.outputPrice, defaultModelPreset.output);
   const imported = readComparisonConfig(JSON.parse(JSON.stringify(config)));
   assert.deepEqual(imported, config);
   assert.deepEqual(simulate(imported), simulate(config));

@@ -336,7 +336,7 @@ export const xaiData = {
   ],
 };
 
-export const overseasPresets = [openaiData, claudeData, geminiData, mistralData, xaiData].flatMap(provider => provider.models.flatMap(model => {
+export const overseasPresets = [openaiData, claudeData, geminiData, xaiData, mistralData].flatMap(provider => provider.models.flatMap(model => {
   const variants = model.price_tiers ?? [{ label: "标准价格", prices: model.prices }];
   return variants.map((variant, index) => ({
     id: `${provider.provider}:${model.id}:${model.price_tiers ? `tier-${index + 1}` : "fixed"}`,
@@ -351,5 +351,16 @@ export const overseasPresets = [openaiData, claudeData, geminiData, mistralData,
 
 export const modelPricingData = [deepseekData, bailianData, openaiData, claudeData, geminiData, mistralData, xaiData];
 
-// 页面默认使用列表中的第一个模型。
-export const modelPresets = [...bailianPresets, ...deepseekPresets, ...overseasPresets];
+const bailianVendorPriority = { "Alibaba Cloud": 0, "Zhipu AI": 1, "Moonshot AI": 2, MiniMax: 3 };
+const rankedBailianPresets = [...bailianPresets].sort(
+  (a, b) => (bailianVendorPriority[a.vendor] ?? 99) - (bailianVendorPriority[b.vendor] ?? 99),
+);
+
+// 下拉列表按全球厂商影响力排列，默认模型使用第一项。
+export const modelPresets = [
+  ...overseasPresets.filter((preset) => ["openai", "anthropic", "google", "xai"].includes(preset.provider)),
+  ...deepseekPresets,
+  ...overseasPresets.filter((preset) => preset.provider === "mistral"),
+  ...rankedBailianPresets,
+];
+export const defaultModelPreset = modelPresets[0];

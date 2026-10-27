@@ -1,7 +1,7 @@
 import { createConfig, createPresetConfig, readConfig, validate, groups, compressionFields, fields, integers, getValue, setValue } from "./config.js";
 import { validateVariables, validateVariableName } from "./variables.js";
 import { formulaReferences } from "./token-formula.js";
-import { modelPresets } from "./model-pricing.js";
+import { defaultModelPreset, modelPresets } from "./model-pricing.js";
 import { createPreloadedFlow } from "./session-flow.js";
 import { migrateLegacyComparison } from "./legacy-config.js";
 
@@ -66,7 +66,7 @@ export function createComparisonConfig() {
   plans[1].simulation.flow = createPreloadedFlow();
   const globalSimulation = { initialContext: {}, variables: {} };
   for (const key of globalKeys) setValue(globalSimulation, key, getValue(plans[0].simulation, key));
-  return { version: 4, unit: "K", baselineId: plans[0].id, baselineMode: "auto", globalSimulation, globalModelId: modelPresets[0].id, plans };
+  return { version: 4, unit: "K", baselineId: plans[0].id, baselineMode: "auto", globalSimulation, globalModelId: defaultModelPreset.id, plans };
 }
 
 export function resolveBaselineId(config, results) {
@@ -169,7 +169,7 @@ export function readComparisonConfig(data) {
   });
   const config = { version: 4, unit: "K", baselineId: data.baselineId, plans };
   config.globalSimulation = globalSimulation;
-  config.globalModelId = data.globalModelId === undefined ? modelPresets[0].id : data.globalModelId;
+  config.globalModelId = data.globalModelId === undefined ? defaultModelPreset.id : data.globalModelId;
   if (data.globalModel !== undefined) config.globalModel = structuredClone(data.globalModel);
   // Exports predating global models keep each plan's original model and prices.
   if (data.globalModelId === undefined) plans.forEach(plan => { plan.useGlobal = { ...plan.useGlobal, model: false }; });

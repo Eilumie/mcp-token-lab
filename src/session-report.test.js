@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import Session from "./session.js";
 import { simulate as simulateComparison, buildReport } from "./session-report.js";
 import { createConfig, createPresetConfig, validate, readConfig } from "./config.js";
-import { modelPresets } from "./model-pricing.js";
+import { defaultModelPreset, modelPresets } from "./model-pricing.js";
 import { money, csvCell } from "./utils.js";
 import { sourceOption } from "./charts.js";
 import { createComparisonConfig, createPlan } from "./comparison.js";
@@ -32,8 +32,9 @@ const simulateTemplates = config => {
   return simulateComparison(comparison);
 };
 
-test("默认选择第一个模型，重置时恢复其费率和元数据", () => {
-  const first = modelPresets[0];
+test("默认选择列表第一项，重置时恢复其费率和元数据", () => {
+  const first = defaultModelPreset;
+  assert.equal(first, modelPresets[0]);
   const config = createConfig();
   assert.equal(config.pricing.id, first.id);
   assert.equal(config.model.name, first.name);
