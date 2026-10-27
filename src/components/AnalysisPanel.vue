@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import { sourceOption, trendOption } from "../charts.js";
 import EChart from "./EChart.vue";
+import RequestDetails from "./RequestDetails.vue";
 
 const props = defineProps({ results: Array });
 const metric = ref("cumulativeCost");
@@ -22,5 +23,6 @@ const sourceChart = computed(() => sourceOption(props.results, currency.value));
       <div class="section-heading"><div><h2>费用归因</h2></div></div>
       <EChart :style="{ height: Math.max(220, results.length * 65 + 80) + 'px' }" class="source-chart" :option="sourceChart" aria-label="各方案费用来源堆叠条形图" />
     </div>
+    <RequestDetails :results="results" />
   </section>
 </template>

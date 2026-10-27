@@ -34,6 +34,28 @@ export function buildReport(session) {
   const totals = session.getConsumptionTokens();
   const model = session.config.model;
   const requests = [], rounds = [], compressions = [];
+  // Share immutable turn contents and context rosters across requests. Do not
+  // serialize the engine's recursively linked input snapshots into the Worker result.
+  let traceRound = 0, summaryNumber = 0;
+  const requestTrace = {
+    cacheHitRate: session.config.expectedPrefixCacheHitRate,
+    turns: session.turns.map(turn => {
+      if (turn.kind === "user") traceRound++;
+      const summary = turn.kind === "compression" ? ++summaryNumber : null;
+      return {
+        id: turn.index, kind: turn.kind, round: traceRound,
+        label: turn.kind === "initial" ? "初始上下文" : summary ? `压缩上下文 ${summary}` : `Turn ${traceRound}`,
+        actionCount: turn.actions.length,
+        actions: turn.actions.flatMap((action, position) => action.type === "llm" ? [] : [{
+          id: action.actionIndex, position, token: action.token,
+          label: summary ? `压缩上下文 ${summary}` : `action${action.actionIndex + 1}`,
+          name: sourceName(action.group), summary: !!summary,
+        }]),
+      };
+    }),
+    contexts: [],
+  };
+  const contextIds = new Map();
   // 预先收集来源，停用步骤保留为零值来源。
   const sourceKeys = new Set([
     ...Object.keys(sourceNames),
@@ -80,13 +102,22 @@ export function buildReport(session) {
         toolResult += turn.actions[i].token;
       }
       const request = {
-        id: requests.length + 1, round: round.round, compression,
+        id: requests.length + 1, round: round.round, turnId: turn.index, compression,
         stage: compression ? "上下文压缩" : sourceName(llm.output.group),
         input: llm.cachedToken + llm.notCachedToken, prefix: prefixSize(llm),
         hit: llm.cachedToken, miss: llm.notCachedToken, output: llm.output.token,
         toolResult,
         cost, cumulativeCost, attribution,
       };
+      const contextTurns = llm.input.turns.map(inputTurn => inputTurn.index);
+      const contextKey = contextTurns.join(",");
+      if (!contextIds.has(contextKey)) {
+        contextIds.set(contextKey, requestTrace.contexts.length);
+        requestTrace.contexts.push(contextTurns);
+      }
+      request.contextId = contextIds.get(contextKey);
+      request.inputEnd = llm.input.turns.at(-1)?.actions.length ?? 0;
+      request.cacheBoundary = llm.notCachedIndex;
       requests.push(request);
       round.requestIds.push(request.id);
       round.cost += cost.total;
@@ -118,7 +149,7 @@ export function buildReport(session) {
     hitRate: ratio(totals.totalInputCached, totals.totalInputCached + totals.totalInputNotCached),
     compressionCost: compressions.reduce((sum, c) => sum + c.cost, 0),
     averageUserTurnsPerCompression: totals.averageUserTurnsPerCompression,
-    requests, rounds, compressions,
+    requests, rounds, compressions, requestTrace,
     sources: Object.values(sources).map(s => ({ ...s, cost: fees(s.hit, s.miss, s.output, model) })),
   };
   if ([result.hit, result.miss, result.output, result.finalContext, result.peakInput, result.cost.total].some(n => !Number.isFinite(n))) throw new Error("数值超出可计算范围，请减小参数。");
