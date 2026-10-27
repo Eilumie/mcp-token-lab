@@ -20,7 +20,6 @@ const clone = x => JSON.parse(JSON.stringify(x));
 const config = ref(createComparisonConfig());
 const results = ref([]), busy = ref(false), failure = ref(''), toast = ref('');
 const draft = ref(null), draftReport = ref(null), draftBusy = ref(false), draftFailure = ref(''), section = ref('flow'), phase = ref('initial'), stepIndex = ref(0), showVars = ref(false), help = ref(false), fileInput = ref(null);
-const previewRound = ref(1);
 const variablesMode = ref(null);
 const { steps: flowSteps, deletedStep, insertStep, reorderStep, duplicateStep, deleteStep, restoreStep } = useFlowEditor(draft, phase, stepIndex);
 watch([phase, stepIndex], () => { showVars.value = false; });
@@ -40,7 +39,7 @@ const currentStep = computed(() => draft.value?.simulation.flow[phase.value][ste
 const effectiveDraft = computed(() => draft.value ? resolvePlan(draft.value, config.value.globalSimulation, config.value.globalModelId, config.value.globalModel) : null);
 const availableParameters = computed(() => ({ ...parameterLabels(effectiveDraft.value?.simulation), ...runtimeParameters }));
 function parameterValue(key) {
-  try { return formulaVariables(effectiveDraft.value.simulation, stepRuntime(draft.value.simulation.flow, phase.value, stepIndex.value, previewTurnIndex.value))[key]; }
+  try { return formulaVariables(effectiveDraft.value.simulation, stepRuntime(draft.value.simulation.flow, phase.value, stepIndex.value))[key]; }
   catch { return '—'; }
 }
 function saveVariables(next) {
@@ -48,8 +47,7 @@ function saveVariables(next) {
   else { draft.value.simulation = { ...next.simulation, flow: draft.value.simulation.flow }; draft.value.useGlobal = next.useGlobal; draft.value.model = next.model; draft.value.pricing = next.pricing; }
   variablesMode.value = null;
 }
-const previewTurnIndex = computed(() => Math.max(0, Math.min(Number(previewRound.value) || 1, effectiveDraft.value?.simulation.turnTotalCount || 1) - 1));
-const stepPreview = (i, p = phase.value) => previewStep(draft.value.simulation.flow, p, i, effectiveDraft.value.simulation, previewTurnIndex.value);
+const stepPreview = (i, p = phase.value) => previewStep(draft.value.simulation.flow, p, i, effectiveDraft.value.simulation);
 const stepAmount = (s, i, p = phase.value) => { const result = stepPreview(i,p); return result.value === null ? '—' : n(result.value); };
 const flowPreviews = computed(() => flowSteps.value.map((s,i) => stepPreview(i)));
 const phaseTotal = p => {
@@ -89,7 +87,7 @@ watch(draft,()=>{
 onBeforeUnmount(()=>{reportWorker?.terminate();draftWorker?.terminate();clearTimeout(reportTimer);clearTimeout(draftTimer);clearTimeout(toastTimer);});
 function edit(plan, add=false) {
   isNew.value=add; originalCost.value=results.value.find(r=>r.planId===plan.id)?.cost.total||0;
-  draft.value=clone(resolvePlan(plan,config.value.globalSimulation)); section.value='flow'; phase.value='initial'; stepIndex.value=0; previewRound.value=1; showVars.value=false; window.scrollTo(0,0);
+  draft.value=clone(resolvePlan(plan,config.value.globalSimulation)); section.value='flow'; phase.value='initial'; stepIndex.value=0; showVars.value=false; window.scrollTo(0,0);
 }
 function add(source) {
   if(config.value.plans.length>=8)return;
@@ -111,7 +109,7 @@ function remove(id) {
   notify('已删除方案，可撤销');
 }
 function inherit(key) { if(draft.value.useGlobal[key]) setValue(draft.value.simulation,key,getValue(effectiveDraft.value.simulation,key)); draft.value.useGlobal[key]=!draft.value.useGlobal[key]; }
-function fixedToken() { try { currentStep.value.token=resolveStepToken(currentStep.value.token,effectiveDraft.value.simulation,stepRuntime(draft.value.simulation.flow,phase.value,stepIndex.value,previewTurnIndex.value)); } catch { currentStep.value.token=0; } }
+function fixedToken() { try { currentStep.value.token=resolveStepToken(currentStep.value.token,effectiveDraft.value.simulation,stepRuntime(draft.value.simulation.flow,phase.value,stepIndex.value)); } catch { currentStep.value.token=0; } }
 function exportConfig(){ downloadFile('token-lab.json',JSON.stringify(config.value,null,2),'application/json');notify('已导出实验配置'); }
 async function importConfig(e){const f=e.target.files?.[0];if(!f)return;try{if(f.size>4000000)throw new Error('文件不能超过 4 MB');const c=readComparisonConfig(JSON.parse(await f.text()));remember();config.value=c;notify('配置已导入');}catch(e){notify('导入失败：'+e.message);}finally{e.target.value='';}}
 const sections=[['flow','执行流程',Workflow],['params','基本参数',SlidersHorizontal],['cache','缓存与压缩',Layers],['model','模型与费率',Cpu]];
@@ -139,8 +137,7 @@ const paramFields=computed(()=>groups.filter(g=>g.title !== '缓存'));
         <div class="editor-main">
           <div v-if="section==='flow'" class="flow-layout">
             <section class="flow-canvas"><div class="editor-section-head"><h2>执行流程</h2><p>先建立上下文，再定义每一轮的执行路径。</p></div><div class="phase-switch"><button :class="{active:phase==='initial'}" @click="phase='initial';stepIndex=0"><span>初始上下文</span><small>{{ draft.simulation.flow.initial.length }} 步</small></button><button :class="{active:phase==='turn'}" @click="phase='turn';stepIndex=0"><span>每轮流程</span><small>{{ draft.simulation.flow.turn.length }} 步</small></button></div>
-              <label v-if="phase==='turn'" class="flow-round-preview">预览第 <input type="number" min="1" :max="effectiveDraft.simulation.turnTotalCount" step="1" :value="previewTurnIndex+1" aria-label="编辑流程预览轮次" @input="previewRound=Math.max(1,Math.min(effectiveDraft.simulation.turnTotalCount,Math.trunc(Number($event.target.value))||1))" /> 轮消息</label>
-              <div class="flow-section-label"><span>{{ phase==='initial'?'会话开始时执行一次':`第 ${previewTurnIndex+1} 轮实际触发` }}</span><span>{{ phaseTotal(phase) }} K 合计</span></div>
+              <div class="flow-section-label"><span>{{ phase==='initial'?'会话开始时执行一次':'首轮预览' }}</span><span>{{ phaseTotal(phase) }} K 合计</span></div>
               <div v-if="deletedStep" class="flow-undo" role="status"><span>已删除「{{ label(deletedStep.step) }}」</span><button @click="restoreStep"><RotateCcw :size="13"/>撤销删除</button></div>
               <FlowEditorList :key="phase" :steps="flowSteps" :phase="phase" :selected="stepIndex" :previews="flowPreviews" @select="stepIndex=$event;showVars=false" @insert="insertStep" @reorder="reorderStep" @duplicate="duplicateStep" @remove="deleteStep" />
               <div class="flow-tip"><Layers :size="15"/><span>{{ phase==='initial'?'初始内容会被后续模型调用重复读取。':'调整顺序后，Token 公式和触发预览会同步更新。每轮结束时检查压缩条件。' }}</span></div>
