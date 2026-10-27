@@ -2,7 +2,7 @@
 
 [← 返回项目介绍](../README.md)
 
-本文说明 Token Lab 的计费口径、方案配置格式和 Session 接口。
+本文说明 MCP Token Lab 的计费口径、方案配置格式和 Session 接口。
 
 ## 计算与展示口径
 

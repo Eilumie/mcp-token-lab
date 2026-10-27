@@ -1,6 +1,6 @@
 <div align="center">
 
-# Token Lab
+# MCP Token Lab
 
 **在运行 Agent 之前，看清每一份 Token 成本。**
 
@@ -12,13 +12,13 @@ Vue 3 · Vite · ECharts · Web Worker
 
 </div>
 
-![Token Lab：方案对比表与费用分析](docs/assets/preview.png)
+![MCP Token Lab：方案对比表与费用分析](docs/assets/preview.png)
 
-## 为什么做 Token Lab？
+## 为什么做 MCP Token Lab？
 
 一次 Agent 任务，通常包含多次模型调用。系统提示、工具定义、检索结果和历史消息会反复进入上下文；缓存命中率与压缩策略，也会改变最终账单。
 
-Token Lab 是一个**可自定义流程的 Agent 会话成本模拟器**。你可以把会话拆成“追加内容”和“调用模型”两类步骤，为每一步设置预计 Token 用量，再比较不同方案的完整会话费用。
+MCP Token Lab 是一个**可自定义流程的 Agent 会话成本模拟器**。你可以把会话拆成“追加内容”和“调用模型”两类步骤，为每一步设置预计 Token 用量，再比较不同方案的完整会话费用。
 
 它帮助你回答：
 

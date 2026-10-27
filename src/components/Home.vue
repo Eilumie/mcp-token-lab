@@ -66,11 +66,11 @@ function action(type,id) { closeMenu(true);emit(type,id); }
   <div class="home-page">
     <GlyphBackground />
     <header class="app-header" :style="{ '--header-surface-opacity': headerSurfaceOpacity }">
-      <a class="brand" href="./"><span class="brand-mark header-floating"><img src="/icon/mcp-token-lab-t.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
+      <a class="brand" href="./"><span class="brand-mark header-floating"><img src="/icon/mcp-token-lab-t.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">MCP Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
       <nav class="header-actions" aria-label="配置操作"><a class="header-github header-floating" href="https://github.com/zhangHongEn/token-lab" target="_blank" rel="noopener noreferrer" aria-label="在新标签页打开 GitHub 仓库"><Github :size="16" /><span>GitHub</span></a><button class="header-floating" @click="emit('import')"><Upload :size="15"/><span>导入配置</span></button><button class="header-floating" :disabled="!!Object.keys(errors).length" @click="emit('export')"><Download :size="15"/><span>导出配置</span></button></nav>
     </header>
     <div class="workspace comparison-workspace"><main>
-      <h1 class="sr-only">Token Lab · 会话成本实验室</h1>
+      <h1 class="sr-only">MCP Token Lab · 会话成本实验室</h1>
       <section class="global-settings" aria-labelledby="global-settings-title">
         <div class="global-settings-heading"><div><h2 id="global-settings-title"><SlidersHorizontal :size="17"/>全局配置</h2><p>各方案默认使用以下数值，也可在方案内单独设置。</p></div><button @click="emit('variables')"><SlidersHorizontal :size="14"/>全部变量</button></div>
         <div class="global-settings-fields" @focusin="emit('remember')">

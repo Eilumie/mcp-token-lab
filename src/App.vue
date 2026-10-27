@@ -120,7 +120,7 @@ const paramFields=computed(()=>groups.filter(g=>g.title !== '缓存'));
   <div class="app-shell" :class="{ 'editor-page': draft }">
     <GlyphBackground v-if="draft" />
     <header v-if="draft" class="app-header" :style="{ '--header-surface-opacity': headerSurfaceOpacity }">
-      <a class="brand" href="./" @click.prevent="draft=null"><span class="brand-mark header-floating"><img src="/icon/mcp-token-lab-t.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
+      <a class="brand" href="./" @click.prevent="draft=null"><span class="brand-mark header-floating"><img src="/icon/mcp-token-lab-t.svg" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">MCP Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
       <div class="header-actions"><span class="local-state header-floating"><i></i>本地模拟</span><button class="btn header-floating" aria-label="使用说明" @click="help=true"><CircleHelp :size="17" /><span>使用说明</span></button></div>
     </header>
 
@@ -169,6 +169,6 @@ const paramFields=computed(()=>groups.filter(g=>g.title !== '缓存'));
     <VariablesDialog v-if="variablesMode" :config="config" :plan="variablesMode==='plan'?draft:undefined" @close="variablesMode=null" @save="saveVariables" />
     <input ref="fileInput" type="file" accept=".json" hidden @change="importConfig"/>
     <div v-if="toast" class="toast" role="status"><Check :size="15"/>{{ toast }}<button v-if="lastConfig" @click="undo">撤销</button><button class="icon-btn" aria-label="关闭提示" @click="toast=''"><X :size="13"/></button></div>
-    <div v-if="help" class="help-overlay" @click.self="help=false"><section class="help-panel" role="dialog" aria-modal="true" aria-labelledby="help-title"><button class="icon-btn help-close" aria-label="关闭说明" @click="help=false"><X :size="18"/></button><span class="eyebrow">TOKEN LAB / GUIDE</span><h2 id="help-title">从假设，到成本。</h2><p>1. 设置统一的会话轮次与工具规模。</p><p>2. 编辑方案，定义内容与模型调用流程。</p><p>3. 选择基准，比较成本和上下文变化。</p><p class="field-help">配置仅保存在本次页面会话，刷新前请导出。所有计算在浏览器内完成。</p><button class="btn primary" @click="help=false">开始探索<ArrowRight :size="14"/></button></section></div>
+    <div v-if="help" class="help-overlay" @click.self="help=false"><section class="help-panel" role="dialog" aria-modal="true" aria-labelledby="help-title"><button class="icon-btn help-close" aria-label="关闭说明" @click="help=false"><X :size="18"/></button><span class="eyebrow">MCP TOKEN LAB / GUIDE</span><h2 id="help-title">从假设，到成本。</h2><p>1. 设置统一的会话轮次与工具规模。</p><p>2. 编辑方案，定义内容与模型调用流程。</p><p>3. 选择基准，比较成本和上下文变化。</p><p class="field-help">配置仅保存在本次页面会话，刷新前请导出。所有计算在浏览器内完成。</p><button class="btn primary" @click="help=false">开始探索<ArrowRight :size="14"/></button></section></div>
   </div>
 </template>
