@@ -14,24 +14,24 @@ test("全部费率数据及预设直接使用美元，固定、分档、分时�
     assert.equal(preset.currency, "USD");
     assert.deepEqual(validate({ ...createConfig(), ...createPresetConfig(preset) }), {});
   }
-  assert.equal(bailianData.models[0].prices.input, 12);
+  close(bailianData.models[0].prices.input, 12 / 6.6684);
   const first = bailianPresets[0];
-  close(first.miss, 12);
-  close(first.hit, 1.5);
-  close(first.output, 36);
-  close(first.explicitCacheCreate, 15);
-  close(first.explicitCacheHit, 1);
-  close(bailianPresets.find(p => p.id === "bailian:qwen3.7-plus:tier-2").miss, 6);
-  close(deepseekPresets.find(p => p.id === "flash-peak").output, 8);
+  close(first.miss, 12 / 6.6684);
+  close(first.hit, 1.5 / 6.6684);
+  close(first.output, 36 / 6.6684);
+  close(first.explicitCacheCreate, 15 / 6.6684);
+  close(first.explicitCacheHit, 1 / 6.6684);
+  close(bailianPresets.find(p => p.id === "bailian:qwen3.7-plus:tier-2").miss, 6 / 6.6684);
+  close(deepseekPresets.find(p => p.id === "flash-peak").output, 1.2);
   assert.ok(modelPricingData.every(provider => provider.currency === "USD"));
 });
 
 test("海外模型保留官方美元价格、来源、分档及优惠说明", () => {
   for (const [id, prices] of [
     ["openai:gpt-6.1-sol:tier-1", [0.1, 2, 10]],
-    ["openai:gpt-6.1-sol:tier-2", [0.2, 4, 15]],
-    ["anthropic:claude-opus-5-5:fixed", [0.2, 4, 20]],
-    ["anthropic:claude-haiku-5-5:tier-2", [0.05, 0.5, 2.5]],
+    ["openai:gpt-6.1-sol:tier-2", [0.2, 4, 20]],
+    ["anthropic:claude-opus-5-5:fixed", [0.2, 2, 10]],
+    ["anthropic:claude-haiku-5-5:tier-2", [0.05, 0.25, 1.25]],
     ["google:gemini-3.8-flash:fixed", [0.075, 0.75, 3.75]],
   ]) {
     const preset = overseasPresets.find(p => p.id === id);
@@ -77,8 +77,8 @@ test("国内、海外模型可直接比较，导入与 CSV 均为 USD，费用�
   }
   assert.deepEqual(validateComparison(config), {});
   const results = simulate(config);
-  close(results[0].cost.total, (12 + 36) / 1000);
-  close(results[1].cost.total, (4 + 20) / 1000);
+  close(results[0].cost.total, (12 + 36) / 6.6684 / 1000);
+  close(results[1].cost.total, (2 + 10) / 1000);
   const csv = buildCsv(results, config);
   assert.ok(csv.includes('"K","USD"'));
   config.plans[0].model.outputPrice = 14;

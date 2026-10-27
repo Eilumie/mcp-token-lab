@@ -19,11 +19,30 @@ const menu = ref('');
 const settingsPlanId = ref(null);
 const settingsPlan = computed(() => props.config.plans.find(plan => plan.id === settingsPlanId.value));
 const expanded = ref(new Set());
+const pendingAdd = ref(false);
+const pendingScrollPlanId = ref(null);
+let previousPlanIds = new Set(props.config.plans.map(plan => plan.id));
 function togglePlan(id) { const next=new Set(expanded.value);next.has(id)?next.delete(id):next.add(id);expanded.value=next; }
 watch(() => props.config.plans.map(p=>p.id), ids => {
   expanded.value=new Set([...expanded.value].filter(id=>ids.includes(id)));
   if (!ids.includes(menu.value)) menu.value='';
+  if (pendingAdd.value) {
+    const addedId = ids.find(id => !previousPlanIds.has(id));
+    pendingAdd.value = false;
+    if (addedId) {
+      expanded.value = new Set([...expanded.value, addedId]);
+      pendingScrollPlanId.value = addedId;
+    }
+  }
+  previousPlanIds = new Set(ids);
 });
+watch(() => props.results.find(result => result.planId === pendingScrollPlanId.value), async result => {
+  if (!result) return;
+  await nextTick();
+  document.getElementById('plan-row-' + result.planId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  pendingScrollPlanId.value = null;
+}, { flush: 'post' });
+function addPlan() { pendingAdd.value = true; emit('add'); }
 const baselineId = computed(() => resolveBaselineId(props.config, props.results));
 const baseline = computed(() => props.results.find(r => r.planId === baselineId.value));
 const lowestCost = computed(() => Math.min(...props.results.map(r => r.cost.total)));
@@ -97,12 +116,12 @@ function updateFlow(id, flow) {
           <ParameterField :key="thresholdField(config.globalSimulation)[0]" :object="config.globalSimulation" :field="thresholdField(config.globalSimulation)" :error="errors['globalSimulation.' + thresholdField(config.globalSimulation)[0]]"/>
         </div>
       </section>
-      <div class="results-heading comparison-heading"><div><h2>对比方案 <span class="plan-count">{{ config.plans.length }}/8</span></h2></div><div class="plan-toolbar"><button @click="emit('reset')"><RotateCcw :size="14"/>恢复默认方案</button><button class="primary-button" :disabled="config.plans.length>=8" @click="emit('add')"><Plus :size="15"/>新增方案</button></div></div>
+      <div class="results-heading comparison-heading"><div><h2>对比方案 <span class="plan-count">{{ config.plans.length }}/8</span></h2></div><div class="plan-toolbar"><button @click="emit('reset')"><RotateCcw :size="14"/>恢复默认方案</button><button class="primary-button" :disabled="config.plans.length>=8" @click="addPlan"><Plus :size="15"/>新增方案</button></div></div>
       <div v-if="Object.keys(errors).length || failure" class="error-box" role="alert">{{ Object.values(errors)[0] || failure }}</div>
       <div class="comparison-table-wrap" :aria-busy="busy">
         <table class="comparison-table"><thead><tr><th>方案 / 模型</th><th>会话总费用</th><th>相对基准</th><th>初始上下文</th><th>LLM次数</th><th title="用户消息总轮数 ÷ 实际压缩次数；包含末次压缩后尚未再次触发压缩的用户轮次。">上下文压缩</th><th><span class="sr-only">操作</span></th></tr></thead><tbody>
           <template v-for="(r,i) in results" :key="r.planId">
-          <tr class="plan-summary-row" :class="{'row-expanded':expanded.has(r.planId)}">
+          <tr :id="'plan-row-'+r.planId" class="plan-summary-row" :class="{'row-expanded':expanded.has(r.planId)}">
             <td><div class="plan-identity"><button class="row-expand-button" :aria-label="(expanded.has(r.planId)?'收起':'展开')+'方案详情 '+r.planName" :aria-expanded="expanded.has(r.planId)" :aria-controls="'plan-detail-'+r.planId" @click="togglePlan(r.planId)"><ChevronDown v-if="expanded.has(r.planId)" :size="15"/><ChevronRight v-else :size="15"/></button><span class="plan-icon" :style="{color:palette[i]}"><Workflow :size="19"/></span><div><button class="plan-title" :aria-expanded="expanded.has(r.planId)" @click="togglePlan(r.planId)"><SparklesText v-if="r.cost.total === lowestCost" :phase="i">{{ r.planName }}</SparklesText><template v-else>{{ r.planName }}</template></button><span v-if="r.planId===baselineId" class="badge">基准</span><small>{{ shortName(r.model.name) }}</small></div></div></td>
             <td class="price-cell">{{ m(r.cost.total) }}<span class="micro">USD</span></td>
             <td><span v-if="r.planId===baselineId" class="muted">—</span><span v-else class="delta" :class="{positive:r.cost.total>baseline.cost.total}"><ArrowDown v-if="r.cost.total<baseline.cost.total" :size="12"/><ArrowUp v-else :size="12"/>{{ baseline.cost.total ? pct(Math.abs(r.cost.total-baseline.cost.total)/baseline.cost.total) : '—' }}</span></td>
