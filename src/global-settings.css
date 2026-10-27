@@ -20,3 +20,8 @@
   .global-settings,
   .home-page .global-settings { overflow-x: auto; }
 }
+
+.home-page .global-settings-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.home-page .global-settings-heading > button { flex: none; font-size: 12px; }
+.editor-page .manage-flow-variables { margin-top: 16px; }
+.editor-page .plan-variable-field .inherit-btn { margin-left: auto; }

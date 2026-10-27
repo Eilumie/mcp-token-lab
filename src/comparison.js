@@ -1,4 +1,6 @@
-import { createConfig, createPresetConfig, readConfig, validate, groups, compressionFields } from "./config.js";
+import { createConfig, createPresetConfig, readConfig, validate, groups, compressionFields, fields, integers, getValue, setValue } from "./config.js";
+import { validateVariables, validateVariableName } from "./variables.js";
+import { formulaReferences } from "./token-formula.js";
 import { modelPresets } from "./model-pricing.js";
 import { createPreloadedFlow } from "./session-flow.js";
 import { migrateLegacyComparison } from "./legacy-config.js";
@@ -10,7 +12,8 @@ export const globalFields = [
   groups[1].fields[0],
   ...compressionFields.filter(([key]) => ["compressionThresholdTurnCount", "compressionThresholdToken"].includes(key)),
 ];
-export const globalKeys = [...globalFields.map(([key]) => key), "compressionThresholdType"];
+const legacyGlobalKeys = [...globalFields.map(([key]) => key), "compressionThresholdType"];
+export const globalKeys = [...fields.map(([key]) => key), "compressionThresholdType"];
 export const thresholdKey = simulation => simulation.compressionThresholdType === "TURN" ? "compressionThresholdTurnCount" : "compressionThresholdToken";
 export const thresholdField = simulation => {
   const field = globalFields.find(([key]) => key === thresholdKey(simulation));
@@ -19,19 +22,27 @@ export const thresholdField = simulation => {
 export const isGlobalField = key => globalKeys.includes(key);
 export function resolvePlan(plan, globalSimulation, globalModelId) {
   if (!plan?.simulation) return plan;
-  const simulation = { ...plan.simulation };
-  for (const key of globalKeys) if (globalSimulation && plan.useGlobal?.[key]) simulation[key] = globalSimulation[key];
+  const simulation = { ...plan.simulation, initialContext: { ...plan.simulation.initialContext } };
+  for (const key of globalKeys) if (globalSimulation && plan.useGlobal?.[key] && getValue(globalSimulation, key) !== undefined) setValue(simulation, key, getValue(globalSimulation, key));
+  const variables = { ...plan.simulation.variables };
+  for (const [key, variable] of Object.entries(globalSimulation?.variables || {})) {
+    if (plan.useGlobal?.['variables.' + key] !== false) variables[key] = { ...variable };
+  }
+  simulation.variables = variables;
   const preset = plan.useGlobal?.model && modelPresets.find(p => p.id === globalModelId);
   return { ...plan, simulation, ...(preset ? createPresetConfig(preset) : {}) };
 }
 export function validateGlobals(globalSimulation) {
   const errors = {};
-  for (const [key, label, unit, min, max] of globalFields) {
+  if (!globalSimulation || typeof globalSimulation !== "object" || Array.isArray(globalSimulation)) return { global: "全局配置无效" };
+  try { validateVariables(globalSimulation.variables); } catch (error) { errors.variables = error.message; }
+  for (const [key, label, unit, min, max] of fields) {
     if (key.startsWith("compressionThreshold") && key !== thresholdKey(globalSimulation || {})) continue;
-    const value = globalSimulation?.[key];
+    const value = getValue(globalSimulation, key);
+    if (value === undefined && !legacyGlobalKeys.includes(key)) continue;
     const upper = unit === "%" ? 1 : max;
     if (typeof value !== "number" || !Number.isFinite(value) || value < min || (upper !== undefined && value > upper)) errors[key] = unit === "%" ? "请输入 0–100%" : `${label}请输入 ${min}${max ? `–${max}` : " 及以上的有限"}数值`;
-    else if (unit !== "%" && unit !== "K" && !Number.isSafeInteger(value)) errors[key] = "请输入整数";
+    else if (integers.has(key) && !Number.isSafeInteger(value)) errors[key] = "请输入整数";
     if (key === "compressionThresholdToken" && value <= 0) errors[key] = "压缩阈值必须大于 0";
   }
   if (!["TURN", "TOKEN"].includes(globalSimulation?.compressionThresholdType)) errors.compressionThresholdType = "请选择压缩阈值类型";
@@ -53,7 +64,8 @@ export function createComparisonConfig() {
     createPlan({ id: "plan-full", name: "全量 Tools", color: planColors[1] }),
   ];
   plans[1].simulation.flow = createPreloadedFlow();
-  const globalSimulation = Object.fromEntries(globalKeys.map(key => [key, plans[0].simulation[key]]));
+  const globalSimulation = { initialContext: {}, variables: {} };
+  for (const key of globalKeys) setValue(globalSimulation, key, getValue(plans[0].simulation, key));
   return { version: 4, unit: "K", baselineId: plans[0].id, baselineMode: "auto", globalSimulation, globalModelId: modelPresets[0].id, plans };
 }
 
@@ -66,13 +78,45 @@ export function resolveBaselineId(config, results) {
 export function validatePlan(plan, globalSimulation, globalModelId) {
   if (!plan || typeof plan !== "object" || !plan.simulation || !plan.model) return { plan: "方案缺少参数或模型配置" };
   const errors = validate(resolvePlan(plan, globalSimulation, globalModelId));
-  if (plan.useGlobal !== undefined && (!plan.useGlobal || typeof plan.useGlobal !== "object" || Array.isArray(plan.useGlobal) || Object.entries(plan.useGlobal).some(([key, value]) => (!isGlobalField(key) && key !== "model") || typeof value !== "boolean"))) errors.useGlobal = "全局参数设置无效";
+  try { validateVariables(plan.simulation.variables); } catch (error) { errors.variables = error.message; }
+  if (plan.useGlobal !== undefined && (!plan.useGlobal || typeof plan.useGlobal !== "object" || Array.isArray(plan.useGlobal) || Object.entries(plan.useGlobal).some(([key, value]) => (!isGlobalField(key) && key !== "model" && !(key.startsWith("variables.") && (Object.hasOwn(plan.simulation.variables || {}, key.slice(10)) || Object.hasOwn(globalSimulation?.variables || {}, key.slice(10))))) || typeof value !== "boolean"))) errors.useGlobal = "全局参数设置无效";
   if (typeof plan.id !== "string" || !plan.id.trim()) errors.id = "方案需要唯一标识";
   if (typeof plan.name !== "string" || !plan.name.trim() || plan.name.length > 60) errors.planName = "方案名称需为 1–60 个字符";
   const unknown = Object.keys(plan).find(key => !["id", "name", "color", "simulation", "model", "pricing", "useGlobal"].includes(key));
   if (unknown) errors.plan = `方案不支持字段 ${unknown}`;
   if (!planColors.includes(plan.color)) errors.color = "方案颜色无效";
   return errors;
+}
+
+export function variableReferences(plan, name) {
+  const matches = [];
+  for (const phase of ['initial', 'turn']) for (const step of plan.simulation.flow[phase]) {
+    let references = [];
+    if (Array.isArray(step.token)) references = step.token;
+    else if (typeof step.token === 'string') {
+      try { references = formulaReferences(step.token); }
+      catch { throw new Error(`请先修复「${plan.name} / ${step.text}」的公式再删除变量`); }
+    }
+    if (references.includes(name)) matches.push(`${plan.name} / ${step.text}`);
+  }
+  return matches;
+}
+
+export function deleteVariable(config, name, plan) {
+  validateVariableName(name);
+  const consumers = plan ? [plan] : config.plans.filter(p => p.useGlobal?.['variables.' + name] !== false);
+  const references = consumers.flatMap(p => variableReferences(p, name));
+  if (references.length) throw new Error(`变量仍被引用：${references.join('、')}。请先修改这些公式。`);
+  if (plan) {
+    delete plan.simulation.variables[name];
+    delete plan.useGlobal?.['variables.' + name];
+  } else {
+    delete config.globalSimulation.variables[name];
+    for (const p of consumers) {
+      if (p.simulation.variables) delete p.simulation.variables[name];
+      delete p.useGlobal?.['variables.' + name];
+    }
+  }
 }
 
 export function validateComparison(config) {
@@ -105,14 +149,17 @@ export function readComparisonConfig(data) {
   let globalSimulation = data.globalSimulation === undefined ? {} : structuredClone(data.globalSimulation);
   if (globalSimulation && typeof globalSimulation === "object" && !Array.isArray(globalSimulation)) {
     const defaults = createConfig().simulation;
+    globalSimulation.initialContext ??= {};
     for (const key of globalKeys) {
-      if (data.globalSimulation === undefined || (!["turnTotalCount", "toolsTotalCount"].includes(key) && !Object.hasOwn(globalSimulation, key))) globalSimulation[key] = data.plans[0]?.simulation?.[key] ?? defaults[key];
+      if (data.globalSimulation === undefined || (!["turnTotalCount", "toolsTotalCount"].includes(key) && getValue(globalSimulation, key) === undefined)) setValue(globalSimulation, key, getValue(data.plans[0]?.simulation, key) ?? getValue(defaults, key));
     }
   }
   const plans = data.plans.map(plan => {
     if (!plan || typeof plan !== "object") throw new Error("方案配置无效");
+    validateVariables(plan.simulation?.variables);
     const normalized = readConfig({ ...resolvePlan(plan, data.globalSimulation), version: 4, unit: "K" });
-    for (const key of globalKeys) normalized.simulation[key] = plan.simulation[key];
+    for (const key of globalKeys) setValue(normalized.simulation, key, getValue(plan.simulation, key));
+    normalized.simulation.variables = structuredClone(plan.simulation.variables || {});
     const result = { ...plan, simulation: normalized.simulation, model: normalized.model, pricing: normalized.pricing };
     return result;
   });

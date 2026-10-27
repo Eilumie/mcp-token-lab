@@ -12,7 +12,7 @@ import PlanFlowPreview from './PlanFlowPreview.vue';
 import { useHeaderOpacity } from '../use-header-opacity.js';
 const headerSurfaceOpacity = useHeaderOpacity();
 const props = defineProps({ config: Object, results: Array, busy: Boolean, errors: Object, failure: String, canUndo: Boolean });
-const emit = defineEmits(['import','export','remember','reset','add','edit','baseline','copy','remove','undo']);
+const emit = defineEmits(['import','export','remember','reset','add','edit','baseline','copy','remove','undo','variables']);
 const menu = ref('');
 const expanded = ref(new Set());
 function togglePlan(id) { const next=new Set(expanded.value);next.has(id)?next.delete(id):next.add(id);expanded.value=next; }
@@ -72,7 +72,7 @@ function action(type,id) { closeMenu(true);emit(type,id); }
     <div class="workspace comparison-workspace"><main>
       <h1 class="sr-only">Token Lab · 会话成本实验室</h1>
       <section class="global-settings" aria-labelledby="global-settings-title">
-        <div><h2 id="global-settings-title"><SlidersHorizontal :size="17"/>全局配置</h2><p>各方案默认使用以下数值，也可在方案内单独设置。</p></div>
+        <div class="global-settings-heading"><div><h2 id="global-settings-title"><SlidersHorizontal :size="17"/>全局配置</h2><p>各方案默认使用以下数值，也可在方案内单独设置。</p></div><button @click="emit('variables')"><SlidersHorizontal :size="14"/>全部变量</button></div>
         <div class="global-settings-fields" @focusin="emit('remember')">
           <GlobalModelField :config="config" :error="errors.globalModelId" />
           <ParameterField v-for="field in globalFields.filter(([key]) => !key.startsWith('compression'))" :key="field[0]" :object="config.globalSimulation" :field="field" :error="errors['globalSimulation.' + field[0]]"/>

@@ -36,8 +36,8 @@ export const compressionFields = [
   ["compressionKeepTurns", "保留最近用户轮次", "轮", 0],
   ["compressionTargetToken", "压缩摘要长度", "K", 0],
 ];
-const fields = [...groups.flatMap(g => g.fields), ...compressionFields];
-const integers = new Set(["turnTotalCount", "skillsTotalCount", "toolsTotalCount", "compressionThresholdTurnCount", "compressionKeepTurns"]);
+export const fields = [...groups.flatMap(g => g.fields), ...compressionFields];
+export const integers = new Set(["turnTotalCount", "skillsTotalCount", "toolsTotalCount", "compressionThresholdTurnCount", "compressionKeepTurns"]);
 export const priceFields = [["inputCachedPrice", "命中输入"], ["inputNotCachedPrice", "未命中输入"], ["outputPrice", "模型输出"]];
 export const getValue = (object, path) => path.split(".").reduce((value, key) => value?.[key], object);
 export function setValue(object, path, value) {
@@ -88,6 +88,7 @@ export function readConfig(data) {
     if (value === undefined) throw new Error(`配置缺少 ${key}`);
     setValue(normalized.simulation, key, value);
   }
+  if (data.simulation.variables !== undefined) normalized.simulation.variables = structuredClone(data.simulation.variables);
   normalized.simulation.compressionThresholdType = data.simulation.compressionThresholdType;
   if (data.simulation.flow !== undefined) {
     const flow = data.simulation.flow;

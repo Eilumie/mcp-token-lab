@@ -1,25 +1,8 @@
 import { evaluateFormula } from "./token-formula.js";
 
 // 流程只包含 JSON 数据，可直接经过 Worker 和配置导入导出。
-export const tokenParameters = {
-  "initialContext.agentPromptToken": "Agent Prompt",
-  skillIndexToken: "单个 Skill 索引",
-  toolsIndexToken: "单个 Tool 索引",
-  toolSchemaToken: "单个 Tool Schema",
-  userMessageToken: "用户消息",
-  skillDetailToken: "单个 Skill 内容",
-  toolResultToken: "单个 Tool Result",
-  readSkillPlanToken: "读取技能计划",
-  schemaPlanToken: "查询 Schema 计划",
-  callToolsPlanToken: "调用工具计划",
-  agentResult: "Agent 最终回复",
-  turnTotalCount: "会话总轮次",
-  skillsTotalCount: "Skills 总数",
-  toolsTotalCount: "Tools 总数",
-  turnAvgSkillsCount: "每轮平均 Skills",
-  turnAvgToolsCount: "每轮平均 Tools",
-  sessionAvgAllowToolsRate: "角色允许工具比例",
-};
+export { tokenParameters } from "./variables.js";
+import { tokenParameters, customVariableValues, validateVariables } from "./variables.js";
 
 export const runtimeParameters = {
   turnIndex: "当前用户轮次索引（从 0 开始）",
@@ -116,6 +99,7 @@ export function tokenFormula(token) {
 export function formulaVariables(config, runtime = {}) {
   return {
     ...Object.fromEntries(Object.keys(tokenParameters).map(path => [path, path.split(".").reduce((parent, key) => parent?.[key], config)])),
+    ...customVariableValues(config.variables),
     turnIndex: runtime.turnIndex ?? 0,
     llmIndex: runtime.llmIndex ?? 0,
   };
@@ -133,10 +117,10 @@ export function resolveStepToken(token, config, runtime) {
     throw new TypeError("Token 必须是数值、公式字符串或非空参数名数组");
   }
   const result = factors.reduce((total, path) => {
-    if (typeof path !== "string" || !Object.hasOwn(tokenParameters, path)) {
+    if (typeof path !== "string" || !Object.hasOwn(formulaVariables(config, runtime), path)) {
       throw new RangeError(`未知 Token 参数：${String(path)}`);
     }
-    const value = path.split(".").reduce((parent, key) => parent?.[key], config);
+    const value = formulaVariables(config, runtime)[path];
     if (!Number.isFinite(value) || value < 0) throw new RangeError(`${path} 必须是非负有限数值`);
     return total * value;
   }, 1);
@@ -145,6 +129,7 @@ export function resolveStepToken(token, config, runtime) {
 }
 
 export function validateFlow(flow, config) {
+  validateVariables(config.variables);
   if (!flow || typeof flow !== "object" || Array.isArray(flow)) throw new TypeError("flow 必须是流程配置对象");
   for (const phase of ["initial", "turn"]) {
     const steps = flow[phase];

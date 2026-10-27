@@ -186,7 +186,7 @@ test("零内容和零价格不丢弃请求，末次输出费用归因完整", ()
     assert.equal(r.equivalent, null); checkConservation(r);
   });
   for (const key of Object.keys(config.simulation)) {
-    if (["compressionThresholdType", "compressionThresholdTurnCount", "compressionThresholdToken", "turnTotalCount", "initialContext", "flow"].includes(key)) continue;
+    if (["compressionThresholdType", "compressionThresholdTurnCount", "compressionThresholdToken", "turnTotalCount", "initialContext", "flow", "variables"].includes(key)) continue;
     config.simulation[key] = 0;
   }
   config.simulation.initialContext.agentPromptToken = 0;

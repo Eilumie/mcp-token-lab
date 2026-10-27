@@ -4,6 +4,7 @@ import { createDefaultFlow } from "./session-flow.js";
 export function createSessionConfig() {
   return {
     flow: createDefaultFlow(),
+    variables: {},
     initialContext: {
       agentPromptToken: 4,
     },

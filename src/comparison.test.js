@@ -158,7 +158,7 @@ test("多方案校验拒绝重复标识、名称、混合币种、无效基准�
     c => c.plans[1].toolsMode = "invalid",
     c => c.plans[1].model.currency = "EUR",
     c => c.plans[1].color = "invalid",
-    c => c.plans[1].simulation.userMessageToken = -1,
+    c => { c.plans[1].useGlobal.userMessageToken = false; c.plans[1].simulation.userMessageToken = -1; },
     c => c.baselineId = "missing",
     c => c.baselineMode = "invalid",
     c => { c.plans = []; },

@@ -87,3 +87,8 @@ export function evaluateFormula(expression, variables) {
   if (typeof result !== "number" || !Number.isFinite(result) || result < 0) throw new RangeError("公式结果必须是非负有限数值（K Token）");
   return result;
 }
+
+export function formulaReferences(expression) {
+  if (typeof expression !== "string" || !expression.trim() || expression.length > maxFormulaLength) throw new TypeError("公式格式无效");
+  return [...compile(expression).references];
+}
