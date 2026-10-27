@@ -123,9 +123,6 @@
 .home-page th:first-child, .home-page td:first-child { text-align: left; }
 .home-page td:first-child { color: #3f485b; }
 .home-page tfoot td, .home-page tfoot th { font-weight: 600; background: #fafbfc; }
-.home-page .cache-equivalent { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 17px; border-radius: 8px; padding: 14px; background: #f7f8fa; color: var(--muted); font-size: 11px; }
-.home-page .cache-equivalent strong { font-weight: 600; color: #536176; }
-.home-page .cache-equivalent small { color: #8b94a5; font-size: 10px; }
 .home-page .pagination { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; }
 .home-page .round-detail { border: 1px solid var(--line); border-radius: 9px; margin-bottom: 10px; overflow: hidden; }
 .home-page .round-detail > summary { display: flex; justify-content: space-between; gap: 10px; padding: 15px; background: #f7f8fb; }

@@ -79,10 +79,8 @@ test("国内、海外模型可直接比较，导入与 CSV 均为 USD，费用�
   const results = simulate(config);
   close(results[0].cost.total, (12 + 36) / 1000);
   close(results[1].cost.total, (4 + 20) / 1000);
-  for (const kind of ["sources", "requests"]) {
-    const csv = buildCsv(results, config, kind);
-    assert.ok(csv.includes('"K","USD"'));
-  }
+  const csv = buildCsv(results, config);
+  assert.ok(csv.includes('"K","USD"'));
   config.plans[0].model.outputPrice = 14;
   const imported = readComparisonConfig(config);
   assert.deepEqual(validateComparison(imported), {});

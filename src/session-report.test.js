@@ -183,7 +183,7 @@ test("零内容和零价格不丢弃请求，末次输出费用归因完整", ()
   Object.assign(config.model, { inputCachedPrice: 0, inputNotCachedPrice: 0, outputPrice: 0 });
   simulate(config).forEach((r, i) => {
     close(r.cost.total, 0); close(r.hit, base[i].hit);
-    assert.equal(r.equivalent, null); checkConservation(r);
+    checkConservation(r);
   });
   for (const key of Object.keys(config.simulation)) {
     if (["compressionThresholdType", "compressionThresholdTurnCount", "compressionThresholdToken", "turnTotalCount", "initialContext", "flow", "variables"].includes(key)) continue;

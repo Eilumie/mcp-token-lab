@@ -51,12 +51,10 @@ function chartClick(event) {
       </div>
     </div>
     <div v-else-if="tab === 'sources'" class="analysis-body">
-      <div class="section-heading"><div><h2>费用花在了哪里？</h2><p>按内容来源统计命中输入、未命中输入和输出费用。</p></div><button @click="exportCsv(results, config, 'sources')"><ArrowDownToLine :size="14" />导出归因 CSV</button></div>
       <EChart :style="{ height: Math.max(220, results.length * 65 + 80) + 'px' }" class="source-chart" :option="sourceChart" aria-label="各方案费用来源堆叠条形图" />
-      <div v-for="r in results" :key="r.planId" class="cache-equivalent"><span>{{ r.planName }} · 命中输入的未命中费用等值</span><strong>{{ token(r.equivalent) }}</strong><small>{{ r.equivalent === null ? '未命中单价为 0，无法折算。' : '仅折算费用，不改变输入长度或上下文占用。' }}</small></div>
     </div>
     <div v-else class="analysis-body">
-      <div class="section-heading"><div><h2>每一次请求，都可追溯。</h2><p>按用户轮次查看模型调用，压缩请求附在触发轮次之后。</p></div><button @click="exportCsv(results, config, 'requests')"><ArrowDownToLine :size="14" />导出请求 CSV</button></div>
+      <div class="section-heading"><div><h2>每一次请求，都可追溯。</h2><p>按用户轮次查看模型调用，压缩请求附在触发轮次之后。</p></div><button @click="exportCsv(results, config)"><ArrowDownToLine :size="14" />导出请求 CSV</button></div>
       <div class="table-toolbar"><div class="segmented"><button v-for="(name, i) in planNames" :key="name" :class="{ active: plan === i }" @click="plan = i">{{ name }}</button></div><div class="pagination"><button class="icon-button" aria-label="上一页" :disabled="page === 1" @click="page--"><ChevronLeft :size="16" /></button><span>{{ page }} / {{ pageCount }}</span><button class="icon-button" aria-label="下一页" :disabled="page === pageCount" @click="page++"><ChevronRight :size="16" /></button></div></div>
       <div class="round-list">
         <details v-for="round in rounds" :key="plan + '-' + round.round" class="round-detail" :open="selectedRound === round.round">

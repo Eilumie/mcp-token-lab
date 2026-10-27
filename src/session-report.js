@@ -116,7 +116,6 @@ export function buildReport(session) {
     hit: totals.totalInputCached, miss: totals.totalInputNotCached, output: totals.totalOutput,
     cost: { cached: totals.totalInputCachedPrice, fresh: totals.totalInputNotCachedPrice, generated: totals.totalOutputPrice, total: totals.totalPrice },
     hitRate: ratio(totals.totalInputCached, totals.totalInputCached + totals.totalInputNotCached),
-    equivalent: model.inputNotCachedPrice === 0 ? null : totals.totalInputCached * model.inputCachedPrice / model.inputNotCachedPrice,
     compressionCost: compressions.reduce((sum, c) => sum + c.cost, 0),
     averageUserTurnsPerCompression: totals.averageUserTurnsPerCompression,
     requests, rounds, compressions,

@@ -90,11 +90,9 @@ test("多个图表和 CSV 包含全部方案", () => {
   const trend = trendOption(results, "context", "$");
   assert.deepEqual(trend.series.map(s => s.name), config.plans.map(p => p.name));
   assert.equal(trend.xAxis.max, 3);
-  for (const kind of ["requests", "sources"]) {
-    const csv = buildCsv(results, config, kind);
-    config.plans.forEach(p => assert.ok(csv.includes(`"${p.name}","K","USD"`)));
-    assert.ok(!csv.includes("undefined"));
-  }
+  const csv = buildCsv(results, config);
+  config.plans.forEach(p => assert.ok(csv.includes(`"${p.name}","K","USD"`)));
+  assert.ok(!csv.includes("undefined"));
 });
 
 test("v4 配置往返保留方案、基准及自定义价格；旧 v2 导入迁移成两方案", () => {
