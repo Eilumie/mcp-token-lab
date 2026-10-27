@@ -9,12 +9,15 @@ import AnalysisPanel from './AnalysisPanel.vue';
 import SummaryCards from './SummaryCards.vue';
 import SparklesText from './SparklesText.vue';
 import PlanFlowPreview from './PlanFlowPreview.vue';
+import PlanSettingsDialog from './PlanSettingsDialog.vue';
 import { useHeaderOpacity } from '../use-header-opacity.js';
 const brandIcon = `${import.meta.env.BASE_URL}icon/mcp-token-lab-logo.svg`;
 const headerSurfaceOpacity = useHeaderOpacity();
 const props = defineProps({ config: Object, results: Array, busy: Boolean, errors: Object, failure: String, canUndo: Boolean });
 const emit = defineEmits(['import','export','remember','reset','add','edit','baseline','copy','remove','undo','variables']);
 const menu = ref('');
+const settingsPlanId = ref(null);
+const settingsPlan = computed(() => props.config.plans.find(plan => plan.id === settingsPlanId.value));
 const expanded = ref(new Set());
 function togglePlan(id) { const next=new Set(expanded.value);next.has(id)?next.delete(id):next.add(id);expanded.value=next; }
 watch(() => props.config.plans.map(p=>p.id), ids => {
@@ -61,6 +64,13 @@ onBeforeUnmount(() => {
   document.removeEventListener('focusin', dismissMenu);
 });
 function action(type,id) { closeMenu(true);emit(type,id); }
+function savePlanSettings(plan) {
+  const index = props.config.plans.findIndex(item => item.id === plan.id);
+  if (index < 0) return;
+  emit('remember');
+  props.config.plans.splice(index, 1, plan);
+  settingsPlanId.value = null;
+}
 function updateFlow(id, flow) {
   const plan = props.config.plans.find(p => p.id === id);
   if (!plan) return;
@@ -118,7 +128,7 @@ function updateFlow(id, flow) {
             <div :id="'plan-detail-'+r.planId" class="plan-expanded-content">
               <div class="expanded-cost-card"><SummaryCards :results="results" :config="analysisConfig" :visible-plan-id="r.planId"
                 @edit="action('edit',$event)" @copy="action('copy',$event)" @remove="action('remove',$event)" @baseline="action('baseline',$event)" /></div>
-              <PlanFlowPreview v-if="config.plans.some(p=>p.id===r.planId)" :plan="config.plans.find(p=>p.id===r.planId)" :global-simulation="config.globalSimulation" :global-model-id="config.globalModelId" :global-model="config.globalModel" @edit="action('edit',$event)" @update-flow="updateFlow" />
+              <PlanFlowPreview v-if="config.plans.some(p=>p.id===r.planId)" :plan="config.plans.find(p=>p.id===r.planId)" :global-simulation="config.globalSimulation" :global-model-id="config.globalModelId" :global-model="config.globalModel" @settings="settingsPlanId=$event" @update-flow="updateFlow" />
             </div>
           </td></tr>
           </template>
@@ -126,6 +136,7 @@ function updateFlow(id, flow) {
         <div v-if="!results.length" class="empty-state">{{ busy?'正在计算会话成本…':'新增一个方案，开始探索成本。' }}</div>
       </div>
       <AnalysisPanel v-if="results.length" :results="results"/>
+      <PlanSettingsDialog v-if="settingsPlan" :config="config" :plan="settingsPlan" @close="settingsPlanId=null" @save="savePlanSettings" />
       <footer><span class="footer-mark">T / L</span><p>初始前缀按期望命中率计费 · 每轮流程结束后检查压缩 · 最后一轮触发的压缩也计费<br/>所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。</p><button v-if="canUndo" class="undo-button" @click="emit('undo')"><RotateCcw :size="13"/>撤销修改</button><span>COMPARE / V4</span></footer>
     </main></div>
   </div>
