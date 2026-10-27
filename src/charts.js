@@ -1,5 +1,5 @@
 import { displayPlanColor } from "./theme.js";
-import { money, token } from "./utils.js";
+import { money, percent, token } from "./utils.js";
 export const planColors = ["#5869d9", "#d99b61"];
 const sourceColors = ["#899681", "#b7a58c", "#91a8a4", "#be795e", "#cbc6b7", "#c4a56b", "#abb898", "#68897c", "#b8b58a", "#9c8a9f", "#bc9294", "#d6ad8f", "#8e674e", "#9ca8ae", "#826f84"];
 const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
@@ -49,7 +49,14 @@ export function sourceOption(results, currency) {
     legend: { type: "scroll", bottom: 0, left: 10, right: 10, textStyle: { fontSize: 10, color: "#737d90" } },
     tooltip: {
       trigger: "item", confine: true,
-      formatter: p => `${escapeHtml(p.name)}<br/>${escapeHtml(p.seriesName ?? "费用")}：${money(p.value, currency, true)}`,
+      formatter: p => {
+        const result = results[p.dataIndex];
+        const source = result?.sources.find(item => item.key === p.seriesId);
+        const amount = source?.cost.total ?? 0;
+        const share = result?.cost.total > 0 ? amount / result.cost.total : null;
+        const formattedAmount = currency + amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return `${escapeHtml(p.name)}<br/>${escapeHtml(p.seriesName ?? "费用")}：${formattedAmount}（${percent(share)}）`;
+      },
     },
     xAxis: { type: "value", axisLabel: { formatter: v => money(v, currency), color: "#8790a0" }, splitLine: { lineStyle: { color: "#edf0f5", type: "dashed" } } },
     yAxis: { type: "category", inverse: true, data: results.map((r, i) => r.planName ?? `方案 ${i + 1}`), axisTick: { show: false }, axisLine: { show: false }, axisLabel: { color: "#596477", width: 130, overflow: "truncate" } },
