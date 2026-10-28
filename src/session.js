@@ -1,5 +1,5 @@
 import { createSessionConfig } from "./session-defaults.js";
-import { resolveStepToken, shouldRunStep, validateFlow } from "./session-flow.js";
+import { resolveStepToken, resolveStepDuration, shouldRunStep, validateFlow } from "./session-flow.js";
 
 export const contentSize = actions => actions.reduce((sum, action) => sum + (action.type === "llm" ? 0 : action.token), 0);
 const flatten = snapshot => snapshot.turns.flatMap(turn => turn.actions);
@@ -65,7 +65,7 @@ export default class Session {
   }
 
   createTurn(kind) {
-    const turn = { index: this.turns.length, kind, actions: [] };
+    const turn = { index: this.turns.length, kind, actions: [], durationSeconds: 0 };
     this.turns.push(turn);
     return turn;
   }
@@ -109,6 +109,7 @@ export default class Session {
         this.appendRequest(turn, output);
         llmIndex++;
       } else turn.actions.push(output);
+      turn.durationSeconds += resolveStepDuration(step);
     }
   }
 
@@ -160,6 +161,7 @@ export default class Session {
     // 标记只影响后续快照，历史请求的归因保持不变。
     kept.forEach(turn => { this.turns[turn.index].compressionKept = true; });
     const turn = this.createTurn("compression");
+    turn.durationSeconds = resolveStepDuration({ type: "llm" });
     this.appendRequest(turn, this.createAction({ text: "compress history", token: this.config.compressionTargetToken }), snapshot);
   }
 

@@ -9,6 +9,12 @@ export const runtimeParameters = {
   llmIndex: "当前步骤前已执行的模型调用数",
 };
 
+export function resolveStepDuration(step) {
+  const seconds = step.durationSeconds === undefined ? (step.type === "llm" ? 1.8 : 0.3) : step.durationSeconds;
+  if (!Number.isFinite(seconds) || seconds < 0) throw new RangeError("节点耗时必须是非负有限数值（秒）");
+  return seconds;
+}
+
 export function validateStepTrigger(trigger) {
   if (!trigger || typeof trigger !== "object" || Array.isArray(trigger)) throw new TypeError("trigger 必须是触发配置对象");
   if (!["probability", "interval"].includes(trigger.type)) throw new RangeError("trigger.type 必须是 probability 或 interval");
@@ -141,9 +147,10 @@ export function validateFlow(flow, config) {
       }
       if (typeof step.text !== "string" || !step.text.trim()) throw new TypeError(`${prefix} 需要非空名称`);
       if (step.enabled !== undefined && typeof step.enabled !== "boolean") throw new TypeError(`${prefix} enabled 必须是布尔值`);
-      const unknown = Object.keys(step).find(key => !["type", "text", "token", "enabled", "trigger"].includes(key));
+      const unknown = Object.keys(step).find(key => !["type", "text", "token", "enabled", "trigger", "durationSeconds"].includes(key));
       if (unknown) throw new RangeError(`${prefix} 不支持字段 ${unknown}`);
       try {
+        resolveStepDuration(step);
         if (step.trigger !== undefined) {
           if (phase === "initial") throw new RangeError("初始上下文不支持 trigger；请在每轮流程中设置触发方式");
           validateStepTrigger(step.trigger);

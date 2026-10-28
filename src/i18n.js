@@ -12,6 +12,15 @@ export function setLocale(value) {
 // Keep configuration, model IDs, and user input in their original form. These are
 // display translations for the Chinese labels used by the existing application.
 const english = {
+  '每轮平均TTFT': 'Avg. TTFT per turn', '预估耗时': 'Estimate duration', '已关闭': 'Off',
+  '是否模拟耗时': 'Simulate duration',
+  '节点耗时（秒）': 'Node duration (seconds)',
+  '留空使用默认值：工具 / 上下文 0.3s，LLM 1.8s；可设为 0。': 'Leave blank for defaults: tools / context 0.3s, LLM 1.8s. Zero is allowed.',
+  '按实际执行节点累计，含压缩调用（1.8s），不含初始上下文；未配置时工具 / 上下文 0.3s，LLM 1.8s。': 'Sum executed nodes, including compression calls (1.8s), excluding initial context. Defaults: tools / context 0.3s, LLM 1.8s.',
+  '仅预计时间, 实际LLM可能受prompt或上下文大小影响响应速度': 'Estimated time only. Actual LLM response speed may vary with the prompt or context size.',
+  '节点耗时必须是非负有限数值（秒）': 'Node duration must be finite and non-negative (seconds)',
+  '预估耗时开关必须是布尔值': 'Estimate duration must be a boolean',
+  '耗时超出可计算范围，请减小节点耗时。': 'Duration exceeds the calculation range. Reduce node durations.',
   '模板': 'Templates', '关闭模板': 'Close templates', '选择模板': 'Choose a template',
   '选择一个起点，探索不同的调用策略。': 'Choose a starting point to explore different calling strategies.',
   '内置模板与自定义模板': 'Built-in and custom templates', '内置模板': 'Built-in template', '自定义模板': 'Custom template',

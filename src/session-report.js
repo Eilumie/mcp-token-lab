@@ -30,7 +30,7 @@ function prefixSize(llm) {
 }
 
 // Read recorded classifications; never recreate or override the engine's cache logic.
-export function buildReport(session) {
+export function buildReport(session, { estimateDuration = true } = {}) {
   const totals = session.getConsumptionTokens();
   const model = session.config.model;
   const requests = [], rounds = [], compressions = [];
@@ -74,11 +74,13 @@ export function buildReport(session) {
     const userTurn = turn.kind === "user";
     if (userTurn) {
       userNumbers.set(turn.index, rounds.length + 1);
-      round = { round: rounds.length + 1, requestIds: [], cost: 0, cumulativeCost: 0, cumulativeTokens: 0, context: 0, peakInput: 0, beforeCompression: null, compression: null };
+      round = { round: rounds.length + 1, requestIds: [], cost: 0, cumulativeCost: 0, cumulativeTokens: 0, context: 0, peakInput: 0, beforeCompression: null, compression: null, durationSeconds: estimateDuration ? 0 : null };
       rounds.push(round);
       context += turnSizes[turn.index];
       activeTurns.push(turn.index);
     }
+    // 压缩属于触发它的用户轮次；初始上下文只加载一次，不计入 turn 平均耗时。
+    if (estimateDuration) round.durationSeconds += turn.durationSeconds;
     for (let actionIndex = 0; actionIndex < turn.actions.length; actionIndex++) {
       const llm = turn.actions[actionIndex];
       if (llm.type !== "llm") continue;
@@ -149,21 +151,25 @@ export function buildReport(session) {
     hitRate: ratio(totals.totalInputCached, totals.totalInputCached + totals.totalInputNotCached),
     compressionCost: compressions.reduce((sum, c) => sum + c.cost, 0),
     averageUserTurnsPerCompression: totals.averageUserTurnsPerCompression,
+    averageTurnDurationSeconds: estimateDuration ? ratio(rounds.reduce((sum, item) => sum + item.durationSeconds, 0), rounds.length) : null,
     requests, rounds, compressions, requestTrace,
     sources: Object.values(sources).map(s => ({ ...s, cost: fees(s.hit, s.miss, s.output, model) })),
   };
   if ([result.hit, result.miss, result.output, result.finalContext, result.peakInput, result.cost.total].some(n => !Number.isFinite(n))) throw new Error("数值超出可计算范围，请减小参数。");
+  if (estimateDuration && rounds.length && !Number.isFinite(result.averageTurnDurationSeconds)) throw new Error("耗时超出可计算范围，请减小节点耗时。");
   return result;
 }
 export function simulate(config) {
   const errors = validateComparison(config);
   if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
+  const estimateDuration = config.globalSimulation?.estimateDuration !== false;
   return config.plans.map(plan => {
     plan = resolvePlan(plan, config.globalSimulation, config.globalModelId, config.globalModel);
     const session = new Session({ ...plan.simulation, model: plan.model });
     session.reset();
     return {
-      ...buildReport(session), planId: plan.id, planName: plan.name, color: plan.color,
+      ...buildReport(session, { estimateDuration }), planId: plan.id, planName: plan.name, color: plan.color,
+      estimateDuration,
       model: { ...plan.model }, pricing: structuredClone(plan.pricing),
       expectedPrefixCacheHitRate: plan.simulation.expectedPrefixCacheHitRate,
     };

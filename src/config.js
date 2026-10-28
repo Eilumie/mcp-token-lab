@@ -35,6 +35,11 @@ export const compressionFields = [
   ["compressionKeepTurns", "保留最近用户轮次", "轮", 0],
   ["compressionTargetToken", "压缩摘要长度", "K", 0],
 ];
+export function isFieldVisible(key, compressionThresholdType) {
+  if (key === "compressionThresholdTurnCount") return compressionThresholdType === "TURN";
+  if (key === "compressionThresholdToken") return compressionThresholdType === "TOKEN";
+  return true;
+}
 export const fields = [...groups.flatMap(g => g.fields), ...compressionFields];
 export const integers = new Set(["turnTotalCount", "skillsTotalCount", "toolsTotalCount", "compressionThresholdTurnCount", "compressionKeepTurns"]);
 export const priceFields = [["inputCachedPrice", "命中输入"], ["inputNotCachedPrice", "未命中输入"], ["outputPrice", "模型输出"]];

@@ -50,6 +50,7 @@ export function resolvePlan(plan, globalSimulation, globalModelId, globalModel) 
 export function validateGlobals(globalSimulation) {
   const errors = {};
   if (!globalSimulation || typeof globalSimulation !== "object" || Array.isArray(globalSimulation)) return { global: "全局配置无效" };
+  if (globalSimulation.estimateDuration !== undefined && typeof globalSimulation.estimateDuration !== "boolean") errors.estimateDuration = "预估耗时开关必须是布尔值";
   const removedFields = globalSimulation.removedFields;
   if (removedFields !== undefined && (!Array.isArray(removedFields) || removedFields.some(key => !fields.some(([field]) => field === key)) || new Set(removedFields).size !== removedFields.length)) errors.removedFields = "已删除的内置变量列表无效";
   const removed = new Set(Array.isArray(removedFields) ? removedFields : []);
@@ -101,7 +102,7 @@ export function createComparisonConfig() {
     createPlan({ id: "plan-full", name: "MCP默认全量tools/list", color: planColors[1] }),
   ];
   plans[1].simulation.flow = createPreloadedFlow();
-  const globalSimulation = { initialContext: {}, variables: {} };
+  const globalSimulation = { initialContext: {}, variables: {}, estimateDuration: true };
   for (const key of globalKeys) setValue(globalSimulation, key, getValue(plans[0].simulation, key));
   return { version: 4, unit: "K", baselineId: plans[0].id, baselineMode: "auto", globalSimulation, globalModelId: defaultModelPreset.id, plans };
 }
@@ -120,7 +121,8 @@ export function validatePlan(plan, globalSimulation, globalModelId, globalModel)
   if (typeof plan.id !== "string" || !plan.id.trim()) errors.id = "方案需要唯一标识";
   if (typeof plan.name !== "string" || !plan.name.trim() || plan.name.length > 60) errors.planName = "方案名称需为 1–60 个字符";
   if (plan.description !== undefined && (typeof plan.description !== "string" || plan.description.length > 1000)) errors.description = "方案说明不能超过 1000 个字符";
-  const unknown = Object.keys(plan).find(key => !["id", "name", "description", "color", "simulation", "model", "pricing", "useGlobal"].includes(key));
+  if (plan.estimateDuration !== undefined && typeof plan.estimateDuration !== "boolean") errors.estimateDuration = "预估耗时开关必须是布尔值";
+  const unknown = Object.keys(plan).find(key => !["id", "name", "description", "color", "simulation", "model", "pricing", "useGlobal", "estimateDuration"].includes(key));
   if (unknown) errors.plan = `方案不支持字段 ${unknown}`;
   if (!planColors.includes(plan.color)) errors.color = "方案颜色无效";
   return errors;
@@ -204,6 +206,8 @@ export function readComparisonConfig(data) {
     for (const key of globalKeys) setValue(normalized.simulation, key, getValue(plan.simulation, key));
     normalized.simulation.variables = structuredClone(plan.simulation.variables || {});
     const result = { ...plan, simulation: normalized.simulation, model: normalized.model, pricing: normalized.pricing };
+    // 兼容曾按方案保存的开关；耗时展示现由单个全局布尔变量控制。
+    delete result.estimateDuration;
     for (const key of globalSimulation?.removedFields || []) {
       deletePath(result.simulation, key);
       delete result.useGlobal?.[key];

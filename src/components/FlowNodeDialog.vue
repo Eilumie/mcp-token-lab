@@ -33,6 +33,10 @@ function setTrigger(type) {
   if (type === 'always') delete step.trigger;
   else step.trigger = { type, value: type === 'probability' ? 100 : 2 };
 }
+function updateDuration(event) {
+  if (event.target.value === '') delete step.durationSeconds;
+  else step.durationSeconds = event.target.valueAsNumber;
+}
 function save() { updateName(); if (!Object.keys(errors.value).length) emit('save', clone(draft.value.simulation.flow)); }
 let previousFocus;
 onMounted(() => { previousFocus = document.activeElement; dialog.value.showModal(); });
@@ -48,6 +52,7 @@ onBeforeUnmount(() => previousFocus?.isConnected && previousFocus.focus());
           <label>节点名称<input :value="displayedName" maxlength="100" @input="name=$event.target.value;updateName()" /></label>
           <label v-if="phase === 'turn'">节点类型<select v-model="step.type"><option value="action">追加上下文</option><option value="llm">调用模型</option></select></label>
           <label class="enabled"><input type="checkbox" :checked="step.enabled !== false" @change="step.enabled = $event.target.checked" />启用节点</label>
+          <label>节点耗时（秒）<input :value="step.durationSeconds ?? ''" type="number" min="0" step="any" :placeholder="step.type === 'llm' ? '1.8' : '0.3'" @input="updateDuration" /><small>留空使用默认值：工具 / 上下文 0.3s，LLM 1.8s；可设为 0。</small></label>
           <label v-if="phase === 'turn'">触发方式<select :value="step.trigger?.type || 'always'" @change="setTrigger($event.target.value)"><option value="always">每轮触发</option><option value="probability">按百分比触发</option><option value="interval">每 N 轮消息触发</option></select></label>
           <label v-if="step.trigger">{{ step.trigger.type === 'probability' ? '触发概率（%）' : '消息轮次间隔' }}<input v-model.number="step.trigger.value" type="number" :min="step.trigger.type === 'probability' ? 0 : 1" :max="step.trigger.type === 'probability' ? 100 : undefined" :step="step.trigger.type === 'probability' ? 'any' : 1" /></label>
           <div><span class="field-title">Token 长度</span><div class="modes"><button type="button" :class="{ active: formulaMode }" :aria-pressed="formulaMode" @click="setMode(true)">公式</button><button type="button" :class="{ active: !formulaMode }" :aria-pressed="!formulaMode" @click="setMode(false)">固定数值</button></div></div>
