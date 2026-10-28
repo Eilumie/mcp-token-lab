@@ -196,7 +196,7 @@ const english = {
   '海外 API': 'Overseas API', '华北2（北京）': 'China North 2 (Beijing)',
   '百炼': 'Bailian', '输入': 'input', '输出': 'output',
   '按需 Tools': 'On-demand tools', '全量 Tools': 'All tools',
-  'MCP渐进式Tools Schema': 'MCP progressive Tools Schema', 'MCP默认全量tools/list': 'MCP default full tools/list',
+  'MCP渐进式Tools Schema': 'MCP progressive Tools Schema', '渐进式Tools Schema': 'Progressive Tools Schema', 'MCP默认全量tools/list': 'MCP default full tools/list',
   '自定义方案': 'Custom plan', '新方案': 'New plan', ' 副本': ' copy',
   '方案': 'Plan', '调用': 'call',
   '新的上下文': 'New context', 'Skills 索引': 'Skills index',

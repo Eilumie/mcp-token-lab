@@ -41,7 +41,7 @@ test("默认两方案以独立流程表达差异，不再包含模式配置", ()
   const config = small();
   assert.deepEqual(validateComparison(config), {});
   const results = simulate(config);
-  assert.deepEqual(results.map(r => r.planName), ["MCP渐进式Tools Schema", "MCP默认全量tools/list"]);
+  assert.deepEqual(results.map(r => r.planName), ["渐进式Tools Schema", "MCP默认全量tools/list"]);
   assert.ok(config.plans.every(plan => !Object.hasOwn(plan, "toolsMode")));
   assert.ok(results.every(result => !Object.hasOwn(result, "mode")));
   assert.deepEqual(results.map(r => r.requests.length), [12, 9]);
