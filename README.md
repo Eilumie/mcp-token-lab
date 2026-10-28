@@ -67,6 +67,22 @@ npm run dev
 
 配置保存在当前页面内存中，刷新页面会恢复默认值；需要保留的方案请先导出 JSON。
 
+### 让 Agent 生成对比配置
+
+仓库提供 [mcp-token-lab skill](skills/mcp-token-lab/SKILL.md)，指导 Agent 将流程描述转换为可导入的 v4 多方案 JSON，包含字段约束、全局继承规则、公式及触发方式。将 `skills/mcp-token-lab` 文件夹放入 Agent 的 skills 目录后，可这样使用：
+
+```text
+使用 $mcp-token-lab，比较 60 个工具的按需 Schema 与全量预加载：
+20 轮用户消息，每轮平均调用 1.5 个工具，每个工具返回 3K Token。
+使用相同模型和费率，生成可导入页面的 JSON，并列明其余假设。
+```
+
+也可直接导入 [完整双方案示例](skills/mcp-token-lab/assets/comparison.example.json)；示例费率为演示假设，请按实际模型调整。生成的 JSON 可在项目目录用页面真实的导入逻辑校验，并完整模拟：
+
+```sh
+node skills/mcp-token-lab/scripts/validate-config.mjs --repo . path/to/comparison.json --simulate
+```
+
 ## 自定义流程
 
 一次会话由两个阶段组成：
