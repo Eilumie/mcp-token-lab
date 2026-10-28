@@ -91,8 +91,8 @@ export function deleteBuiltinField(config, name) {
 
 export function createComparisonConfig() {
   const plans = [
-    createPlan({ id: "plan-lazy", name: "按需 Tools", color: planColors[0] }),
-    createPlan({ id: "plan-full", name: "全量 Tools", color: planColors[1] }),
+    createPlan({ id: "plan-lazy", name: "MCP渐进式Tools Schema", color: planColors[0] }),
+    createPlan({ id: "plan-full", name: "MCP默认全量tools/list", color: planColors[1] }),
   ];
   plans[1].simulation.flow = createPreloadedFlow();
   const globalSimulation = { initialContext: {}, variables: {} };

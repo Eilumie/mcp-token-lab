@@ -27,7 +27,7 @@ export function migrateLegacyComparison(data) {
   if (data.unit !== "K") throw new Error("仅支持 K Token 配置");
   if (data.version === 2) {
     const plans = modes.map((mode, index) => ({
-      id: index ? "plan-full" : "plan-lazy", name: index ? "全量 Tools" : "按需 Tools",
+      id: index ? "plan-full" : "plan-lazy", name: index ? "MCP默认全量tools/list" : "MCP渐进式Tools Schema",
       color: index ? "#d99b61" : "#5869d9", model: data.model, pricing: data.pricing,
       simulation: migrateSimulation(data.simulation, mode),
     }));

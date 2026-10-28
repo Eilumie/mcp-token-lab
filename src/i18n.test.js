@@ -15,10 +15,10 @@ test('display language changes without changing plan data or USD prices', () => 
     assert.equal(translateUi('全局配置'), 'Global settings');
     assert.equal(translateUi('用户轮次请输入 1–1000数值'), 'User turns: Enter a finite number from 1 to 1000');
     assert.equal(translateUi('$12.50 USD'), '$12.50 USD');
-    assert.equal(trendOption(results, 'cost', '$').series[0].name, 'On-demand tools');
+    assert.equal(trendOption(results, 'cost', '$').series[0].name, 'MCP progressive Tools Schema');
     locale.value = 'zh';
     assert.equal(translateUi('全局配置'), '全局配置');
-    assert.equal(trendOption(results, 'cost', '$').series[0].name, '按需 Tools');
+    assert.equal(trendOption(results, 'cost', '$').series[0].name, 'MCP渐进式Tools Schema');
     assert.equal(JSON.stringify(config), original);
   } finally { locale.value = 'zh'; }
 });

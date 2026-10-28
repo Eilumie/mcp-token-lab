@@ -10,7 +10,7 @@ import { locale, translateUi } from '../i18n.js';
 const props = defineProps({ config: Object, plan: Object });
 const emit = defineEmits(['close', 'save']);
 const local = ref(JSON.parse(JSON.stringify(props.plan)));
-const displayedName = computed(() => locale.value === 'en' && ['按需 Tools', '全量 Tools'].includes(local.value.name) ? translateUi(local.value.name) : local.value.name);
+const displayedName = computed(() => locale.value === 'en' && ['按需 Tools', '全量 Tools', 'MCP渐进式Tools Schema', 'MCP默认全量tools/list'].includes(local.value.name) ? translateUi(local.value.name) : local.value.name);
 const dialog = ref(null), showVariables = ref(false);
 const titleId = useId();
 const sections = computed(() => {

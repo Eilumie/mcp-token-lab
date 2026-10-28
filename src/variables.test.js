@@ -80,7 +80,7 @@ test('删除会报告公式中的实际引用，名称子串不误报，独立�
   config.globalSimulation.variables.extra = {label:'扩展',value:2};
   config.globalSimulation.variables.extraLong = {label:'较长扩展',value:3};
   plan.simulation.flow.turn[0].token = 'extraLong + extra';
-  assert.throws(()=>deleteVariable(config,'extra'),/变量仍被引用.*plan|变量仍被引用.*按需/);
+  assert.throws(()=>deleteVariable(config,'extra'),/变量仍被引用.*MCP渐进式Tools Schema/);
   assert.ok(config.globalSimulation.variables.extra);
   plan.simulation.flow.turn[0].token = 'extraLong';
   deleteVariable(config,'extra');
