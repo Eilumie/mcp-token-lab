@@ -20,8 +20,8 @@ const costParts = [["cached", "命中输入", "hit"], ["fresh", "未命中输入
 <template>
   <div class="comparison-cards">
     <article v-for="result in results.filter(item => !visiblePlanId || item.planId === visiblePlanId)" :key="result.planId" class="strategy-card" :class="{ baseline: result.planId === config.baselineId }" :style="{ '--plan-color': displayPlanColor(result.color) }">
-      <div class="strategy-heading"><span class="strategy-icon"><Workflow :size="20" /></span><div><h2>{{ result.planName }}</h2><span>{{ result.rounds.length }} 轮 · 自定义流程</span></div></div>
-      <p class="result-model">{{ result.model.name }}</p>
+      <div v-if="!visiblePlanId" class="strategy-heading"><span class="strategy-icon"><Workflow :size="20" /></span><div><h2>{{ result.planName }}</h2><span>{{ result.rounds.length }} 轮 · 自定义流程</span></div></div>
+      <p v-if="config.plans.find(plan => plan.id === result.planId)?.description" class="result-description">{{ config.plans.find(plan => plan.id === result.planId).description }}</p>
       <div class="baseline-comparison" :title="money(result.cost.total, currency, true)">{{ m(result.cost.total) }}<span class="baseline-caption" :class="{ saving: result.cost.total < baseline.cost.total, increase: result.cost.total > baseline.cost.total }">Base<span v-if="result.planId !== baseline.planId" class="baseline-change" :class="{ increase: baseline.cost.total > 0 && result.cost.total > baseline.cost.total, saving: result.cost.total < baseline.cost.total }">{{ difference(result) }}</span></span></div>
       <div class="token-metrics">
         <div v-for="[key, label, tokenKey] in costParts" :key="key">

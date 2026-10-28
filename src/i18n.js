@@ -48,7 +48,8 @@ const english = {
   '初始前缀按期望命中率计费 · 每轮流程结束后检查压缩 · 最后一轮触发的压缩也计费': 'The initial prefix uses the expected cache hit rate · Compression is checked after each turn · Compression on the final turn is billed',
   '所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。': 'All lengths use K tokens. Estimated costs use the current settings and rate snapshot; undefined ratios show “—”.',
   '普通点最多采样 250 个，另保留全部压缩点、相邻轮次及峰值；费用统计使用完整数据。': 'Up to 250 regular points are sampled. Compression points, adjacent turns, and the peak are retained; costs use all data.',
-  '单位 K Token。每轮流程展示首轮的内容长度，未触发节点计为 0；模型输入包含此前累计上下文，压缩费用另计。': 'Unit: K tokens. The turn flow shows first-turn lengths; skipped nodes count as zero. Model input includes prior context. Compression is billed separately.',
+  '单位 K Token。节点按配置展示触发条件、单次内容长度与耗时，动态公式为参考值；合计为已启用节点的配置值，实际执行取决于触发条件。模型输入包含此前累计上下文，压缩费用另计。': 'Unit: K tokens. Nodes show configured triggers, per-execution lengths and durations; dynamic formulas are estimates. Totals include enabled nodes; execution depends on trigger conditions. Model input includes prior context. Compression is billed separately.',
+  '已启用节点内容与输出合计': 'Configured content and output total',
   '内置参数保留，未引用的自定义变量可删除。关闭弹框会放弃本次修改。': 'Built-in parameters are retained. Unused custom variables can be deleted. Closing discards your changes.',
   '内置参数保留。未引用的自定义变量可删除；关闭弹框会放弃本次修改。': 'Built-in parameters are retained. Unused custom variables can be deleted. Closing discards your changes.',
   '删除内置变量会同步移除各方案中的对应配置，计算时使用系统默认值。关闭弹框会放弃本次修改。': 'Deleting a built-in variable removes its setting from every plan; calculations use the system default. Closing discards your changes.',
@@ -259,6 +260,7 @@ export function translateUi(value) {
     .replace(/每 (\d+) 轮压缩/g, 'Compress every $1 turns')
     .replace(/最多对比 (\d+) 个方案/g, 'Compare up to $1 plans')
     .replace(/每 (\d+) 轮触发/g, 'Every $1 turns')
+    .replace(/(\d+) 个已启用模型节点/g, '$1 enabled model nodes')
     .replace(/(\d+)% 概率触发/g, '$1% trigger probability')
     .replace(/请先修复「(.+?)」的公式再删除变量/g, 'Fix the formula in “$1” before deleting the variable')
     .replace(/已展开，动作按来源 Turn 分组/g, 'expanded; actions grouped by source turn')

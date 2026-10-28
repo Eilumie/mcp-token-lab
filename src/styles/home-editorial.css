@@ -223,4 +223,4 @@
   .home-page .lab-mini-track > i, .home-page .plan-summary-row { transition: none; }
 }
 
-.home-page .comparison-table .plan-description { max-width: 280px; margin: 5px 0 0; color: #73766e; font-size: 11px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.home-page .comparison-table .plan-description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; max-width: 280px; margin: 5px 0 0; color: #73766e; font-size: 11px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }

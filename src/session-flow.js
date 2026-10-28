@@ -69,6 +69,21 @@ export function previewStep(flow, phase, index, config, turnIndex = 0) {
   }
 }
 
+// 配置预览不抽样触发状态；间隔公式以首次触发轮次作为参考值。
+export function previewConfiguredStep(flow, phase, index, config) {
+  const step = flow[phase][index];
+  try {
+    const enabled = step.enabled !== false;
+    const runtime = phase === "initial" ? { turnIndex: 0, llmIndex: 0 } : {
+      turnIndex: step.trigger?.type === "interval" ? step.trigger.value - 1 : 0,
+      llmIndex: flow.turn.slice(0, index).filter(previous => previous.type === "llm" && previous.enabled !== false).length,
+    };
+    return { runs: enabled, value: enabled ? resolveStepToken(step.token, config, runtime) : 0, error: "" };
+  } catch (error) {
+    return { runs: false, value: null, error: error.message };
+  }
+}
+
 export function createDefaultFlow() {
   return {
     initial: [

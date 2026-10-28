@@ -75,7 +75,7 @@
 .home-page .strategy-heading > div { flex: 1; min-width: 0; }
 .home-page .strategy-heading h2 { font-size: 14px; overflow-wrap: anywhere; }
 .home-page .strategy-heading > div > span { display: block; margin-top: 4px; font-size: 10px; color: var(--muted); }
-.home-page .result-model { margin-top: 11px; font-size: 10px; line-height: 1.7; color: var(--muted); overflow-wrap: anywhere; }
+.home-page .result-description { margin-top: 11px; font-size: 10px; line-height: 1.7; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
 .home-page .baseline-comparison { font-size: clamp(22px, 2.2vw, 30px); line-height: 1.4; font-weight: 400; color: var(--ink); margin-top: 15px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .home-page .baseline-caption { display: inline-block; margin-left: 6px; font-size: 0.85em; color: var(--ink); vertical-align: baseline; white-space: nowrap; }
 .home-page .baseline-change.increase { color: #ad4d42; }
@@ -215,7 +215,7 @@ to { transform: rotate(360deg); } }
 .home-page .strategy-icon { width: 42px; height: 42px; border-radius: 11px; background: linear-gradient(145deg, color-mix(in srgb, var(--plan-color) 5%, white), color-mix(in srgb, var(--plan-color) 13%, white)); }
 .home-page .strategy-heading h2 { font-size: 15px; font-weight: 600; }
 .home-page .strategy-heading > .icon-button { border-color: #eceef2; background: #fff; box-shadow: 0 1px 3px #18203905; width: 32px; height: 32px; }
-.home-page .result-model { margin-top: 10px; font-size: 11px; }
+.home-page .result-description { margin-top: 10px; font-size: 11px; }
 .home-page .baseline-comparison { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: clamp(26px, 2.5vw, 34px); font-weight: 600; letter-spacing: -.9px; margin-top: 18px; }
 .home-page .baseline-caption { margin-left: 0; font-size: 12px; font-weight: 600; letter-spacing: 0; color: #4e5668; background: #f0f1f5; padding: 4px 10px; border-radius: 20px; }
 .home-page .baseline-caption.saving { background: #eaf4ee; color: #347b5c; }

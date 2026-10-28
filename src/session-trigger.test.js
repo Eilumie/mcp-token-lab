@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import Session from "./session.js";
-import { previewStep, shouldRunStep, stepRuntime } from "./session-flow.js";
+import { previewConfiguredStep, previewStep, shouldRunStep, stepRuntime } from "./session-flow.js";
 import { buildReport, simulate } from "./session-report.js";
 import { createComparisonConfig, readComparisonConfig } from "./comparison.js";
 
@@ -15,6 +15,23 @@ const makeSession = (turn, extra = {}) => new Session({
   flow: { initial: [], turn }, ...extra,
 });
 const userTurns = session => session.turns.filter(turn => turn.kind === "user");
+
+test("配置预览保留间隔和概率节点的单次长度，不使用首轮触发结果", () => {
+  const flow = { initial: [], turn: [
+    llm("间隔调用", 7, interval(3)),
+    llm("零概率调用", 5, probability(0)),
+    { ...llm("停用调用", 99), enabled: false },
+    action("动态配置", "1 / turnIndex + llmIndex", interval(3)),
+  ] };
+  const before = structuredClone(flow);
+  assert.equal(previewStep(flow, "turn", 0, {}).value, 0);
+  assert.equal(previewStep(flow, "turn", 1, {}).value, 0);
+  assert.equal(previewConfiguredStep(flow, "turn", 0, {}).value, 7);
+  assert.equal(previewConfiguredStep(flow, "turn", 1, {}).value, 5);
+  assert.deepEqual(previewConfiguredStep(flow, "turn", 2, {}), { runs: false, value: 0, error: "" });
+  assert.equal(previewConfiguredStep(flow, "turn", 3, {}).value, 2.5);
+  assert.deepEqual(flow, before);
+});
 
 test("缺省触发、100% 和每 1 轮保持原有结果，0% 和停用节点完全跳过", () => {
   const steps = [action("输入", 2), llm("输出", 3)];
