@@ -96,41 +96,41 @@ function save() { if (!Object.keys(errors.value).length) emit('save', planMode ?
 </template>
 
 <style scoped>
-.variables-dialog { width: min(880px, calc(100vw - 32px)); max-height: 88dvh; border: 1px solid #e9ebef; border-radius: 18px; padding: 0; color: #303848; background: #fff; box-shadow: 0 24px 90px #18203930; font: 13px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif; --muted:#7d8492; --accent:#c25536; }
+.variables-dialog { width: min(880px, calc(100vw - 32px)); max-height: 88dvh; border: 1px solid #dddfd7; border-radius: 2px; padding: 0; color: #242622; background: #fafaf7; box-shadow: 0 24px 80px #24262224; font: 13px Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif; --muted:#73766e; --accent:#b94e30; }
 .variables-dialog[open] { display: flex; flex-direction: column; }
-.variables-dialog::backdrop { background: #18203966; backdrop-filter: blur(3px); }
+.variables-dialog::backdrop { background: #24262266; backdrop-filter: blur(2px); }
 header { display: flex; justify-content: space-between; gap: 16px; padding: 24px 26px 18px; }
-h2 { display: flex; align-items: center; gap: 9px; font-size: 19px; }
+h2 { display: flex; align-items: center; gap: 9px; margin: 0; color: #242622; font-size: 16px; font-weight: 550; }
 header p, .variable-note { color: var(--muted); font-size: 11px; line-height: 1.8; margin: 7px 0 0; }
-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; min-height: 34px; background: #fff; border: 1px solid #e5e7ed; border-radius: 7px; color: #555e6e; font: inherit; }
-button:hover:not(:disabled) { background: #f7f8fa; }
+button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; min-height: 34px; background: transparent; border: 1px solid #dddfd7; border-radius: 2px; color: #555950; font: inherit; }
+button:hover:not(:disabled) { background: #eeefe9; }
 .close-dialog { border: 0; align-self: start; padding: 5px; }
 .variables-body { padding: 0 26px 24px; overflow: auto; overscroll-behavior: contain; }
-section { padding: 20px 0; border-top: 1px solid #eceef2; }
-h3 { display: flex; align-items: center; gap: 10px; font-size: 14px; margin-bottom: 17px; }
-h3 small { font-size: 10px; font-weight: 400; color: #9299a5; }
+section { padding: 20px 0; border-top: 1px solid #dddfd7; }
+h3 { display: flex; align-items: center; gap: 10px; color: #242622; font-size: 13px; font-weight: 550; margin: 0 0 17px; }
+h3 small { font-size: 10px; font-weight: 400; color: #73766e; }
 .variables-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px 22px; }
 .variables-grid > * { min-width: 0; }
-.variables-dialog :deep(.field) { color: #737c8d; font-size: 11px; margin-bottom: 0; gap: 7px; }
+.variables-dialog :deep(.field) { color: #73766e; font-size: 11px; margin-bottom: 0; gap: 7px; }
 .variables-dialog :deep(.field > span:first-child) { display: flex; align-items: center; justify-content: space-between; min-height: 24px; }
-.variables-dialog :deep(.field input), .variables-dialog :deep(.field select) { width: 100%; height: 38px; font: inherit; color: #303848; border: 1px solid #e5e7ed; border-radius: 7px; background: #fff; padding: 8px 10px; }
+.variables-dialog :deep(.field input), .variables-dialog :deep(.field select) { width: 100%; height: 38px; font: inherit; color: #242622; border: 1px solid #dddfd7; border-radius: 2px; background: #fff; padding: 8px 10px; }
 .variables-dialog :deep(.input-wrap) { display: flex; align-items: center; position: relative; }
-.variables-dialog :deep(.input-wrap .input-unit) { position: absolute; right: 10px; width: auto; color: #9299a5; pointer-events: none; }
+.variables-dialog :deep(.input-wrap .input-unit) { position: absolute; right: 10px; width: auto; color: #73766e; pointer-events: none; }
 .variables-dialog :deep(.input-wrap input), .variables-dialog :deep(.input-unit input) { padding-right: 45px; }
-.variables-dialog :deep(.inherit-btn) { border: 0; background: #f8f1ed; color: #91492f; padding: 4px 6px; min-height: 24px; font-size: 10px; margin-left: auto; }
-.variables-dialog :deep(input:focus), .variables-dialog :deep(select:focus) { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px #c2553614; }
+.variables-dialog :deep(.inherit-btn) { border: 0; background: #eeefe9; color: #8f4029; padding: 4px 6px; min-height: 24px; font-size: 10px; margin-left: auto; }
+.variables-dialog :deep(input:focus), .variables-dialog :deep(select:focus) { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px #b94e3018; }
 .variables-dialog :deep(button:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .custom-variables { margin-top: 14px; }
 .custom-name { overflow-wrap: anywhere; min-width: 0; }
 .remove-variable { margin-left: auto; min-height: 24px; border: 0; padding: 4px; color: #b3483d; }
-.new-variable { margin-top: 20px; padding: 18px; border: 1px dashed #d9dee5; border-radius: 9px; background: #fafbfc; }
-h4 { margin: 0 0 12px; font-size: 12px; }
+.new-variable { margin-top: 20px; padding: 18px; border: 1px dashed #dddfd7; border-radius: 2px; background: #f0f1eb; }
+h4 { margin: 0 0 12px; color: #242622; font-size: 12px; font-weight: 550; }
 .add-variable { margin-top: 16px; }
-footer { padding: 16px 26px; border-top: 1px solid #e9ebef; background: #fafbfc; }
+footer { padding: 16px 26px; border-top: 1px solid #dddfd7; background: #f0f1eb; }
 footer > div { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
-.variable-error { color: #b3483d; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
-.save-variables { background: #91492f; border-color: #91492f; color: #fff; }
-.save-variables:hover:not(:disabled) { background: #803b25; }
+.variable-error { color: #a53e32; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.save-variables { background: #242622; border-color: #242622; color: #fff; }
+.save-variables:hover:not(:disabled) { background: #42483b; }
 @media(max-width:600px) { .variables-grid { grid-template-columns: 1fr; } header { padding: 20px 18px 14px; } .variables-body { padding: 0 18px 20px; } footer { padding: 14px 18px; } .variables-dialog :deep(.field input) { font-size: 16px; } }
 @media(max-width:600px) { .global-variables-dialog .variables-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px 12px; } }
 </style>

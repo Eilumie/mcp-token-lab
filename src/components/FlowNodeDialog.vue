@@ -63,12 +63,12 @@ onBeforeUnmount(() => previousFocus?.isConnected && previousFocus.focus());
 </template>
 
 <style scoped>
-.flow-node-dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100vh - 32px); border: 1px solid #e4e7eb; border-radius: 14px; padding: 0; color: #354050; box-shadow: 0 18px 60px #18203930; }
-.flow-node-dialog::backdrop { background: #18203970; }
+.flow-node-dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100vh - 32px); border: 1px solid #dddfd7; border-radius: 2px; padding: 0; color: #242622; background: #fafaf7; box-shadow: 0 24px 80px #24262224; }
+.flow-node-dialog::backdrop { background: #24262266; backdrop-filter: blur(2px); }
 header, footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 22px; }
-header { border-bottom: 1px solid #eceef2; } h2 { margin: 0; font-size: 17px; } header p { margin: 6px 0 0; color: #89919c; font-size: 11px; }
-button { cursor: pointer; border: 1px solid #e1e5eb; border-radius: 7px; background: #fff; color: #566170; padding: 8px 14px; } button:disabled { opacity: .5; cursor: not-allowed; } .close { border: 0; padding: 5px; }
-.fields { display: grid; gap: 14px; padding: 20px 22px; } label, .field-title { display: grid; gap: 6px; font-size: 12px; color: #687384; } input:not([type=checkbox]), select, textarea { box-sizing: border-box; width: 100%; border: 1px solid #dfe4e9; border-radius: 7px; padding: 9px; background: #fff; color: #354050; font: inherit; } textarea { resize: vertical; font-family: monospace; } .enabled { display: flex; align-items: center; gap: 8px; }
-.modes { display: inline-flex; margin-top: 6px; padding: 3px; border-radius: 8px; background: #f1f3f6; } .modes button { border: 0; padding: 6px 11px; background: transparent; font-size: 11px; } .modes .active { background: #fff; color: #91492f; box-shadow: 0 1px 4px #18203918; }
-.preview { margin: 0; color: #778777; font-size: 12px; } .error { margin: 0; color: #b3483d; font-size: 12px; line-height: 1.6; } footer { justify-content: flex-end; border-top: 1px solid #eceef2; } .save { background: #98583e; border-color: #98583e; color: white; }
+header { border-bottom: 1px solid #dddfd7; } h2 { margin: 0; color: #242622; font-size: 16px; font-weight: 550; } header p { margin: 6px 0 0; color: #73766e; font-size: 11px; }
+button { cursor: pointer; border: 1px solid #dddfd7; border-radius: 2px; background: transparent; color: #555950; padding: 8px 14px; } button:hover:not(:disabled) { background: #eeefe9; } button:disabled { opacity: .5; cursor: not-allowed; } .close { border: 0; padding: 5px; }
+.fields { display: grid; gap: 14px; padding: 20px 22px; } label, .field-title { display: grid; gap: 6px; font-size: 12px; color: #73766e; } input:not([type=checkbox]), select, textarea { box-sizing: border-box; width: 100%; border: 1px solid #dddfd7; border-radius: 2px; padding: 9px; background: #fff; color: #242622; font: inherit; } input:focus, select:focus, textarea:focus { outline: none; border-color: #b94e30; box-shadow: 0 0 0 2px #b94e3018; } textarea { resize: vertical; font-family: var(--mono, monospace); } .enabled { display: flex; align-items: center; gap: 8px; }
+.modes { display: inline-flex; margin-top: 6px; padding: 2px; border-radius: 2px; background: #eeefe9; } .modes button { border: 0; padding: 6px 11px; background: transparent; font-size: 11px; } .modes .active { background: #fff; color: #b94e30; box-shadow: 0 1px 3px #24262212; }
+.preview { margin: 0; color: #73766e; font-size: 12px; } .error { margin: 0; color: #a53e32; font-size: 12px; line-height: 1.6; } footer { justify-content: flex-end; border-top: 1px solid #dddfd7; } .save { background: #242622; border-color: #242622; color: white; } .save:hover:not(:disabled) { background: #42483b; }
 </style>

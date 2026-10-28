@@ -189,13 +189,14 @@ select{background:#fff;border:1px solid var(--line);border-radius:6px;padding:8p
 .inherit-btn.inherited{color:#7e9c60;background:#eff5e7}
 .toast{position:fixed;bottom:25px;left:50%;transform:translateX(-50%);max-width:calc(100% - 32px);display:flex;align-items:center;gap:10px;padding:11px 14px;background:#2b442e;color:#eff5e8;box-shadow:0 5px 20px #24331920;border-radius:8px;z-index:60;font-size:12px}
 .toast>button{border:0;background:none;color:#d2e5ba;font-size:11px;white-space:nowrap}
-.help-overlay{position:fixed;inset:0;z-index:100;background:#24351b50;display:grid;place-items:center;padding:25px;backdrop-filter:blur(4px)}
-.help-panel{position:relative;width:min(420px,100%);background:#fff;padding:36px;border-radius:12px;box-shadow:0 20px 70px #24351920}
+.help-overlay{position:fixed;inset:0;z-index:100;background:#24262266;display:grid;place-items:center;padding:25px;backdrop-filter:blur(2px)}
+.help-panel{position:relative;width:min(420px,100%);background:#fafaf7;border:1px solid #dddfd7;padding:36px;border-radius:2px;box-shadow:0 24px 80px #24262224;color:#242622}
 .help-close{position:absolute;right:15px;top:15px}
-.help-panel h2{font-size:24px;color:#456132;margin:15px 0 25px}
-.help-panel p{font-size:12px;color:#7a8e65;margin:17px 0;line-height:1.9}
+.help-panel h2{font-size:22px;font-weight:500;letter-spacing:-.5px;color:#242622;margin:15px 0 25px}
+.help-panel p{font-size:12px;color:#73766e;margin:17px 0;line-height:1.9}
 .help-panel .field-help{font-size:10px}
-.help-panel .btn{margin-top:12px}
+.help-panel .btn{margin-top:12px;border:1px solid #242622;border-radius:2px;background:#242622;color:#fff;box-shadow:none}
+.help-panel .btn:hover{background:#42483b}
 :root{--muted:#81867e}
 .micro,.flow-section-label,.field-help,.context-vars summary,.step-text small,.nav-note,.nav-context p,.field,.settings-page .field,.inspector-top>span:first-child{color:#858d80}
 .step-text strong,.inspector-summary h3,.field input,.field select,.settings-group h3,.nav-context strong,.model-caption{color:#414b3b}
