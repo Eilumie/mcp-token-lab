@@ -16,18 +16,15 @@ function draw() {
       const seed = ((col + 1) * 73856093 ^ (row + 1) * 19349663) >>> 0;
       if (seed % 5 < 2) continue;
       const x = col * 28 + 14, y = row * 30 + 15;
-      // Static glyphs fade from transparent at the viewport center to 4% at its edges.
-      const edge = Math.min(1, Math.hypot((x - width / 2) / (width / 2), (y - height / 2) / (height / 2)));
-      const backgroundAlpha = edge * edge * (3 - 2 * edge) * 0.04;
       const distance = pointer ? Math.hypot(x - pointer.x, y - pointer.y) : Infinity;
       // Smooth falloff reaches zero at the rim: no visible circle or hard mask.
       const t = Math.max(0, 1 - distance / 190);
       const focus = t * t * (3 - 2 * t);
-      const scale = 1 + focus * 0.36;
-      const px = pointer ? x + (x - pointer.x) * focus * 0.05 : x;
-      const py = pointer ? y + (y - pointer.y) * focus * 0.05 : y;
+      const scale = 1 + focus * 0.28;
+      const px = pointer ? x + (x - pointer.x) * focus * 0.035 : x;
+      const py = pointer ? y + (y - pointer.y) * focus * 0.035 : y;
       context.font = `${10 * scale}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-      context.fillStyle = `rgba(88, 98, 118, ${backgroundAlpha + focus * 0.22})`;
+      context.fillStyle = `rgba(88, 98, 118, ${0.035 + (seed % 3) * 0.008 + focus * 0.22})`;
       context.fillText(characters[seed % characters.length], px, py);
     }
   }

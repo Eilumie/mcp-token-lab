@@ -12,11 +12,17 @@
 .home-page .app-header {
   height: 82px;
   padding-inline: max(32px, calc((100vw - 1224px) / 2));
-  background: rgb(250 250 247 / 94%);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--line);
+  --header-surface-opacity: .82;
+  background: transparent;
+  backdrop-filter: none;
+  border-bottom-color: transparent;
 }
-.home-page .header-floating { filter: none; }
+.home-page .header-actions > button.header-floating,
+.home-page .header-actions .header-github {
+  background: #ffffffd9;
+  border: 1px solid #eceef2;
+  box-shadow: 0 2px 5px #18203904;
+}
 .home-page .brand strong { font-size: 20px; letter-spacing: -.7px; }
 .home-page .brand strong span { color: var(--muted); font-size: 7px; letter-spacing: 1.4px; }
 .home-page .brand-mark, .home-page .brand-mark img { width: 30px; height: 30px; }
