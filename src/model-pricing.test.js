@@ -4,7 +4,6 @@ import { modelPresets, bailianPresets, deepseekPresets, overseasPresets, bailian
 import { createConfig, createPresetConfig, readConfig, validate } from "./config.js";
 import { createComparisonConfig, readComparisonConfig, validateComparison } from "./comparison.js";
 import { simulate } from "./session-report.js";
-import { buildCsv } from "./export.js";
 
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} != ${expected}`);
 
@@ -62,7 +61,7 @@ test("美元配置导入保留实际单价，导入导出不修改费率数值",
   assert.throws(() => readConfig(invalid), /美元/);
 });
 
-test("国内、海外模型可直接比较，导入与 CSV 均为 USD，费用守恒", () => {
+test("国内、海外模型可直接比较，导入保留 USD，费用守恒", () => {
   const config = createComparisonConfig();
   Object.assign(config.plans[0], createPresetConfig(bailianPresets[0]));
   Object.assign(config.plans[1], createPresetConfig(overseasPresets.find(p => p.actual === "claude-opus-5-5")));
@@ -78,8 +77,6 @@ test("国内、海外模型可直接比较，导入与 CSV 均为 USD，费用�
   const results = simulate(config);
   close(results[0].cost.total, (12 + 36) / 6.6684 / 1000);
   close(results[1].cost.total, (2 + 10) / 1000);
-  const csv = buildCsv(results, config);
-  assert.ok(csv.includes('"K","USD"'));
   config.plans[0].model.outputPrice = 14;
   const imported = readComparisonConfig(config);
   assert.deepEqual(validateComparison(imported), {});

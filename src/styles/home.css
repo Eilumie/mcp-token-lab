@@ -3,7 +3,6 @@
 .home-page .input-unit{display:inline;position:static;width:auto;flex:none}
 .home-page .field>span:first-child{display:initial}
 .home-page .section-heading{margin-bottom:0}
-.home-page .segmented{border:0}
 .home-page .comparison-table-wrap{border:1px solid #e4e7ed;border-radius:16px;background:#fffffff5;box-shadow:0 5px 24px #18203904;margin-bottom:24px}
 .home-page .comparison-table{font-size:13px;white-space:nowrap;text-align:left}
 .home-page .comparison-table th{height:40px;padding:0 15px;text-align:left;background:#fafbfc;color:#858c99;font-size:11px;font-weight:400;border-bottom:1px solid #e9ebef}
@@ -17,7 +16,6 @@
 .home-page .comparison-table .plan-title:hover{background:none;text-decoration:underline}
 .home-page .comparison-table .plan-identity small{font-size:11px;color:#9299a6;margin-top:5px}
 .home-page .comparison-table .price-cell{font-size:22px;font-weight:550;letter-spacing:-.6px;color:#252c39}
-.home-page .comparison-table .price-cell .micro{font-size:9px;font-weight:400;letter-spacing:0;color:#8d95a0;margin-left:7px}
 .home-page .comparison-table .badge{font-size:9px;color:#818a78;border:1px solid #dde3d6;background:#f3f5ef;border-radius:4px;padding:2px 5px;margin-left:8px}
 .home-page .comparison-table .delta{display:inline-flex;align-items:center;gap:3px;padding:4px 6px;border-radius:4px;background:#edf5e9;color:#4c7656;font-size:11px;font-weight:500}
 .home-page .comparison-table .delta.positive{color:#9b7850;background:#faf2e8}
@@ -37,7 +35,6 @@
 .home-page .comparison-table .plan-title{font-size:12px}
 .home-page .comparison-table .plan-identity small{font-size:9px}
 .home-page .comparison-table .price-cell{font-size:19px}
-.home-page .comparison-table .price-cell .micro{display:none}
 .home-page footer{flex-wrap:wrap}
 .home-page .undo-button{margin-left:0}}
 .home-page .comparison-cards{margin-bottom:24px}

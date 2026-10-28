@@ -4,7 +4,7 @@ import Session from "./session.js";
 import { simulate as simulateComparison, buildReport } from "./session-report.js";
 import { createConfig, createPresetConfig, validate, readConfig } from "./config.js";
 import { defaultModelPreset, modelPresets } from "./model-pricing.js";
-import { money, csvCell } from "./utils.js";
+import { money } from "./utils.js";
 import { sourceOption } from "./charts.js";
 import { createComparisonConfig, createPlan } from "./comparison.js";
 import { createDefaultFlow, createPreloadedFlow } from "./session-flow.js";
@@ -225,12 +225,10 @@ test("1000 轮分页数据完整、压缩汇总守恒", () => {
   });
 });
 
-test("小额非零费用不显示为零，CSV 防止公式注入", () => {
+test("小额非零费用不显示为零", () => {
   assert.equal(money(0), "$0");
   assert.notEqual(money(0.00001), "$0.00");
   assert.match(money(1e-10), /e-10/);
-  assert.equal(csvCell('=SUM(A1)'), '"\'=SUM(A1)"');
-  assert.equal(csvCell('a"b'), '"a""b"');
 });
 
 test("自定义 initial 与每轮步骤按顺序执行，缓存及费用归因使用真实快照", () => {

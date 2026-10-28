@@ -19,8 +19,3 @@ export function downloadFile(name, content, type) {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-export function csvCell(value) {
-  const safe = String(value ?? "").replace(/^[=+@-]/, "'$&").replaceAll('"', '""');
-  return '"' + safe + '"';
-}
-export const roundRange = rounds => !rounds.length ? "无" : rounds.length === 1 ? "第 " + rounds[0] + " 轮" : "第 " + rounds[0] + "–" + rounds.at(-1) + " 轮";

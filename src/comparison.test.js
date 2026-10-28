@@ -6,7 +6,6 @@ import { defaultModelPreset, modelPresets } from "./model-pricing.js";
 import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, resolveBaselineId, planColors, maxPlans, globalKeys, resolvePlan } from "./comparison.js";
 import { simulate } from "./session-report.js";
 import { sourceOption, trendOption } from "./charts.js";
-import { buildCsv } from "./export.js";
 
 const small = () => {
   const config = createComparisonConfig();
@@ -77,7 +76,7 @@ test("三个方案可使用任意独立流程、费率、轮次", () => {
   close(next[2].cost.total, 0.28);
 });
 
-test("多个图表和 CSV 包含全部方案", () => {
+test("多个图表包含全部方案", () => {
   const config = small();
   config.plans.push(createPlan({ source: config.plans[1], name: "第三方案", color: planColors[2] }));
   config.plans.forEach((p, i) => {
@@ -92,9 +91,6 @@ test("多个图表和 CSV 包含全部方案", () => {
   const trend = trendOption(results, "context", "$");
   assert.deepEqual(trend.series.map(s => s.name), config.plans.map(p => p.name));
   assert.equal(trend.xAxis.max, 3);
-  const csv = buildCsv(results, config);
-  config.plans.forEach(p => assert.ok(csv.includes(`"${p.name}","K","USD"`)));
-  assert.ok(!csv.includes("undefined"));
 });
 
 test("当前配置往返保留方案、基准及自定义价格", () => {

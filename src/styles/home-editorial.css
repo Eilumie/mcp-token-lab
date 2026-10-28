@@ -31,9 +31,6 @@
 .home-page .brand-mark, .home-page .brand-mark img { width: 30px; height: 30px; }
 .home-page .header-actions { gap: 6px; }
 .home-page .header-actions button, .home-page .header-actions .header-github { color: #555950; }
-.home-page .header-actions .language-switch { border: 0; border-radius: 0; background: none; padding: 0 16px 0 0; margin-right: 6px; border-right: 1px solid var(--line); }
-.home-page .header-actions .language-switch button { min-width: 30px; padding: 5px; border-radius: 3px; background: transparent; color: var(--muted); }
-.home-page .header-actions .language-switch button.active { color: var(--ink); background: #e8e9e2; }
 .home-page .workspace.comparison-workspace { max-width: 1288px; }
 .home-page .comparison-workspace main { max-width: none; padding: 0 32px 24px; }
 .home-page button { border-radius: 4px; box-shadow: none; }
@@ -93,7 +90,6 @@
 .home-page .comparison-table .plan-title { color: var(--ink); font-size: 14px; font-weight: 550; }
 .home-page .comparison-table .plan-identity small { color: #8b9182; font-size: 10px; }
 .home-page .comparison-table .price-cell { font-size: 27px; font-weight: 450; letter-spacing: -1px; color: var(--ink); white-space: nowrap; }
-.home-page .comparison-table .price-cell .micro { font: 8px var(--mono); color: #909586; }
 .home-page .comparison-table .badge { border: 0; border-radius: 2px; color: #737b66; background: #eceee5; font-size: 8px; }
 .home-page .comparison-table .delta { padding: 0; border-radius: 0; background: transparent; color: #4d7456; font: inherit; font-family: var(--mono); }
 .home-page .comparison-table .cost-comparison { font-size: .75em; font-weight: 400; letter-spacing: 0; line-height: 1.5; }
@@ -154,7 +150,6 @@
   .home-page .comparison-table { white-space: normal; }
   .home-page .comparison-table .plan-identity small { max-width: 160px; line-height: 1.6; }
   .home-page .comparison-table .price-cell { font-size: 23px; white-space: nowrap; }
-  .home-page .comparison-table .price-cell .micro { display: none; }
   .home-page .comparison-table .plan-identity { min-width: 155px; gap: 5px; }
   .home-page .comparison-table .plan-icon { display: none; }
   .home-page .analysis-panel { grid-template-columns: minmax(0,1fr); }
@@ -171,8 +166,6 @@
   .home-page .header-actions > button span, .home-page .header-github span { display: none; }
   .home-page .header-actions > button, .home-page .header-actions .header-github { width: 30px; padding: 6px; }
   .home-page .header-actions > button.header-floating, .home-page .header-actions .header-github { width: 30px; padding: 6px; font-size: 11px; }
-  .home-page .header-actions .language-switch { padding-right: 7px; margin-right: 2px; }
-  .home-page .header-actions .language-switch button { min-width: 26px; font-size: 10px; }
   .home-page .comparison-workspace main { padding: 0 20px 22px; }
   .home-page .lab-intro { padding: 32px 0; grid-template-columns: 1fr; gap: 28px; }
   .home-page .lab-intro h1 { font-size: 47px; letter-spacing: -2px; margin-top: 16px; }
@@ -203,7 +196,6 @@
   .home-page .comparison-table .plan-title { font-size: 12px; }
   .home-page .comparison-table .price-cell { font-size: 23px; }
   .home-page .comparison-table .badge { margin-left: 5px; }
-  .home-page .comparison-table .row-actions { gap: 0; }
   .home-page .plan-expanded-content { padding: 20px 12px; }
   .home-page .expanded-cost-card .strategy-card { padding: 0; }
   .home-page .request-details-heading { padding: 24px 0 18px; }
@@ -216,7 +208,6 @@
   .home-page .brand-mark, .home-page .brand-mark img { width: 24px; height: 24px; }
   .home-page .header-actions > button, .home-page .header-actions .header-github { width: 28px; }
   .home-page .header-actions > button.header-floating, .home-page .header-actions .header-github { width: 28px; padding: 6px; }
-  .home-page .header-actions .language-switch button { min-width: 24px; }
   .home-page .global-settings .field > span:first-child { white-space: normal; height: auto; min-height: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {

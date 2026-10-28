@@ -48,6 +48,3 @@ export function customVariableValues(variables) {
   validateVariables(variables);
   return Object.fromEntries(Object.entries(variables || {}).map(([name, variable]) => [name, variable.value]));
 }
-export function parameterLabels(simulation) {
-  return { ...tokenParameters, ...Object.fromEntries(Object.entries(simulation?.variables || {}).map(([name, variable]) => [name, variable.label])) };
-}
