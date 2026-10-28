@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { reactive } from 'vue';
 import { readdirSync, readFileSync } from 'node:fs';
 import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison } from './comparison.js';
-import { createBuiltinTemplates, createTemplate, readTemplate } from './templates.js';
+import { createBuiltinTemplates, createDefaultConfig, createTemplate, readTemplate } from './templates.js';
 import { simulate } from './session-report.js';
 
 test('template export/import preserves metadata, plan descriptions, and current configuration', () => {
@@ -92,4 +92,21 @@ test('new JSON entries and nested templates load without changing an import list
   assert.deepEqual(templates.map(template => template.description), ['普通配置格式', '完整模板格式']);
   assert.deepEqual(createBuiltinTemplates({}), []);
   assert.throws(() => createBuiltinTemplates({ './broken.json': {} }), /默认模板 \.\/broken\.json/);
+});
+
+test('initial and reset configurations use the first template without sharing mutable state', () => {
+  const sources = defaultTemplateSources();
+  const expected = createBuiltinTemplates(sources)[0].config;
+  const before = structuredClone(sources);
+  const initial = createDefaultConfig(sources);
+  assert.deepEqual(initial, expected);
+  assert.deepEqual(validateComparison(initial), {});
+  initial.globalSimulation.toolsTotalCount = 999;
+  initial.plans[0].description = '已编辑';
+  initial.plans[0].simulation.flow.initial = [];
+  const reset = createDefaultConfig(sources);
+  assert.deepEqual(reset, expected);
+  assert.deepEqual(sources, before);
+  assert.deepEqual(createDefaultConfig(Object.fromEntries(Object.entries(sources).reverse())), expected);
+  assert.throws(() => createDefaultConfig({}), /未配置默认模板/);
 });

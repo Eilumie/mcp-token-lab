@@ -1,13 +1,15 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { ArrowRight, Check, CircleHelp, X } from 'lucide-vue-next';
-import { createComparisonConfig, createPlan, planColors, readComparisonConfig, validateComparison } from './comparison.js';
+import { createPlan, planColors, readComparisonConfig, validateComparison } from './comparison.js';
+import { createDefaultConfig } from './templates.js';
+import defaultTemplates from './config/default-template/index.js';
 import VariablesDialog from './components/VariablesDialog.vue';
 import TemplatesDialog from './components/TemplatesDialog.vue';
 import Home from './components/Home.vue';
 import { downloadFile } from './utils.js';
 
-const config = ref(createComparisonConfig());
+const config = ref(createDefaultConfig(defaultTemplates));
 const results = ref([]), busy = ref(false), failure = ref(''), toast = ref('');
 const variablesMode = ref(false), help = ref(false), templatesMode = ref(false), customTemplates = ref([]), lastConfig = ref(null);
 const errors = computed(() => validateComparison(config.value));
@@ -62,7 +64,7 @@ onBeforeUnmount(() => { reportWorker?.terminate(); clearTimeout(reportTimer); cl
 <template>
   <Home :config="config" :results="results" :busy="busy" :errors="errors" :failure="failure" :can-undo="!!lastConfig"
     @variables="variablesMode=true" @templates="templatesMode=true" @export="exportConfig" @remember="remember" @undo="undo"
-    @reset="remember();config=createComparisonConfig();notify('已恢复默认方案')"
+    @reset="remember();config=createDefaultConfig(defaultTemplates);notify('已恢复默认方案')"
     @add="add()" @baseline="setBase" @copy="add(config.plans.find(plan=>plan.id===$event))" @remove="remove" />
   <VariablesDialog v-if="variablesMode" :config="config" @close="variablesMode=false" @save="saveVariables" />
   <TemplatesDialog v-if="templatesMode" :custom-templates="customTemplates" @close="templatesMode=false" @import="customTemplates.push($event)" @apply="applyTemplate" />

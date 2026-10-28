@@ -1,7 +1,7 @@
 {
   "version": 4,
   "unit": "K",
-  "description": "Flat Tools vs Namespace vs Hybrid Tools",
+  "description": "Flat Tools · 基准  vs  Namespace 12 组 × 10 个  vs  Hybrid 5 常驻 + Top 5",
   "baselineId": "plan-1",
   "baselineMode": "manual",
   "globalSimulation": {
@@ -11,7 +11,7 @@
     "variables": {
       "namespaceCount": {
         "label": "Namespace 数量（个）",
-        "value": 10
+        "value": 12
       },
       "toolsPerNamespace": {
         "label": "每个 Namespace 工具数（个）",
@@ -28,7 +28,7 @@
     },
     "turnTotalCount": 100,
     "skillsTotalCount": 30,
-    "toolsTotalCount": 100,
+    "toolsTotalCount": 120,
     "turnAvgSkillsCount": 0.33,
     "turnAvgToolsCount": 1.5,
     "expectedPrefixCacheHitRate": 0.9,
@@ -80,7 +80,7 @@
         "variables": {
           "namespaceCount": {
             "label": "Namespace 数量（个）",
-            "value": 10
+            "value": 12
           },
           "toolsPerNamespace": {
             "label": "每个 Namespace 工具数（个）",
@@ -97,7 +97,7 @@
         },
         "turnTotalCount": 100,
         "skillsTotalCount": 30,
-        "toolsTotalCount": 100,
+        "toolsTotalCount": 120,
         "turnAvgSkillsCount": 0.33,
         "turnAvgToolsCount": 1.5,
         "expectedPrefixCacheHitRate": 0.9,
@@ -229,7 +229,7 @@
     },
     {
       "id": "plan-2",
-      "name": "Namespace 10 组 × 10 个",
+      "name": "Namespace 12 组 × 10 个",
       "description": "Namespace：{{toolsTotalCount}} 个工具分 {{namespaceCount}} 组，每组 {{toolsPerNamespace}} 个；每 2 轮发现并加载一组，{{compressionThresholdToken}}K Token 阈值压缩。",
       "color": "#d99b61",
       "estimateDuration": true,
@@ -240,7 +240,7 @@
         "variables": {
           "namespaceCount": {
             "label": "Namespace 数量（个）",
-            "value": 10
+            "value": 12
           },
           "toolsPerNamespace": {
             "label": "每个 Namespace 工具数（个）",
@@ -257,7 +257,7 @@
         },
         "turnTotalCount": 100,
         "skillsTotalCount": 30,
-        "toolsTotalCount": 100,
+        "toolsTotalCount": 120,
         "turnAvgSkillsCount": 0.33,
         "turnAvgToolsCount": 1.5,
         "expectedPrefixCacheHitRate": 0.9,
@@ -414,7 +414,7 @@
         "variables": {
           "namespaceCount": {
             "label": "Namespace 数量（个）",
-            "value": 10
+            "value": 12
           },
           "toolsPerNamespace": {
             "label": "每个 Namespace 工具数（个）",
@@ -431,7 +431,7 @@
         },
         "turnTotalCount": 100,
         "skillsTotalCount": 30,
-        "toolsTotalCount": 100,
+        "toolsTotalCount": 120,
         "turnAvgSkillsCount": 0.33,
         "turnAvgToolsCount": 1.5,
         "expectedPrefixCacheHitRate": 0.9,

@@ -29,3 +29,9 @@ export function createBuiltinTemplates(sources) {
     }
   });
 }
+
+export function createDefaultConfig(sources) {
+  const first = createBuiltinTemplates(sources)[0];
+  if (!first) throw new Error('未配置默认模板');
+  return first.config;
+}
