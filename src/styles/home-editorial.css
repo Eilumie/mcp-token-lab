@@ -19,15 +19,18 @@
 }
 .home-page .header-actions > button.header-floating,
 .home-page .header-actions .header-github {
-  background: #ffffffd9;
-  border: 1px solid #eceef2;
-  box-shadow: 0 2px 5px #18203904;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 12px;
+  box-shadow: none;
 }
 .home-page .brand strong { font-size: 20px; letter-spacing: -.7px; }
 .home-page .brand strong span { color: var(--muted); font-size: 7px; letter-spacing: 1.4px; }
 .home-page .brand-mark, .home-page .brand-mark img { width: 30px; height: 30px; }
 .home-page .header-actions { gap: 6px; }
-.home-page .header-actions button, .home-page .header-actions .header-github { box-shadow: none; color: #555950; }
+.home-page .header-actions button, .home-page .header-actions .header-github { color: #555950; }
 .home-page .header-actions .language-switch { border: 0; border-radius: 0; background: none; padding: 0 16px 0 0; margin-right: 6px; border-right: 1px solid var(--line); }
 .home-page .header-actions .language-switch button { min-width: 30px; padding: 5px; border-radius: 3px; background: transparent; color: var(--muted); }
 .home-page .header-actions .language-switch button.active { color: var(--ink); background: #e8e9e2; }
@@ -168,6 +171,7 @@
   .home-page .header-actions { gap: 2px; }
   .home-page .header-actions > button span, .home-page .header-github span { display: none; }
   .home-page .header-actions > button, .home-page .header-actions .header-github { width: 30px; padding: 6px; }
+  .home-page .header-actions > button.header-floating, .home-page .header-actions .header-github { width: 30px; padding: 6px; font-size: 11px; }
   .home-page .header-actions .language-switch { padding-right: 7px; margin-right: 2px; }
   .home-page .header-actions .language-switch button { min-width: 26px; font-size: 10px; }
   .home-page .comparison-workspace main { padding: 0 20px 22px; }
@@ -212,6 +216,7 @@
   .home-page .brand strong { font-size: 14px; }
   .home-page .brand-mark, .home-page .brand-mark img { width: 24px; height: 24px; }
   .home-page .header-actions > button, .home-page .header-actions .header-github { width: 28px; }
+  .home-page .header-actions > button.header-floating, .home-page .header-actions .header-github { width: 28px; padding: 6px; }
   .home-page .header-actions .language-switch button { min-width: 24px; }
   .home-page .global-settings .field > span:first-child { white-space: normal; height: auto; min-height: 18px; }
 }
