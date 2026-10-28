@@ -103,17 +103,18 @@ function updateFlow(id, flow) {
       <div class="results-heading comparison-heading"><div><h2><span class="section-index" aria-hidden="true">02</span>对比方案 <span class="plan-count">{{ config.plans.length }}/8</span></h2></div><div class="plan-toolbar"><button @click="emit('reset')"><RotateCcw :size="14"/>恢复默认方案</button><button class="primary-button" :disabled="config.plans.length>=8" @click="addPlan"><Plus :size="15"/>新增方案</button></div></div>
       <div v-if="Object.keys(errors).length || failure" class="error-box" role="alert">{{ Object.values(errors)[0] || failure }}</div>
       <div class="comparison-table-wrap" :aria-busy="busy">
-        <table class="comparison-table"><thead><tr><th>方案 / 模型</th><th>会话总费用</th><th>相对基准</th><th>初始上下文</th><th>LLM次数</th><th title="用户消息总轮数 ÷ 实际压缩次数；包含末次压缩后尚未再次触发压缩的用户轮次。">上下文压缩</th></tr></thead><tbody>
+        <table class="comparison-table"><thead><tr><th>方案 / 模型</th><th>会话总费用</th><th>相对基准</th><th>初始上下文</th><th>峰值输入</th><th>LLM次数</th><th title="用户消息总轮数 ÷ 实际压缩次数；包含末次压缩后尚未再次触发压缩的用户轮次。">上下文压缩</th></tr></thead><tbody>
           <template v-for="r in results" :key="r.planId">
           <tr :id="'plan-row-'+r.planId" class="plan-summary-row" :class="{'row-expanded':expanded.has(r.planId)}" @click="togglePlan(r.planId)">
             <td><div class="plan-identity"><button class="row-expand-button" :aria-label="(expanded.has(r.planId)?'收起':'展开')+'方案详情 '+r.planName" :aria-expanded="expanded.has(r.planId)" :aria-controls="'plan-detail-'+r.planId" @click.stop="togglePlan(r.planId)"><ChevronDown v-if="expanded.has(r.planId)" :size="15"/><ChevronRight v-else :size="15"/></button><span class="plan-icon" :style="{color:planColor(r)}"><Workflow :size="19"/></span><div><button class="plan-title" :aria-expanded="expanded.has(r.planId)" @click.stop="togglePlan(r.planId)">{{ r.planName }}</button><span v-if="r.planId===baselineId" class="badge">基准</span><small>{{ shortName(r.model.name) }}</small></div></div></td>
             <td class="price-cell">{{ m(r.cost.total) }}<span class="micro">USD</span></td>
             <td><span v-if="r.planId===baselineId" class="muted">—</span><span v-else class="delta" :class="{positive:r.cost.total>baseline.cost.total}"><ArrowDown v-if="r.cost.total<baseline.cost.total" :size="12"/><ArrowUp v-else :size="12"/>{{ baseline.cost.total ? pct(Math.abs(r.cost.total-baseline.cost.total)/baseline.cost.total) : '—' }}</span></td>
             <td>{{ n(r.initialContext) }}<span class="unit">K</span></td>
+            <td>{{ n(r.peakInput) }}<span class="unit">K</span></td>
             <td>{{ r.requests.length }}<span class="unit">次</span></td>
             <td>{{ r.averageUserTurnsPerCompression === null ? '未触发压缩' : `平均 ${n(r.averageUserTurnsPerCompression)} 轮` }}</td>
           </tr>
-          <tr v-if="expanded.has(r.planId)" class="plan-detail-row"><td colspan="6">
+          <tr v-if="expanded.has(r.planId)" class="plan-detail-row"><td colspan="7">
             <div :id="'plan-detail-'+r.planId" class="plan-expanded-content">
               <div class="expanded-cost-card"><SummaryCards :results="results" :config="analysisConfig" :visible-plan-id="r.planId" /></div>
               <PlanFlowPreview v-if="config.plans.some(p=>p.id===r.planId)" :plan="config.plans.find(p=>p.id===r.planId)" :global-simulation="config.globalSimulation" :global-model-id="config.globalModelId" :global-model="config.globalModel" @settings="settingsPlanId=$event" @update-flow="updateFlow">

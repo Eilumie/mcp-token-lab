@@ -111,7 +111,7 @@ const english = {
   '模型与费率': 'Model and rates', '全部变量': 'All variables', '全局配置': 'Global settings',
   '对比方案': 'Compare plans', '恢复默认方案': 'Restore default plans', '新增方案': 'Add plan',
   '方案 / 模型': 'Plan / model', '会话总费用': 'Total session cost', '相对基准': 'vs. baseline',
-  '初始上下文': 'Initial context', '上下文压缩': 'Context compression', 'LLM次数': 'LLM calls',
+  '初始上下文': 'Initial context', '峰值输入': 'Peak input', '上下文压缩': 'Context compression', 'LLM次数': 'LLM calls',
   '未触发压缩': 'No compression', '当前基准': 'Current baseline', '设为基准': 'Set as baseline',
   '复制方案': 'Copy plan', '删除方案': 'Delete plan', '复制': 'Copy', '删除': 'Delete', '撤销修改': 'Undo change', '撤销': 'Undo',
   '导入配置': 'Import config', '导出配置': 'Export config', '配置操作': 'Configuration actions',

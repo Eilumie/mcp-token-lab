@@ -87,6 +87,8 @@
 .home-page .comparison-table .price-cell .micro { font: 8px var(--mono); color: #909586; }
 .home-page .comparison-table .badge { border: 0; border-radius: 2px; color: #737b66; background: #eceee5; font-size: 8px; }
 .home-page .comparison-table .delta { padding: 0; border-radius: 0; background: transparent; color: #4d7456; font: 11px var(--mono); }
+.home-page .comparison-table td:nth-child(3) { font-size: 14px; }
+.home-page .comparison-table td:nth-child(3) .delta { font-size: 15px; }
 .home-page .comparison-table .delta.positive { background: transparent; color: #ad6745; }
 .home-page .plan-summary-row { cursor: pointer; transition: background .15s; }
 .home-page .plan-summary-row:hover, .home-page .comparison-table .row-expanded { background: #f1f3eb; }
@@ -99,6 +101,8 @@
 .home-page .phase-result, .home-page .turn-exit { border-radius: 2px; }
 .home-page .analysis-panel { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); margin-top: 32px; border: 0; border-radius: 0; box-shadow: none; background: transparent; overflow: visible; }
 .home-page .analysis-body { min-width: 0; padding: 0 28px 26px 0; }
+.home-page .analysis-trend { grid-column: 1 / -1; }
+.home-page .analysis-sources { grid-column: 1 / -1; }
 .home-page .analysis-body h2 { font-size: 14px; font-weight: 550; display: flex; align-items: center; }
 .home-page .analysis-body .section-heading p { color: var(--muted); margin-left: 26px; font-size: 10px; }
 .home-page .analysis-sources { border: 0; border-left: 1px solid var(--line); padding: 0 0 26px 28px; }
@@ -113,6 +117,10 @@
 .home-page .request-details-heading { padding: 26px 0 22px; }
 .home-page .request-details-heading h2 { color: var(--ink); font-size: 15px; font-weight: 550; }
 .home-page .request-details-heading h2::before { content: '05'; margin-right: 13px; color: #929787; font: 10px var(--mono); }
+.home-page .global-settings-heading h2,
+.home-page .comparison-heading h2,
+.home-page .analysis-body .section-heading h2,
+.home-page .request-details-heading h2 { color: var(--ink); font-size: 14px; font-weight: 550; line-height: 1.4; }
 .home-page .request-cache-legend, .home-page .request-details-footer { background: #f0f1eb; padding-inline: 16px; }
 .home-page .request-model-chip, .home-page .request-action-chip { border-radius: 2px !important; }
 .home-page .request-viewport { height: 620px; }
@@ -180,7 +188,7 @@
   .home-page .plan-toolbar .primary-button { font-size: 11px; }
   .home-page .comparison-table th, .home-page .comparison-table td { padding: 18px 5px; }
   .home-page .comparison-table th { padding-block: 10px; }
-  .home-page .comparison-table th:nth-child(6), .home-page .comparison-table td:nth-child(6) { display: none; }
+  .home-page .comparison-table th:nth-child(7), .home-page .comparison-table td:nth-child(7) { display: none; }
   .home-page .comparison-table .plan-identity { min-width: 0; }
   .home-page .comparison-table .plan-identity small { max-width: 135px; font-size: 9px; }
   .home-page .comparison-table .plan-title { font-size: 12px; }
