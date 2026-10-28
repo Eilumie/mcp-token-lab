@@ -162,9 +162,10 @@ export function buildReport(session, { estimateDuration = true } = {}) {
 export function simulate(config) {
   const errors = validateComparison(config);
   if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
-  const estimateDuration = config.globalSimulation?.estimateDuration !== false;
+  const durationEnabled = config.globalSimulation?.estimateDuration !== false;
   return config.plans.map(plan => {
     plan = resolvePlan(plan, config.globalSimulation, config.globalModelId, config.globalModel);
+    const estimateDuration = durationEnabled && plan.estimateDuration !== false;
     const session = new Session({ ...plan.simulation, model: plan.model });
     session.reset();
     return {

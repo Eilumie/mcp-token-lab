@@ -77,7 +77,7 @@ export function createPlan({ source, name = "自定义方案", id = crypto.rando
     delete useGlobal[key];
   }
   return {
-    id, name, color, description: base.description ?? "",
+    id, name, color, description: base.description ?? "", estimateDuration: base.estimateDuration ?? true,
     simulation: base.simulation, model: base.model, pricing: base.pricing,
     useGlobal,
   };
@@ -206,8 +206,6 @@ export function readComparisonConfig(data) {
     for (const key of globalKeys) setValue(normalized.simulation, key, getValue(plan.simulation, key));
     normalized.simulation.variables = structuredClone(plan.simulation.variables || {});
     const result = { ...plan, simulation: normalized.simulation, model: normalized.model, pricing: normalized.pricing };
-    // 兼容曾按方案保存的开关；耗时展示现由单个全局布尔变量控制。
-    delete result.estimateDuration;
     for (const key of globalSimulation?.removedFields || []) {
       deletePath(result.simulation, key);
       delete result.useGlobal?.[key];

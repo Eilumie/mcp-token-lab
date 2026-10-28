@@ -64,7 +64,7 @@ test('压缩耗时计入触发轮次，包括末轮和重复压缩，reset 不�
   assert.deepEqual(buildReport(session), before);
 });
 
-test('单个全局变量统一控制耗时统计，关闭后保留配置且费用和 Token 不变', () => {
+test('全局关闭耗时模拟后保留配置且费用和 Token 不变', () => {
   const config = setup();
   config.plans[0].simulation.flow.turn[1].durationSeconds = 5;
   const before = simulate(config);
@@ -82,6 +82,28 @@ test('单个全局变量统一控制耗时统计，关闭后保留配置且费�
   assert.deepEqual(simulate(config), before);
 });
 
+test('方案独立关闭仅清空该方案耗时，全局开关与其他方案保持不变', () => {
+  const config = setup();
+  const before = simulate(config);
+  config.plans[0].estimateDuration = false;
+  const off = simulate(config);
+  assert.equal(config.globalSimulation.estimateDuration, true);
+  assert.equal(off[0].estimateDuration, false);
+  assert.equal(off[0].averageTurnDurationSeconds, null);
+  assert.ok(off[0].rounds.every(round => round.durationSeconds === null));
+  for (const key of ['cost', 'hit', 'miss', 'output', 'requests']) assert.deepEqual(off[0][key], before[0][key]);
+  assert.deepEqual(off[1], before[1]);
+  config.globalSimulation.estimateDuration = false;
+  assert.ok(simulate(config).every(result => result.averageTurnDurationSeconds === null));
+  config.globalSimulation.estimateDuration = true;
+  assert.deepEqual(simulate(config), off);
+  config.plans[1].estimateDuration = false;
+  assert.ok(simulate(config).every(result => result.averageTurnDurationSeconds === null));
+  assert.equal(config.globalSimulation.estimateDuration, true);
+  config.plans[0].estimateDuration = true;
+  assert.deepEqual(simulate(config)[0], before[0]);
+});
+
 test('空流程耗时为 0，无用户轮次时平均耗时为空', () => {
   const config = setup();
   config.plans[0].simulation.flow.turn = [];
@@ -92,25 +114,27 @@ test('空流程耗时为 0，无用户轮次时平均耗时为空', () => {
   assert.equal(report.averageTurnDurationSeconds, null);
 });
 
-test('JSON 与 Worker 保留全局开关，复制保留节点耗时，旧配置默认开启', () => {
+test('JSON、Worker 与复制保留全局和方案开关及节点耗时，缺省开关默认开启', () => {
   const config = setup();
   config.globalSimulation.estimateDuration = false;
+  config.plans[0].estimateDuration = false;
   config.plans[0].simulation.flow.initial[0].durationSeconds = 0;
   config.plans[0].simulation.flow.turn[1].durationSeconds = 4.25;
   const imported = readComparisonConfig(JSON.parse(JSON.stringify(config)));
   assert.deepEqual(imported, config);
   assert.deepEqual(simulate(structuredClone(imported)), simulate(config));
   const copy = createPlan({ source: imported.plans[0], id: 'copy' });
-  assert.equal(copy.estimateDuration, undefined);
+  assert.equal(copy.estimateDuration, false);
   assert.equal(copy.simulation.flow.turn[1].durationSeconds, 4.25);
   copy.simulation.flow.turn[1].durationSeconds = 10;
   assert.equal(imported.plans[0].simulation.flow.turn[1].durationSeconds, 4.25);
   delete config.globalSimulation.estimateDuration;
+  delete config.plans[0].estimateDuration;
   assert.equal(simulate(readComparisonConfig(config))[0].estimateDuration, true);
   config.plans[0].estimateDuration = false;
   const legacy = readComparisonConfig(config);
-  assert.equal(legacy.plans[0].estimateDuration, undefined);
-  assert.equal(simulate(legacy)[0].estimateDuration, true);
+  assert.equal(legacy.plans[0].estimateDuration, false);
+  assert.equal(simulate(legacy)[0].estimateDuration, false);
 });
 
 test('非法耗时与全局开关在校验和导入时拒绝，耗时溢出报告错误', () => {
@@ -127,6 +151,10 @@ test('非法耗时与全局开关在校验和导入时拒绝，耗时溢出报�
     assert.throws(() => readComparisonConfig(config), /预估耗时开关/);
   }
   config.globalSimulation.estimateDuration = true;
+  config.plans[0].estimateDuration = 'false';
+  assert.throws(() => simulate(config), /预估耗时开关/);
+  assert.throws(() => readComparisonConfig(config), /预估耗时开关/);
+  config.plans[0].estimateDuration = true;
   config.plans[0].simulation.flow.turn[0].durationSeconds = Number.MAX_VALUE;
   assert.throws(() => simulate(config), /耗时超出/);
 });

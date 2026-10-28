@@ -1,4 +1,4 @@
 interface:
   display_name: "MCP Token Lab 方案对比"
-  short_description: "生成可导入 MCP Token Lab 页面的多方案 JSON，比较流程、缓存、压缩与模型费用"
+  short_description: "生成可导入 MCP Token Lab 的多方案 JSON，对比流程、缓存、压缩、费用与预估耗时"
   default_prompt: "使用 $mcp-token-lab，根据我的 Agent 流程生成可导入页面的方案对比 JSON。"

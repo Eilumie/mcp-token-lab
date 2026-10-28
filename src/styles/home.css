@@ -31,7 +31,7 @@
 .home-page .comparison-table .price-cell{font-size:19px}}
 @media(max-width:600px){
 .home-page .comparison-table td,.home-page .comparison-table th{padding:15px 10px}
-.home-page .comparison-table td:nth-child(3),.home-page .comparison-table th:nth-child(3),.home-page .comparison-table td:nth-child(4),.home-page .comparison-table th:nth-child(4),.home-page .comparison-table td:nth-child(5),.home-page .comparison-table th:nth-child(5){display:none}
+.home-page .comparison-table td:nth-child(3),.home-page .comparison-table th:nth-child(3),.home-page .comparison-table td:nth-child(4),.home-page .comparison-table th:nth-child(4){display:none}
 .home-page .comparison-table .plan-identity{min-width:0;gap:8px}
 .home-page .comparison-table .plan-icon{width:28px;height:31px}
 .home-page .comparison-table .plan-title{font-size:12px}

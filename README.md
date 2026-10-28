@@ -75,7 +75,7 @@ npm run dev
 
 ### 让 Agent 生成对比配置
 
-仓库提供 [mcp-token-lab skill](skills/mcp-token-lab/SKILL.md)，指导 Agent 将流程描述转换为可导入的 v4 多方案 JSON，包含字段约束、全局继承规则、公式及触发方式。将 `skills/mcp-token-lab` 文件夹放入 Agent 的 skills 目录后，可这样使用：
+仓库提供 [mcp-token-lab skill](skills/mcp-token-lab/SKILL.md)，指导 Agent 将流程描述转换为可导入的 v4 多方案 JSON，包含字段约束、全局继承规则、公式、触发方式及预估耗时。`skills/mcp-token-lab/` 是本项目开源源码的一部分，说明文档、示例和校验脚本随仓库一起发布和维护。使用者可按需将该文件夹安装到自己的 Agent skills 目录，再这样使用：
 
 ```text
 使用 $mcp-token-lab，比较 60 个工具的按需 Schema 与全量预加载：

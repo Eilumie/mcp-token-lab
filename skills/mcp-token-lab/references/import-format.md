@@ -10,17 +10,21 @@
 | `plans` | 最多 8 项；方案对比通常至少 2 项 |
 | `baselineId` | 某个方案的 `id`；空方案数组才使用 `null` |
 | `baselineMode` | `"manual"` 固定指定基准；`"auto"` 运行后选择总费用最高的方案，同价取首个。auto 下仍需有效 baselineId |
-| `globalSimulation` | 共享数值参数，与 simulation 同名；initialContext 是嵌套对象，variables 是自定义变量表。不放 flow 或 model |
+| `globalSimulation` | 共享数值参数，与 simulation 同名；initialContext 是嵌套对象，variables 是自定义变量表。另支持 estimateDuration 和 removedFields；不放 flow 或 model |
+| `globalSimulation.estimateDuration` | 可选布尔值，省略为 true；false 隐藏整列耗时并关闭所有方案的耗时统计 |
+| `globalSimulation.removedFields` | 可选的已删除内置数值参数路径数组，不重复且只能包含内置数值字段；计算改用系统默认值。修改已有配置时保留，不要为新实验随意删除参数 |
 | `globalModelId` | 推荐 `"custom"` 并完整提供 globalModel，避免依赖可能变化的内置模型 ID |
 | `globalModel` | `{ "model": { ... }, "pricing": { ... } }`，供 useGlobal.model 为 true 的方案继承 |
 | `plans[i].id` | 唯一非空字符串，可使用 `"plan-lazy"` 等稳定 ID |
 | `plans[i].name` | 1–60 字符，去掉两端空白后不能重名 |
+| `plans[i].description` | 可选字符串，最多 1,000 字符，可为空；用于说明方案目标、策略、适用场景或关键假设 |
+| `plans[i].estimateDuration` | 可选布尔值，省略为 true；false 仅关闭本方案耗时，单元格显示「—」，不改变全局列显隐或其他方案 |
 | `plans[i].color` | 只能选下方调色板值 |
 | `plans[i].simulation` | 下表完整参数和 flow，即使继承全局也保留完整本地值 |
 | `plans[i].model` / `.pricing` | 完整模型及价格来源，即使继承全局也保留 |
 | `plans[i].useGlobal` | 可选布尔映射，键为内置参数路径、`"model"` 或 `"variables.变量名"` |
 
-方案只允许 id、name、color、simulation、model、pricing、useGlobal。不要在方案添加说明、结果或其他字段。
+方案只允许 id、name、description、color、simulation、model、pricing、useGlobal、estimateDuration。说明写入 description，不使用自造字段；计算结果仍不能放进配置。
 
 调色板（按顺序选用）：
 
@@ -63,6 +67,8 @@
 
 内置参数只有 `useGlobal[字段] === true` 才继承全局；缺省或 false 使用方案值。嵌套长度使用平铺路径键 `"initialContext.agentPromptToken"`。flow 始终属于方案，不支持 useGlobal.flow。
 
+耗时开关是例外：方案开关位于 `plans[i].estimateDuration`，不在 simulation 内，也不支持 `useGlobal.estimateDuration`。全局开关位于 globalSimulation，不能当成数值变量或 Token 公式参数。
+
 自定义变量全局默认继承，包括与本地同名时也覆盖；用 `useGlobal["variables.retrievalToken"]: false` 保留本地值。全局与本地变量合并后每个生效方案最多 100 项。
 
 ## 模型和来源
@@ -98,10 +104,10 @@ pricing.contextWindow 可选，单位为原始 Token；pricing.tier 可选，格
     { "type": "action", "text": "agent prompt", "token": "initialContext.agentPromptToken" }
   ],
   "turn": [
-    { "type": "action", "text": "user_message", "token": "userMessageToken" },
-    { "type": "llm", "text": "检索计划", "token": 0.2 },
-    { "type": "action", "text": "检索结果", "token": "retrievalToken" },
-    { "type": "llm", "text": "agent_result", "token": "agentResult" }
+    { "type": "action", "text": "user_message", "token": "userMessageToken", "durationSeconds": 0 },
+    { "type": "llm", "text": "检索计划", "token": 0.2, "durationSeconds": 1.8 },
+    { "type": "action", "text": "检索结果", "token": "retrievalToken", "durationSeconds": 0.3 },
+    { "type": "llm", "text": "agent_result", "token": "agentResult", "durationSeconds": 1.8 }
   ]
 }
 ```
@@ -115,6 +121,7 @@ pricing.contextWindow 可选，单位为原始 Token；pricing.tier 可选，格
 | `token` | 非负有限数字（K）或公式字符串；数字字符串如 `"0.5"` 也作为公式解析 |
 | `enabled` | 可选布尔值，缺省为启用 |
 | `trigger` | 可选，仅 turn 允许；省略表示每轮执行 |
+| `durationSeconds` | 可选非负有限数字，单位秒；省略时 action 为 0.3、llm 为 1.8；显式 0 有效。不接受字符串、null 或公式，initial 中也允许保存该字段 |
 
 常用归因键可沿用完整模板的英文 text，页面有对应显示名称；自定义名称也可正常显示。
 
@@ -122,11 +129,37 @@ pricing.contextWindow 可选，单位为原始 Token；pricing.tier 可选，格
 
 全量模板：初始阶段额外追加 `toolsTotalCount * toolSchemaToken`；每轮删除「查询 Schema 计划」及「所需 Schema」两个节点。其余相同。这比较的是两种具体流程的总成本，不只是 Schema 大小。
 
+### 耗时开关与计算口径
+
+开关必须使用 JSON 布尔值 true / false，不能用 `"false"`、0、1 或 null。新文件建议显式写出两个开关；旧文件省略时默认开启。
+
+| 全局 estimateDuration | 方案 estimateDuration | 实际统计与页面行为 |
+| --- | --- | --- |
+| true / 省略 | true / 省略 | 统计本方案耗时，展示「每轮平均TTFT」 |
+| true / 省略 | false | 本方案耗时显示「—」，保留整列，其他方案不变 |
+| false | 任意有效值 / 省略 | 所有方案关闭耗时统计，整列隐藏；保留各方案的独立开关和节点耗时 |
+
+即使所有方案都设为 false，只要全局仍开启，耗时列仍保留。开关不影响 Token 和费用；关闭统计也不能填写非法节点耗时，导入仍会校验。
+
+页面「每轮平均TTFT」实际采用串行累计耗时估算：
+
+```text
+每轮耗时 = 本轮实际执行的 turn 节点 durationSeconds 之和 + 本轮压缩调用数 × 1.8 秒
+每轮平均耗时 = 所有用户轮次的耗时之和 ÷ 用户轮次总数
+```
+
+- 只统计实际启用且触发的 turn 节点；初始上下文的一次性加载不计入，即使设置了耗时。
+- 每个 LLM 节点只计时一次，自动追加的模型输出不会重复计时。
+- 工具 / 上下文节点每执行一次只加一次耗时，不随 Token 数或 turnAvgToolsCount 倍增；若耗时已包含整批工具执行时间，直接填写该批总秒数。
+- 压缩请求固定 1.8 秒，计入触发它的用户轮次，包括最后一轮；不手工增加压缩节点。
+- 该指标不是实际测量的首 Token 延迟，也不自动按模型速度、Token 长度或并行调用推导耗时。使用默认值或估算值时明确说明假设。
+- 模拟报告返回 `averageTurnDurationSeconds` 和 `rounds[i].durationSeconds`；关闭时均为 null，不能当成 0 秒。空流程且不触发压缩时为 0；无用户轮次平均值为 null（页面配置仍要求至少 1 轮）。这些是运行结果，不写回导入 JSON。
+
 ### 可引用的值
 
 公式可直接引用上表所有数值字段、自定义变量，以及 turnIndex（用户轮次索引，从 0 开始）和 llmIndex（本轮当前步骤前已执行的模型调用数，从 0 开始）。初始阶段两者均为 0。压缩不计入用户轮次，停用或未触发的 LLM 不增加 llmIndex。
 
-不能引用其他节点输出对象、累计上下文、模型单价、其他方案或 compressionThresholdType；需要的常量放进自定义变量。参数表达式不递归引用其他公式。
+不能引用其他节点输出对象、累计上下文、模型单价、其他方案、compressionThresholdType、description、estimateDuration 或 durationSeconds；需要的常量放进自定义变量。参数表达式不递归引用其他公式。
 
 支持 `+ - * / % **`、括号、比较、`! && || ??` 和三元表达式。Math 函数仅支持 min、max、ceil、floor、round、trunc、abs、sqrt、pow、log、log2、log10、exp，常量支持 Math.PI / Math.E。必须写 `Math.min(...)`，不能写裸 `min(...)`。
 
@@ -159,4 +192,4 @@ llmIndex === 0 ? callToolsPlanToken : agentResult
 
 ## 最后检查
 
-确认 JSON 可解析、所有方案参数完整、ID / 名称唯一、颜色有效、基准存在、价格单位正确、平均数量不超过总数、压缩阈值有效、变量全部定义，以及各方案继承开关确实保留实验差异。导入会替换页面当前整份配置，不是追加方案；需要保留旧实验时先导出。
+确认 JSON 可解析、所有方案参数完整、ID / 名称唯一、颜色有效、基准存在、价格单位正确、平均数量不超过总数、压缩阈值有效、变量全部定义、description 为最多 1,000 字符的字符串、两级耗时开关位置和类型正确、节点耗时为非负有限数，以及各方案继承开关确实保留实验差异。导入会替换页面当前整份配置，不是追加方案；需要保留旧实验时先导出。

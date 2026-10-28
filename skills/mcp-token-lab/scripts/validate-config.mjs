@@ -31,6 +31,8 @@ try {
       id: result.planId, name: result.planName,
       model: result.model.name, currency: result.model.currency,
       totalCost: result.cost.total,
+      estimateDuration: result.estimateDuration,
+      averageTurnDurationSeconds: result.averageTurnDurationSeconds,
     }));
     output.simulated = true;
   }

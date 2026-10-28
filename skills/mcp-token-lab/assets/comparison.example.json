@@ -28,7 +28,8 @@
     "compressionThresholdToken": 200,
     "compressionKeepTurns": 2,
     "compressionTargetToken": 4,
-    "compressionThresholdType": "TURN"
+    "compressionThresholdType": "TURN",
+    "estimateDuration": true
   },
   "globalModelId": "custom",
   "plans": [
@@ -36,65 +37,78 @@
       "id": "plan-lazy",
       "name": "渐进式Tools Schema",
       "color": "#5869d9",
+      "description": "初始加载 Skill 与 Tool 索引，每轮查询所需 Tool Schema；与全量方案使用相同规模和演示费率，比较输入成本、模型调用次数及预估耗时。节点耗时为演示假设：action 0.3 秒，llm 1.8 秒。",
+      "estimateDuration": true,
       "simulation": {
         "flow": {
           "initial": [
             {
               "type": "action",
               "text": "agent prompt",
-              "token": "initialContext.agentPromptToken"
+              "token": "initialContext.agentPromptToken",
+              "durationSeconds": 0.3
             },
             {
               "type": "action",
               "text": "skills discover list",
-              "token": "skillIndexToken * skillsTotalCount"
+              "token": "skillIndexToken * skillsTotalCount",
+              "durationSeconds": 0.3
             },
             {
               "type": "action",
               "text": "tools discover list",
-              "token": "toolsTotalCount * toolsIndexToken"
+              "token": "toolsTotalCount * toolsIndexToken",
+              "durationSeconds": 0.3
             }
           ],
           "turn": [
             {
               "type": "action",
               "text": "user_message",
-              "token": "userMessageToken"
+              "token": "userMessageToken",
+              "durationSeconds": 0.3
             },
             {
               "type": "llm",
               "text": "read_skills_plan",
-              "token": "readSkillPlanToken"
+              "token": "readSkillPlanToken",
+              "durationSeconds": 1.8
             },
             {
               "type": "action",
               "text": "read_skills",
-              "token": "skillDetailToken * turnAvgSkillsCount"
+              "token": "skillDetailToken * turnAvgSkillsCount",
+              "durationSeconds": 0.3
             },
             {
               "type": "llm",
               "text": "get_tools_schema_plan",
-              "token": "schemaPlanToken"
+              "token": "schemaPlanToken",
+              "durationSeconds": 1.8
             },
             {
               "type": "action",
               "text": "get_tools_schema",
-              "token": "toolSchemaToken * turnAvgToolsCount"
+              "token": "toolSchemaToken * turnAvgToolsCount",
+              "durationSeconds": 0.3
             },
             {
               "type": "llm",
               "text": "call_tools_plan",
-              "token": "callToolsPlanToken"
+              "token": "callToolsPlanToken",
+              "durationSeconds": 1.8
             },
             {
               "type": "action",
               "text": "call_tools",
-              "token": "toolResultToken * turnAvgToolsCount"
+              "token": "toolResultToken * turnAvgToolsCount",
+              "durationSeconds": 0.3
             },
             {
               "type": "llm",
               "text": "agent_result",
-              "token": "agentResult"
+              "token": "agentResult",
+              "durationSeconds": 1.8
             }
           ]
         },
@@ -168,60 +182,72 @@
       "id": "plan-full",
       "name": "MCP默认全量tools/list",
       "color": "#d99b61",
+      "description": "初始预加载全部 Tool Schema，每轮省去 Schema 查询计划和返回节点；作为固定对比基准。与按需方案使用相同规模、演示费率和相同步骤耗时假设。",
+      "estimateDuration": true,
       "simulation": {
         "flow": {
           "initial": [
             {
               "type": "action",
               "text": "agent prompt",
-              "token": "initialContext.agentPromptToken"
+              "token": "initialContext.agentPromptToken",
+              "durationSeconds": 0.3
             },
             {
               "type": "action",
               "text": "skills discover list",
-              "token": "skillIndexToken * skillsTotalCount"
+              "token": "skillIndexToken * skillsTotalCount",
+              "durationSeconds": 0.3
             },
             {
               "type": "action",
               "text": "tools discover list",
-              "token": "toolsTotalCount * toolsIndexToken"
+              "token": "toolsTotalCount * toolsIndexToken",
+              "durationSeconds": 0.3
             },
             {
               "type": "action",
               "text": "tools schema list",
-              "token": "toolsTotalCount * toolSchemaToken"
+              "token": "toolsTotalCount * toolSchemaToken",
+              "durationSeconds": 0.3
             }
           ],
           "turn": [
             {
               "type": "action",
               "text": "user_message",
-              "token": "userMessageToken"
+              "token": "userMessageToken",
+              "durationSeconds": 0.3
             },
             {
               "type": "llm",
               "text": "read_skills_plan",
-              "token": "readSkillPlanToken"
+              "token": "readSkillPlanToken",
+              "durationSeconds": 1.8
             },
             {
               "type": "action",
               "text": "read_skills",
-              "token": "skillDetailToken * turnAvgSkillsCount"
+              "token": "skillDetailToken * turnAvgSkillsCount",
+              "durationSeconds": 0.3
             },
             {
               "type": "llm",
               "text": "call_tools_plan",
-              "token": "callToolsPlanToken"
+              "token": "callToolsPlanToken",
+              "durationSeconds": 1.8
             },
             {
               "type": "action",
               "text": "call_tools",
-              "token": "toolResultToken * turnAvgToolsCount"
+              "token": "toolResultToken * turnAvgToolsCount",
+              "durationSeconds": 0.3
             },
             {
               "type": "llm",
               "text": "agent_result",
-              "token": "agentResult"
+              "token": "agentResult",
+              "durationSeconds": 1.8
             }
           ]
         },

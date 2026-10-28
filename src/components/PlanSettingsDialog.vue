@@ -10,8 +10,6 @@ import { locale, translateUi } from '../i18n.js';
 const props = defineProps({ config: Object, plan: Object });
 const emit = defineEmits(['close', 'save']);
 const local = ref(JSON.parse(JSON.stringify(props.plan)));
-const estimateDuration = ref(props.config.globalSimulation?.estimateDuration !== false);
-const variablesConfig = computed(() => ({ ...props.config, globalSimulation: { ...props.config.globalSimulation, estimateDuration: estimateDuration.value } }));
 const displayedName = computed(() => locale.value === 'en' && ['按需 Tools', '全量 Tools', 'MCP渐进式Tools Schema', '渐进式Tools Schema', 'MCP默认全量tools/list'].includes(local.value.name) ? translateUi(local.value.name) : local.value.name);
 const dialog = ref(null), showVariables = ref(false);
 const titleId = useId();
@@ -41,9 +39,9 @@ const errors = computed(() => {
 function save() {
   if (Object.keys(errors.value).length) return;
   local.value.name = local.value.name.trim();
-  emit('save', local.value, estimateDuration.value);
+  emit('save', local.value);
 }
-function saveVariables(plan, simulateDuration) { local.value = plan; estimateDuration.value = simulateDuration; showVariables.value = false; }
+function saveVariables(plan) { local.value = plan; showVariables.value = false; }
 let previousFocus;
 onMounted(() => { previousFocus = document.activeElement; dialog.value.showModal(); });
 onBeforeUnmount(() => { dialog.value?.close(); if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true }); });
@@ -57,7 +55,7 @@ onBeforeUnmount(() => { dialog.value?.close(); if (previousFocus?.isConnected) p
         <label class="field name-field">方案名称<input :value="displayedName" @input="local.name=$event.target.value" maxlength="60" aria-label="方案名称" /></label>
         <label class="field description-field"><span>方案说明<small>{{ (local.description || '').length }} / 1000</small></span><textarea v-model="local.description" rows="3" maxlength="1000" aria-label="方案说明" placeholder="描述方案的目标、策略或适用场景" /></label>
         <section v-for="group in sections" :key="group.title"><h3>{{ group.title }}</h3><div class="settings-grid">
-          <label v-if="group.title === '会话规模'" class="field"><span>是否模拟耗时</span><select v-model="estimateDuration" aria-label="是否模拟耗时"><option :value="true">{{ locale === 'zh' ? '是' : 'Yes' }}</option><option :value="false">{{ locale === 'zh' ? '否' : 'No' }}</option></select></label>
+          <label v-if="group.title === '会话规模'" class="field"><span>是否模拟耗时</span><select :value="local.estimateDuration !== false" aria-label="是否模拟耗时" @change="local.estimateDuration = $event.target.value === 'true'"><option value="true">{{ locale === 'zh' ? '是' : 'Yes' }}</option><option value="false">{{ locale === 'zh' ? '否' : 'No' }}</option></select></label>
           <label v-if="group.title === '上下文压缩'" class="field"><span>压缩阈值类型<button type="button" class="inherit-btn" :aria-pressed="compressionTypeInherited" @click.prevent="toggleCompressionType">{{ compressionTypeInherited ? '继承全局' : '自定义' }}</button></span><select :value="effective.compressionThresholdType" aria-label="压缩阈值类型" @change="changeCompressionType"><option value="TURN">用户轮次</option><option value="TOKEN">上下文</option></select></label>
           <PlanVariableField v-for="field in group.fields" :key="field[0]" :plan="local" :globals="config.globalSimulation" :field="field" />
         </div></section>
@@ -65,7 +63,7 @@ onBeforeUnmount(() => { dialog.value?.close(); if (previousFocus?.isConnected) p
       </div>
       <footer><p v-if="Object.keys(errors).length" class="error" role="alert">{{ Object.values(errors)[0] }}</p><p v-else>关闭弹框会放弃本次修改。</p><div><button type="button" @click="emit('close')">取消</button><button type="button" class="save" :disabled="!!Object.keys(errors).length" @click="save">保存配置</button></div></footer>
     </dialog>
-    <VariablesDialog v-if="showVariables" :config="variablesConfig" :plan="local" @close="showVariables = false" @save="saveVariables" />
+    <VariablesDialog v-if="showVariables" :config="config" :plan="local" @close="showVariables = false" @save="saveVariables" />
   </Teleport>
 </template>
 
