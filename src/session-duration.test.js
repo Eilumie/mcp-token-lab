@@ -33,7 +33,7 @@ test('自定义和零耗时独立生效，停用、0% 触发及间隔节点只�
     { type: 'llm', text: '不触发', token: 1, durationSeconds: 999, trigger: { type: 'probability', value: 0 } },
   ];
   const [result] = simulate(config);
-  assert.deepEqual(result.rounds.map(round => round.durationSeconds), [2.5, 6.5, 2.5, 6.5]);
+  assert.deepEqual(result.rounds.map(round => round.durationSeconds), [6.5, 2.5, 6.5, 2.5]);
   close(result.averageTurnDurationSeconds, 4.5);
 });
 

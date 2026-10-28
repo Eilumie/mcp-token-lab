@@ -16,20 +16,20 @@ const makeSession = (turn, extra = {}) => new Session({
 });
 const userTurns = session => session.turns.filter(turn => turn.kind === "user");
 
-test("配置预览保留间隔和概率节点的单次长度，不使用首轮触发结果", () => {
+test("配置预览保留间隔和概率节点的单次长度，不依赖当轮触发结果", () => {
   const flow = { initial: [], turn: [
     llm("间隔调用", 7, interval(3)),
     llm("零概率调用", 5, probability(0)),
     { ...llm("停用调用", 99), enabled: false },
-    action("动态配置", "1 / turnIndex + llmIndex", interval(3)),
+    action("动态配置", "1 / (turnIndex + 1) + llmIndex", interval(3)),
   ] };
   const before = structuredClone(flow);
-  assert.equal(previewStep(flow, "turn", 0, {}).value, 0);
+  assert.equal(previewStep(flow, "turn", 0, {}, 1).value, 0);
   assert.equal(previewStep(flow, "turn", 1, {}).value, 0);
   assert.equal(previewConfiguredStep(flow, "turn", 0, {}).value, 7);
   assert.equal(previewConfiguredStep(flow, "turn", 1, {}).value, 5);
   assert.deepEqual(previewConfiguredStep(flow, "turn", 2, {}), { runs: false, value: 0, error: "" });
-  assert.equal(previewConfiguredStep(flow, "turn", 3, {}).value, 2.5);
+  assert.equal(previewConfiguredStep(flow, "turn", 3, {}).value, 3);
   assert.deepEqual(flow, before);
 });
 
@@ -55,19 +55,19 @@ test("缺省触发、100% 和每 1 轮保持原有结果，0% 和停用节点完
   assert.equal(report.rounds.length, 7);
 });
 
-test("每 N 轮在 N、2N 轮触发；压缩不重置轮次，llmIndex 只计算实际调用", () => {
+test("每 3 轮在第 1、4、7 轮触发；压缩不重置轮次，llmIndex 只计算实际调用", () => {
   const session = makeSession([
     action("用户消息"), llm("间隔调用", "turnIndex + llmIndex", interval(3)),
     action("调用数", "llmIndex"), llm("末次调用", "llmIndex"),
   ], { compressionThresholdTurnCount: 2 });
   session.reset();
   const turns = userTurns(session);
-  assert.deepEqual(turns.filter(t => t.actions.some(a => a.group === "间隔调用")).map(t => t.turnIndex + 1), [3, 6]);
-  assert.deepEqual(turns.map(t => t.actions.find(a => a.group === "调用数").token), [0, 0, 1, 0, 0, 1, 0]);
-  assert.deepEqual(turns.map(t => t.actions.find(a => a.group === "末次调用").token), [0, 0, 1, 0, 0, 1, 0]);
+  assert.deepEqual(turns.filter(t => t.actions.some(a => a.group === "间隔调用")).map(t => t.turnIndex + 1), [1, 4, 7]);
+  assert.deepEqual(turns.map(t => t.actions.find(a => a.group === "调用数").token), [1, 0, 0, 1, 0, 0, 1]);
+  assert.deepEqual(turns.map(t => t.actions.find(a => a.group === "末次调用").token), [1, 0, 0, 1, 0, 0, 1]);
   assert.equal(session.turns.filter(t => t.kind === "compression").length, 3);
   for (const turn of turns) {
-    assert.equal(stepRuntime(session.config.flow, "turn", 3, turn.turnIndex).llmIndex, turn.turnIndex % 3 === 2 ? 1 : 0);
+    assert.equal(stepRuntime(session.config.flow, "turn", 3, turn.turnIndex).llmIndex, turn.turnIndex % 3 === 0 ? 1 : 0);
   }
 });
 
@@ -78,15 +78,15 @@ test("条件内容只在触发后进入上下文、后续缓存和费用归因",
   });
   session.reset();
   const report = buildReport(session);
-  assert.deepEqual(report.requests.map(r => r.input), [2, 15, 18, 31]);
-  assert.deepEqual(report.requests.map(r => r.hit), [1, 2, 15, 18]);
-  assert.equal(report.hit, 36);
+  assert.deepEqual(report.requests.map(r => r.input), [12, 15, 28, 31]);
+  assert.deepEqual(report.requests.map(r => r.hit), [1, 12, 15, 28]);
+  assert.equal(report.hit, 56);
   assert.equal(report.miss, 30);
   assert.equal(report.output, 8);
   assert.equal(report.finalContext, 33);
-  assert.equal(report.sources.find(s => s.key === "间隔资料").hit, 20);
+  assert.equal(report.sources.find(s => s.key === "间隔资料").hit, 40);
   assert.equal(report.sources.find(s => s.key === "间隔资料").miss, 20);
-  assert.ok(Math.abs(report.cost.total - .12) < 1e-12);
+  assert.ok(Math.abs(report.cost.total - .14) < 1e-12);
 });
 
 test("概率抽样可复现，预览与真实执行一致，重新计费和延长会话不改写既有触发", () => {
@@ -114,13 +114,15 @@ test("概率抽样可复现，预览与真实执行一致，重新计费和延�
 test("未触发不求值，间隔公式在首次触发轮次校验，后续错误包含正确运行索引", () => {
   const session = makeSession([
     llm("永不执行", "turnIndex === 0 ? 1 : -1", probability(0)),
-    llm("间隔输出", "1 / turnIndex", interval(3)),
+    llm("间隔输出", "1 / (turnIndex + 1)", interval(3)),
   ]);
   session.reset();
-  assert.deepEqual(session.getConsumptionTokens().llms.map(r => r.output.token), [.5, .2]);
-  assert.equal(previewStep(session.config.flow, "turn", 1, session.config, 0).value, 0);
+  assert.deepEqual(session.getConsumptionTokens().llms.map(r => r.output.token), [1, .25, 1 / 7]);
+  assert.equal(previewStep(session.config.flow, "turn", 1, session.config, 0).value, 1);
+  assert.equal(previewStep(session.config.flow, "turn", 1, session.config, 1).value, 0);
+  assert.throws(() => makeSession([llm("首轮公式错误", "1 / turnIndex", interval(3))]), /flow.turn 第 1 步/);
   const failing = makeSession([llm("后续错误", "turnIndex < 3 ? 1 : -1", interval(3))]);
-  assert.throws(() => failing.reset(), /flow.turn 第 1 步「后续错误」（turnIndex=5, llmIndex=0）/);
+  assert.throws(() => failing.reset(), /flow.turn 第 1 步「后续错误」（turnIndex=3, llmIndex=0）/);
 });
 
 test("非法触发配置在 Session、导入和停用步骤中都被拒绝", () => {
@@ -138,7 +140,7 @@ test("非法触发配置在 Session、导入和停用步骤中都被拒绝", () 
   assert.doesNotThrow(() => makeSession([llm("小数百分比", 1, probability(12.5))]));
 });
 
-test("触发配置在 JSON 导入导出后保留，模拟结果一致，间隔超过总轮次不触发", () => {
+test("触发配置在 JSON 导入导出后保留，间隔超过总轮次仍在首轮触发", () => {
   const config = createComparisonConfig();
   config.plans[0].simulation.flow.turn[1].trigger = probability(25);
   config.plans[0].simulation.flow.turn[3].trigger = interval(3);
@@ -146,5 +148,6 @@ test("触发配置在 JSON 导入导出后保留，模拟结果一致，间隔�
   assert.deepEqual(restored.plans[0].simulation.flow, config.plans[0].simulation.flow);
   assert.deepEqual(simulate(restored), simulate(config));
   const session = makeSession([llm("超出会话", 1, interval(100))]); session.reset();
-  assert.equal(session.getConsumptionTokens().llms.length, 0);
+  assert.equal(session.getConsumptionTokens().llms.length, 1);
+  assert.deepEqual(userTurns(session).filter(turn => turn.actions.length).map(turn => turn.turnIndex + 1), [1]);
 });

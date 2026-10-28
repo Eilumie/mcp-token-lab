@@ -184,7 +184,7 @@ llmIndex === 0 ? callToolsPlanToken : agentResult
 
 ### 触发规则
 
-- `{ "type": "interval", "value": 3 }`：在第 3、6、9…轮执行；value 为正安全整数。压缩不重置计数。
+- `{ "type": "interval", "value": 3 }`：从首轮开始，在第 1、4、7…轮执行；value 为正安全整数。间隔超过会话轮数时仍在首轮执行一次，压缩不重置计数。
 - `{ "type": "probability", "value": 30 }`：每轮 30% 触发；value 为 0–100 有限数。每个节点独立按轮次及节点位置确定抽样，实际比例可能不同于设定值。
 - trigger 只允许 type / value，initial 不接受 trigger。
 - 计划 LLM 未触发不会自动跳过后面的工具结果节点。需要联动时可给相关节点相同 interval，或按 turnIndex 写确定性条件；不要给两个概率节点相同百分比就当成相关事件。

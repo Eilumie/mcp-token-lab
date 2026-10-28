@@ -200,6 +200,7 @@ const english = {
   '每轮触发': 'Every turn', '按百分比触发': 'By probability',
   '每 N 轮消息触发': 'Every N user turns', '触发概率（%）': 'Trigger probability (%)',
   '消息轮次间隔': 'User turn interval', 'Token 长度': 'Token length',
+  '首轮触发，之后每隔 N 轮触发一次；例如 N=3 时在第 1、4、7 轮触发。': 'Triggers on the first turn, then every N turns; for N=3, it triggers on turns 1, 4 and 7.',
   '固定数值': 'Fixed number', 'Token 公式': 'Token formula',
   '固定 Token 长度（K）': 'Fixed token length (K)', '当前预览：': 'Preview: ',
   '保存节点': 'Save node', '关闭提示': 'Dismiss notice', '关闭说明': 'Close guide',

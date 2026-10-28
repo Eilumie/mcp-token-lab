@@ -42,7 +42,7 @@ export function shouldRunStep(step, turnIndex, stepIndex) {
   if (step.trigger === undefined) return true;
   validateStepTrigger(step.trigger);
   return step.trigger.type === "interval"
-    ? (turnIndex + 1) % step.trigger.value === 0
+    ? turnIndex % step.trigger.value === 0
     : triggerSample(turnIndex, stepIndex) < step.trigger.value / 100;
 }
 
@@ -69,13 +69,13 @@ export function previewStep(flow, phase, index, config, turnIndex = 0) {
   }
 }
 
-// 配置预览不抽样触发状态；间隔公式以首次触发轮次作为参考值。
+// 配置预览不抽样触发状态；公式以首轮作为参考值。
 export function previewConfiguredStep(flow, phase, index, config) {
   const step = flow[phase][index];
   try {
     const enabled = step.enabled !== false;
     const runtime = phase === "initial" ? { turnIndex: 0, llmIndex: 0 } : {
-      turnIndex: step.trigger?.type === "interval" ? step.trigger.value - 1 : 0,
+      turnIndex: 0,
       llmIndex: flow.turn.slice(0, index).filter(previous => previous.type === "llm" && previous.enabled !== false).length,
     };
     return { runs: enabled, value: enabled ? resolveStepToken(step.token, config, runtime) : 0, error: "" };
@@ -170,8 +170,8 @@ export function validateFlow(flow, config) {
           if (phase === "initial") throw new RangeError("初始上下文不支持 trigger；请在每轮流程中设置触发方式");
           validateStepTrigger(step.trigger);
         }
-        // 间隔节点以首次触发轮次校验，避免将只在后续轮次有效的公式按首轮误判。
-        let turnIndex = step.trigger?.type === "interval" ? step.trigger.value - 1 : 0;
+        // 间隔节点从首轮触发；概率节点寻找一个实际触发轮次校验。
+        let turnIndex = 0;
         if (step.trigger?.type === "probability" && step.trigger.value > 0 && step.enabled !== false) {
           // 只寻找有限的代表轮次；完整运行仍会检查后续所有实际执行的公式。
           const limit = Math.min(config.turnTotalCount || 1, 1000);
