@@ -60,8 +60,8 @@ Agent 修改界面时，应以桌面端体验为准，**不要进行移动端适
 获取项目源码后，在项目目录运行：
 
 ```sh
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 打开终端显示的本地地址，即可开始对比。
@@ -166,18 +166,18 @@ console.log("预计会话费用：", totals.totalPrice);
 
 ```sh
 # 运行计算、流程、配置迁移与多方案测试
-npm test
+pnpm test
 
 # 构建静态页面（只生成 dist，不上传任何服务）
-npm run build
+pnpm build
 
 # 预览构建产物
-npm run preview
+pnpm preview
 ```
 
-`npm run build` 只生成可部署的静态文件到 `dist/`，不会上传 CDN，也不会访问公司内部服务。部署请使用你自己的静态托管平台或 CI 流程。
+`pnpm build` 只生成可部署的静态文件到 `dist/`，不会上传 CDN，也不会访问公司内部服务。部署请使用你自己的静态托管平台或 CI 流程。
 
-GitHub Actions 会在每次提交和 Pull Request 中自动运行 `npm test` 与 `npm run build`。
+GitHub Actions 会在每次提交和 Pull Request 中自动运行 `pnpm test` 与 `pnpm build`。
 
 ## 项目结构
 
@@ -212,4 +212,4 @@ src/
 
 反馈计算问题时，请附上可复现的配置、预期结果与实际结果；分享前移除不希望公开的方案名称和自定义内容。更新模型费率时，请注明价格来源、币种、适用档位和核对日期。
 
-修改计算逻辑后运行 `npm test`，修改界面后再检查 `npx vite build`，并确认相关交互正常。
+修改计算逻辑后运行 `pnpm test`，修改界面后再检查 `pnpm build`，并确认相关交互正常。

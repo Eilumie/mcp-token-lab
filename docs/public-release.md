@@ -6,7 +6,7 @@ MCP Token Lab 的公开仓库只包含当前浏览器端模拟器、测试、文
 
 - `src/`、`public/`、`index.html` 与 Vite 配置：应用源码和静态资源。
 - `docs/`：使用文档和当前页面的展示截图。
-- `package.json`、`package-lock.json`、`.github/`、`LICENSE` 与项目说明：安装、授权和自动检查配置。
+- `package.json`、`pnpm-lock.yaml`、`.github/`、`LICENSE` 与项目说明：安装、授权和自动检查配置。
 
 ## 不纳入公开仓库
 
