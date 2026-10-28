@@ -55,7 +55,7 @@
 .home-page .lab-mini-track { height: 4px; background: #e8eae3; }
 .home-page .lab-mini-track > i { height: 100%; display: block; transition: width .25s ease; }
 .home-page .section-index { margin-right: 13px; font: 10px var(--mono); color: #929787; letter-spacing: 0; }
-.home-page .global-settings { padding: 25px 0 28px; margin: 0 0 28px; border: 0; border-block: 1px solid var(--line); background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
+.home-page .global-settings { padding: 25px 0 28px; margin: 0 0 28px; border: 0; border-top: 1px solid var(--line); background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
 .home-page .global-settings h2 { font-size: 14px; gap: 0; color: var(--ink); }
 .home-page .global-settings p { margin: 6px 0 0 26px; font-size: 11px; color: var(--muted); }
 .home-page .global-settings-heading > button { border: 0; background: transparent; color: #565e4f; padding-inline: 0; font-size: 11px; }
@@ -88,8 +88,7 @@
 .home-page .comparison-table .badge { border: 0; border-radius: 2px; color: #737b66; background: #eceee5; font-size: 8px; }
 .home-page .comparison-table .delta { padding: 0; border-radius: 0; background: transparent; color: #4d7456; font: 11px var(--mono); }
 .home-page .comparison-table .delta.positive { background: transparent; color: #ad6745; }
-.home-page .comparison-table .plan-action-link { color: #6c755e; }
-.home-page .plan-summary-row { transition: background .15s; }
+.home-page .plan-summary-row { cursor: pointer; transition: background .15s; }
 .home-page .plan-summary-row:hover, .home-page .comparison-table .row-expanded { background: #f1f3eb; }
 .home-page .comparison-table .plan-detail-row > td { background: #f4f5ef; }
 .home-page .plan-expanded-content { padding: 26px 18px; }

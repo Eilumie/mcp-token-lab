@@ -1,12 +1,10 @@
 <script setup>
 import { computed } from "vue";
-import { Workflow, Copy, Trash2, Star } from "lucide-vue-next";
-import { maxPlans } from "../comparison.js";
+import { Workflow } from "lucide-vue-next";
 import { displayPlanColor } from "../theme.js";
 import { ratio } from "../session-report.js";
 import { money, token, percent, number } from "../utils.js";
 const props = defineProps({ results: Array, config: Object, visiblePlanId: String });
-defineEmits(["copy", "remove", "baseline"]);
 const baseline = computed(() => props.results.find(r => r.planId === props.config.baselineId) || props.results[0]);
 const currency = computed(() => props.results[0].model.currency);
 const m = value => money(value, currency.value);
@@ -41,7 +39,6 @@ const costParts = [["cached", "命中输入", "hit"], ["fresh", "未命中输入
         <div><dt>整体输入命中率</dt><dd>{{ percent(result.hitRate) }}</dd></div>
         <div title="用户消息总轮数 ÷ 实际压缩次数；包含末次压缩后尚未再次触发压缩的用户轮次。"><dt>上下文压缩</dt><dd>{{ result.averageUserTurnsPerCompression === null ? '未触发压缩' : `平均${number(result.averageUserTurnsPerCompression)}轮` }}</dd></div>
       </dl>
-      <div class="strategy-actions"><button class="baseline-button" :aria-label="'设为Base ' + result.planName" :aria-pressed="result.planId === config.baselineId" @click="$emit('baseline', result.planId)"><Star :size="13" />{{ result.planId === config.baselineId ? 'Base' : '设为Base' }}</button><button :aria-label="'复制方案 ' + result.planName" :disabled="config.plans.length >= maxPlans" @click="$emit('copy', result.planId)"><Copy :size="13" />复制</button><button :aria-label="'删除方案 ' + result.planName" @click="$emit('remove', result.planId)"><Trash2 :size="13" />删除</button></div>
     </article>
   </div>
   <p v-if="results.length === 1 && !visiblePlanId" class="single-plan-note">当前为单方案模拟，新增方案后即可比较费用差异。</p>

@@ -1,6 +1,6 @@
 <script setup>
-import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from 'vue';
-import { Github, Upload, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, ArrowDown, ArrowUp, Check, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
+import { computed, nextTick, ref, watch } from 'vue';
+import { Github, Upload, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, ArrowDown, ArrowUp, Star, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
 import { globalFields, thresholdField, resolveBaselineId, maxPlans } from '../comparison.js';
 import ParameterField from './ParameterField.vue';
 import GlobalModelField from './GlobalModelField.vue';
@@ -13,7 +13,6 @@ import { displayPlanColor } from '../theme.js';
 const brandIcon = `${import.meta.env.BASE_URL}icon/mcp-token-lab-logo.svg`;
 const props = defineProps({ config: Object, results: Array, busy: Boolean, errors: Object, failure: String, canUndo: Boolean });
 const emit = defineEmits(['import','export','remember','reset','add','baseline','copy','remove','undo','variables']);
-const menu = ref('');
 const settingsPlanId = ref(null);
 const settingsPlan = computed(() => props.config.plans.find(plan => plan.id === settingsPlanId.value));
 const expanded = ref(new Set());
@@ -23,7 +22,6 @@ let previousPlanIds = new Set(props.config.plans.map(plan => plan.id));
 function togglePlan(id) { const next=new Set(expanded.value);next.has(id)?next.delete(id):next.add(id);expanded.value=next; }
 watch(() => props.config.plans.map(p=>p.id), ids => {
   expanded.value=new Set([...expanded.value].filter(id=>ids.includes(id)));
-  if (!ids.includes(menu.value)) menu.value='';
   if (pendingAdd.value) {
     const addedId = ids.find(id => !previousPlanIds.has(id));
     pendingAdd.value = false;
@@ -53,37 +51,6 @@ const shortName = name => name.replace('百炼 · ', '').replace(' · 固定价�
 const m = n => '$' + Number(n || 0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const n = value => Number(value || 0).toLocaleString('en-US',{maximumFractionDigits:2});
 const pct = value => value == null ? '—' : (value * 100).toFixed(1) + '%';
-function closeMenu(restoreFocus = false) {
-  const id = menu.value;
-  menu.value = '';
-  if (restoreFocus) document.getElementById('plan-menu-trigger-' + id)?.focus();
-}
-async function openMenu(id, last = false) {
-  menu.value = id;
-  await nextTick();
-  const items = document.getElementById('plan-menu-' + id)?.querySelectorAll('button:not(:disabled)');
-  (last ? items?.[items.length - 1] : items?.[0])?.focus();
-}
-function moveMenuFocus(event) {
-  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
-  event.preventDefault();
-  const items = [...event.currentTarget.querySelectorAll('button:not(:disabled)')];
-  const index = items.indexOf(document.activeElement);
-  const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
-  items[next]?.focus();
-}
-function dismissMenu(event) {
-  if (menu.value && !document.getElementById('plan-menu-trigger-' + menu.value)?.parentElement.contains(event.target)) closeMenu();
-}
-onMounted(() => {
-  document.addEventListener('pointerdown', dismissMenu);
-  document.addEventListener('focusin', dismissMenu);
-});
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', dismissMenu);
-  document.removeEventListener('focusin', dismissMenu);
-});
-function action(type,id) { closeMenu(true);emit(type,id); }
 function savePlanSettings(plan) {
   const index = props.config.plans.findIndex(item => item.id === plan.id);
   if (index < 0) return;
@@ -136,34 +103,26 @@ function updateFlow(id, flow) {
       <div class="results-heading comparison-heading"><div><h2><span class="section-index" aria-hidden="true">02</span>对比方案 <span class="plan-count">{{ config.plans.length }}/8</span></h2></div><div class="plan-toolbar"><button @click="emit('reset')"><RotateCcw :size="14"/>恢复默认方案</button><button class="primary-button" :disabled="config.plans.length>=8" @click="addPlan"><Plus :size="15"/>新增方案</button></div></div>
       <div v-if="Object.keys(errors).length || failure" class="error-box" role="alert">{{ Object.values(errors)[0] || failure }}</div>
       <div class="comparison-table-wrap" :aria-busy="busy">
-        <table class="comparison-table"><thead><tr><th>方案 / 模型</th><th>会话总费用</th><th>相对基准</th><th>初始上下文</th><th>LLM次数</th><th title="用户消息总轮数 ÷ 实际压缩次数；包含末次压缩后尚未再次触发压缩的用户轮次。">上下文压缩</th><th><span class="sr-only">操作</span></th></tr></thead><tbody>
+        <table class="comparison-table"><thead><tr><th>方案 / 模型</th><th>会话总费用</th><th>相对基准</th><th>初始上下文</th><th>LLM次数</th><th title="用户消息总轮数 ÷ 实际压缩次数；包含末次压缩后尚未再次触发压缩的用户轮次。">上下文压缩</th></tr></thead><tbody>
           <template v-for="r in results" :key="r.planId">
-          <tr :id="'plan-row-'+r.planId" class="plan-summary-row" :class="{'row-expanded':expanded.has(r.planId)}">
-            <td><div class="plan-identity"><button class="row-expand-button" :aria-label="(expanded.has(r.planId)?'收起':'展开')+'方案详情 '+r.planName" :aria-expanded="expanded.has(r.planId)" :aria-controls="'plan-detail-'+r.planId" @click="togglePlan(r.planId)"><ChevronDown v-if="expanded.has(r.planId)" :size="15"/><ChevronRight v-else :size="15"/></button><span class="plan-icon" :style="{color:planColor(r)}"><Workflow :size="19"/></span><div><button class="plan-title" :aria-expanded="expanded.has(r.planId)" @click="togglePlan(r.planId)">{{ r.planName }}</button><span v-if="r.planId===baselineId" class="badge">基准</span><small>{{ shortName(r.model.name) }}</small></div></div></td>
+          <tr :id="'plan-row-'+r.planId" class="plan-summary-row" :class="{'row-expanded':expanded.has(r.planId)}" @click="togglePlan(r.planId)">
+            <td><div class="plan-identity"><button class="row-expand-button" :aria-label="(expanded.has(r.planId)?'收起':'展开')+'方案详情 '+r.planName" :aria-expanded="expanded.has(r.planId)" :aria-controls="'plan-detail-'+r.planId" @click.stop="togglePlan(r.planId)"><ChevronDown v-if="expanded.has(r.planId)" :size="15"/><ChevronRight v-else :size="15"/></button><span class="plan-icon" :style="{color:planColor(r)}"><Workflow :size="19"/></span><div><button class="plan-title" :aria-expanded="expanded.has(r.planId)" @click.stop="togglePlan(r.planId)">{{ r.planName }}</button><span v-if="r.planId===baselineId" class="badge">基准</span><small>{{ shortName(r.model.name) }}</small></div></div></td>
             <td class="price-cell">{{ m(r.cost.total) }}<span class="micro">USD</span></td>
             <td><span v-if="r.planId===baselineId" class="muted">—</span><span v-else class="delta" :class="{positive:r.cost.total>baseline.cost.total}"><ArrowDown v-if="r.cost.total<baseline.cost.total" :size="12"/><ArrowUp v-else :size="12"/>{{ baseline.cost.total ? pct(Math.abs(r.cost.total-baseline.cost.total)/baseline.cost.total) : '—' }}</span></td>
             <td>{{ n(r.initialContext) }}<span class="unit">K</span></td>
             <td>{{ r.requests.length }}<span class="unit">次</span></td>
             <td>{{ r.averageUserTurnsPerCompression === null ? '未触发压缩' : `平均 ${n(r.averageUserTurnsPerCompression)} 轮` }}</td>
-            <td class="plan-actions-cell">
-              <div class="row-actions">
-                <div class="plan-menu-anchor" @keydown.esc.stop.prevent="closeMenu(true)">
-                  <button :id="'plan-menu-trigger-'+r.planId" class="plan-action-link plan-menu-trigger" :class="{'is-open':menu===r.planId}" :aria-label="r.planName+' 的更多操作'" aria-haspopup="menu" :aria-expanded="menu===r.planId" :aria-controls="menu===r.planId?'plan-menu-'+r.planId:undefined" @click="menu===r.planId?closeMenu():openMenu(r.planId)" @keydown.down.prevent="openMenu(r.planId)" @keydown.up.prevent="openMenu(r.planId,true)">更多<ChevronDown :size="13"/></button>
-                  <div v-if="menu===r.planId" :id="'plan-menu-'+r.planId" class="plan-action-menu" role="menu" :aria-label="r.planName+' 的更多操作'" @keydown="moveMenuFocus">
-                    <button role="menuitem" tabindex="-1" :disabled="r.planId===baselineId" @click="action('baseline',r.planId)"><Check :size="14"/>{{ r.planId===baselineId?'当前基准':'设为基准' }}</button>
-                    <button role="menuitem" tabindex="-1" :disabled="config.plans.length>=maxPlans" :title="config.plans.length>=maxPlans?'最多支持 '+maxPlans+' 个方案':undefined" @click="action('copy',r.planId)"><Copy :size="14"/>复制方案</button>
-                    <div class="plan-menu-divider" role="separator"></div>
-                    <button class="plan-menu-danger" role="menuitem" tabindex="-1" @click="action('remove',r.planId)"><Trash2 :size="14"/>删除方案</button>
-                  </div>
-                </div>
-              </div>
-            </td>
           </tr>
-          <tr v-if="expanded.has(r.planId)" class="plan-detail-row"><td colspan="7">
+          <tr v-if="expanded.has(r.planId)" class="plan-detail-row"><td colspan="6">
             <div :id="'plan-detail-'+r.planId" class="plan-expanded-content">
-              <div class="expanded-cost-card"><SummaryCards :results="results" :config="analysisConfig" :visible-plan-id="r.planId"
-                @copy="action('copy',$event)" @remove="action('remove',$event)" @baseline="action('baseline',$event)" /></div>
-              <PlanFlowPreview v-if="config.plans.some(p=>p.id===r.planId)" :plan="config.plans.find(p=>p.id===r.planId)" :global-simulation="config.globalSimulation" :global-model-id="config.globalModelId" :global-model="config.globalModel" @settings="settingsPlanId=$event" @update-flow="updateFlow" />
+              <div class="expanded-cost-card"><SummaryCards :results="results" :config="analysisConfig" :visible-plan-id="r.planId" /></div>
+              <PlanFlowPreview v-if="config.plans.some(p=>p.id===r.planId)" :plan="config.plans.find(p=>p.id===r.planId)" :global-simulation="config.globalSimulation" :global-model-id="config.globalModelId" :global-model="config.globalModel" @settings="settingsPlanId=$event" @update-flow="updateFlow">
+                <template #actions>
+                  <button class="flow-plan-action baseline-button" :style="{'--plan-color':planColor(r)}" :aria-label="'设为Base ' + r.planName" :aria-pressed="r.planId===baselineId" @click="emit('baseline',r.planId)"><Star :size="13"/>{{ r.planId===baselineId?'Base':'设为Base' }}</button>
+                  <button class="flow-plan-action" :aria-label="'复制方案 ' + r.planName" :disabled="config.plans.length>=maxPlans" @click="emit('copy',r.planId)"><Copy :size="13"/>复制</button>
+                  <button class="flow-plan-action" :aria-label="'删除方案 ' + r.planName" @click="emit('remove',r.planId)"><Trash2 :size="13"/>删除</button>
+                </template>
+              </PlanFlowPreview>
             </div>
           </td></tr>
           </template>

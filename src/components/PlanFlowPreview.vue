@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { FileText, Cpu, ArrowRight, ArrowDown, Layers, Repeat2, Workflow, Plus, X, GripVertical } from 'lucide-vue-next';
+import { FileText, Cpu, ArrowRight, ArrowDown, Layers, Repeat2, Workflow, Plus, X, GripVertical, SlidersHorizontal } from 'lucide-vue-next';
 import { resolvePlan, validatePlan } from '../comparison.js';
 import FlowNodeDialog from './FlowNodeDialog.vue';
 import { previewStep, tokenFormula, triggerLabel } from '../session-flow.js';
@@ -66,7 +66,7 @@ const phases = computed(() => ['initial','turn'].map(key => {
 
 <template>
   <section class="plan-flow-preview" :aria-label="plan.name+' 执行流程'">
-    <div class="flow-preview-heading"><div><h3><Workflow :size="16"/>执行流程</h3></div><button class="flow-edit-link" @click="$emit('settings',plan.id)">配置变量</button></div>
+    <div class="flow-preview-heading"><div><h3><Workflow :size="16"/>执行流程</h3></div><div class="flow-heading-actions"><slot name="actions" /><button class="flow-plan-action" @click="$emit('settings',plan.id)"><SlidersHorizontal :size="13"/>配置变量</button></div></div>
     <div class="flow-preview-meta"><div class="flow-key"><span><FileText :size="12"/>追加上下文</span><span><Cpu :size="12"/>调用模型</span></div></div>
     <div class="flow-phase-grid">
       <ArrowRight class="phase-bridge" :size="17" aria-hidden="true"/>

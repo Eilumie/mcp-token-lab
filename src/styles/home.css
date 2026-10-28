@@ -22,20 +22,6 @@
 .home-page .comparison-table .delta{display:inline-flex;align-items:center;gap:3px;padding:4px 6px;border-radius:4px;background:#edf5e9;color:#4c7656;font-size:11px;font-weight:500}
 .home-page .comparison-table .delta.positive{color:#9b7850;background:#faf2e8}
 .home-page .comparison-table .unit{font-size:10px;color:#9198a4;margin-left:4px}
-.home-page .comparison-table .plan-actions-cell{width:1%;white-space:nowrap}
-.home-page .comparison-table .row-actions{display:flex;align-items:center;justify-content:flex-end;gap:16px}
-.home-page .comparison-table .plan-action-link{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:32px;padding:4px 0;border:0;border-radius:3px;background:transparent;box-shadow:none;color:var(--accent);font-size:12px;white-space:nowrap}
-.home-page .comparison-table .plan-action-link:hover,.home-page .comparison-table .plan-action-link.is-open{color:#883d28;background:transparent}
-.home-page .comparison-table .plan-action-link:hover{text-decoration:underline;text-underline-offset:4px}
-.home-page .plan-menu-anchor{position:relative}
-.home-page .plan-menu-trigger svg{transition:transform .15s}
-.home-page .plan-menu-trigger.is-open svg{transform:rotate(180deg)}
-.home-page .plan-action-menu{position:absolute;right:0;top:calc(100% + 5px);z-index:20;display:flex;flex-direction:column;align-items:stretch;width:156px;padding:5px;border:1px solid #e4e7ed;border-radius:8px;background:#fff;box-shadow:0 8px 28px #18203914;white-space:nowrap}
-.home-page .comparison-table .plan-action-menu button{display:flex;align-items:center;justify-content:flex-start;flex:none;gap:9px;width:100%;min-height:34px;padding:8px 10px;border:0;border-radius:4px;background:transparent;box-shadow:none;color:#555e6e;font-size:12px;text-align:left}
-.home-page .comparison-table .plan-action-menu button:hover:not(:disabled),.home-page .comparison-table .plan-action-menu button:focus-visible{background:#f5f6f8}
-.home-page .plan-menu-divider{height:1px;margin:4px 5px;background:#eceef2}
-.home-page .comparison-table .plan-action-menu .plan-menu-danger{color:#b3483d}
-.home-page .comparison-table .plan-action-menu .plan-menu-danger:hover,.home-page .comparison-table .plan-action-menu .plan-menu-danger:focus-visible{background:#fdf1ef}
 .home-page .comparison-table-wrap .empty-state{border:0;margin:0;padding:50px 15px}
 .home-page .undo-button{font-size:11px;min-height:28px;padding:5px 9px;white-space:nowrap;background:transparent;border-color:transparent;margin-left:auto}
 @media(max-width:1150px){
@@ -52,8 +38,6 @@
 .home-page .comparison-table .plan-identity small{font-size:9px}
 .home-page .comparison-table .price-cell{font-size:19px}
 .home-page .comparison-table .price-cell .micro{display:none}
-.home-page .comparison-table .row-actions{gap:12px}
-.home-page .comparison-table .plan-action-link{font-size:11px}
 .home-page footer{flex-wrap:wrap}
 .home-page .undo-button{margin-left:0}}
 .home-page .comparison-cards{margin-bottom:24px}
