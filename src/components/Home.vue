@@ -95,9 +95,9 @@ function updateFlow(id, flow) {
         <div class="global-settings-heading"><div><h2 id="global-settings-title"><span class="section-index" aria-hidden="true">01</span>全局配置</h2><p>各方案默认使用以下数值，也可在方案内单独设置。</p></div><button @click="emit('variables')"><SlidersHorizontal :size="14"/>全部变量</button></div>
         <div class="global-settings-fields" @focusin="emit('remember')">
           <GlobalModelField :config="config" :error="errors.globalModelId" />
-          <ParameterField v-for="field in globalFields.filter(([key]) => !key.startsWith('compression'))" :key="field[0]" :object="config.globalSimulation" :field="field" :error="errors['globalSimulation.' + field[0]]"/>
+          <ParameterField v-for="field in globalFields.filter(([key]) => !key.startsWith('compression') && !(config.globalSimulation.removedFields || []).includes(key))" :key="field[0]" :object="config.globalSimulation" :field="field" :error="errors['globalSimulation.' + field[0]]"/>
           <label class="field"><span>压缩阈值类型</span><select v-model="config.globalSimulation.compressionThresholdType" aria-label="压缩阈值类型"><option value="TURN">用户轮次</option><option value="TOKEN">上下文</option></select></label>
-          <ParameterField :key="thresholdField(config.globalSimulation)[0]" :object="config.globalSimulation" :field="thresholdField(config.globalSimulation)" :error="errors['globalSimulation.' + thresholdField(config.globalSimulation)[0]]"/>
+          <ParameterField v-if="!(config.globalSimulation.removedFields || []).includes(thresholdField(config.globalSimulation)[0])" :key="thresholdField(config.globalSimulation)[0]" :object="config.globalSimulation" :field="thresholdField(config.globalSimulation)" :error="errors['globalSimulation.' + thresholdField(config.globalSimulation)[0]]"/>
         </div>
       </section>
       <div class="results-heading comparison-heading"><div><h2><span class="section-index" aria-hidden="true">02</span>对比方案 <span class="plan-count">{{ config.plans.length }}/8</span></h2></div><div class="plan-toolbar"><button @click="emit('reset')"><RotateCcw :size="14"/>恢复默认方案</button><button class="primary-button" :disabled="config.plans.length>=8" @click="addPlan"><Plus :size="15"/>新增方案</button></div></div>

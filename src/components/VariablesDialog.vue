@@ -4,7 +4,7 @@ import { X, Plus, Trash2, SlidersHorizontal } from 'lucide-vue-next';
 import { groups, compressionFields, createPresetConfig, priceFields } from '../config.js';
 import { modelPresets } from '../model-pricing.js';
 import PlanModelSettings from './PlanModelSettings.vue';
-import { resolvePlan, validateComparison, validatePlan, deleteVariable } from '../comparison.js';
+import { resolvePlan, validateComparison, validatePlan, deleteVariable, deleteBuiltinField } from '../comparison.js';
 import { validateVariableName } from '../variables.js';
 import ParameterField from './ParameterField.vue';
 import PlanVariableField from './PlanVariableField.vue';
@@ -26,7 +26,12 @@ function editGlobalModel() {
     local.value.globalModelId = 'custom';
   }
 }
-const sections = [...groups, {title:'上下文压缩',fields:compressionFields}];
+const sections = computed(() => {
+  const removed = new Set(local.value.globalSimulation.removedFields || []);
+  return [...groups, {title:'上下文压缩',fields:compressionFields}]
+    .map(group => ({...group,fields:group.fields.filter(([key])=>!removed.has(key))}))
+    .filter(group=>group.fields.length || group.title==='上下文压缩');
+});
 const customs = computed(() => Object.entries(effective.value.variables || {}));
 const inherited = key => planMode && Object.hasOwn(local.value.globalSimulation.variables || {}, key) && localPlan.value.useGlobal?.['variables.'+key] !== false;
 function target() { return planMode ? localPlan.value.simulation : local.value.globalSimulation; }
@@ -58,6 +63,10 @@ function remove(key) {
   try { deleteVariable(local.value, key, planMode ? localPlan.value : undefined); message.value = ''; }
   catch (error) { message.value = error.message; }
 }
+function removeBuiltin(key) {
+  try { deleteBuiltinField(local.value, key); message.value = ''; }
+  catch (error) { message.value = error.message; }
+}
 function changeType(event) {
   target().compressionThresholdType = event.target.value;
   if (planMode) localPlan.value.useGlobal.compressionThresholdType = false;
@@ -84,14 +93,14 @@ function save() { if (!Object.keys(errors.value).length) emit('save', planMode ?
           <label class="field">模型名称<input :value="locale === 'en' && local.globalModelId !== 'custom' ? translateUi(createPresetConfig(modelPresets.find(p=>p.id===local.globalModelId)).model.name) : (local.globalModelId === 'custom' ? local.globalModel : createPresetConfig(modelPresets.find(p=>p.id===local.globalModelId))).model.name" aria-label="全局模型名称" maxlength="100" @input="editGlobalModel(); local.globalModel.model.name=$event.target.value" /></label><label v-for="[key,label] in priceFields" :key="key" class="field">{{ label }} · USD / 1M Token<input type="number" min="0" step="any" :aria-label="'全局'+label+'单价'" :value="(local.globalModelId === 'custom' ? local.globalModel : createPresetConfig(modelPresets.find(p=>p.id===local.globalModelId))).model[key]" @input="editGlobalModel(); local.globalModel.model[key]=$event.target.value===''?'':Number($event.target.value)" /></label>
         </div>
       </section>
-      <section v-for="group in sections" :key="group.title"><h3>{{ group.title }}<small>内置参数</small></h3><div class="variables-grid"><label v-if="group.title === '上下文压缩'" class="field"><span>压缩阈值类型<button v-if="planMode" class="inherit-btn" :aria-pressed="!!localPlan.useGlobal.compressionThresholdType" @click.prevent="toggleType">{{ localPlan.useGlobal.compressionThresholdType?'继承全局':'自定义' }}</button></span><select :value="effective.compressionThresholdType" aria-label="全部变量压缩阈值类型" @change="changeType"><option value="TURN">用户轮次</option><option value="TOKEN">上下文</option></select></label><div v-for="field in group.fields" :key="field[0]"><PlanVariableField v-if="planMode" :plan="localPlan" :globals="local.globalSimulation" :field="field"/><ParameterField v-else :object="local.globalSimulation" :field="field"/></div></div></section>
+      <section v-for="group in sections" :key="group.title"><h3>{{ group.title }}<small>内置参数</small></h3><div class="variables-grid"><label v-if="group.title === '上下文压缩'" class="field"><span>压缩阈值类型<button v-if="planMode" class="inherit-btn" :aria-pressed="!!localPlan.useGlobal.compressionThresholdType" @click.prevent="toggleType">{{ localPlan.useGlobal.compressionThresholdType?'继承全局':'自定义' }}</button></span><select :value="effective.compressionThresholdType" aria-label="全部变量压缩阈值类型" @change="changeType"><option value="TURN">用户轮次</option><option value="TOKEN">上下文</option></select></label><div v-for="field in group.fields" :key="field[0]" class="builtin-field-row" :class="{removable:!planMode}"><PlanVariableField v-if="planMode" :plan="localPlan" :globals="local.globalSimulation" :field="field"/><ParameterField v-else :object="local.globalSimulation" :field="field"/><button v-if="!planMode" type="button" class="delete-builtin" :aria-label="'删除内置变量 '+field[1]" :title="'删除内置变量 '+field[1]" @click="removeBuiltin(field[0])"><X :size="14"/></button></div></div></section>
       <section><h3>自定义变量<small>{{ Object.keys(effective.variables || {}).length }} / 100</small></h3>
         <div class="variables-grid custom-variables"><label v-for="[key, variable] in customs" :key="key" class="field"><span><span class="custom-name">{{ key }}</span><button v-if="planMode && Object.hasOwn(local.globalSimulation.variables || {},key)" type="button" class="inherit-btn" :aria-pressed="inherited(key)" :aria-label="'继承全局 '+key" @click.prevent="toggleCustom(key)">{{ inherited(key)?'继承全局':'自定义' }}</button><button v-else type="button" class="remove-variable" :aria-label="'删除变量 '+key" @click.prevent="remove(key)"><Trash2 :size="15"/></button></span><input :value="variable.value" :aria-label="'变量值 '+key" type="number" min="0" step="any" @input="setCustom(key,$event.target.value===''?'':Number($event.target.value))"/></label></div>
         <p v-if="!customs.length" class="variable-note">还没有自定义变量，可在下方新增。</p>
         <form class="new-variable" @submit.prevent="add"><h4>新增变量</h4><div class="variables-grid"><label class="field">变量名<input v-model="name" aria-label="新变量名" placeholder="例如 retrievalToken" maxlength="64"/></label><label class="field">初始数值<input v-model.number="initialValue" aria-label="新变量初始值" type="number" min="0" step="any"/></label></div><button type="submit" class="add-variable"><Plus :size="15"/>添加变量</button></form>
       </section>
     </div>
-    <footer><p v-if="message || Object.keys(errors).length" class="variable-error" role="alert">{{ message || Object.values(errors)[0] }}</p><p v-else class="variable-note">内置参数保留，未引用的自定义变量可删除。关闭弹框会放弃本次修改。</p><div><button @click="emit('close')">取消</button><button class="save-variables" :disabled="!!Object.keys(errors).length" @click="save">{{ planMode?'应用到草稿':'保存变量' }}</button></div></footer>
+    <footer><p v-if="message || Object.keys(errors).length" class="variable-error" role="alert">{{ message || Object.values(errors)[0] }}</p><p v-else class="variable-note">{{ planMode?'内置参数保留。未引用的自定义变量可删除；关闭弹框会放弃本次修改。':'删除内置变量会同步移除各方案中的对应配置，计算时使用系统默认值。关闭弹框会放弃本次修改。' }}</p><div><button @click="emit('close')">取消</button><button class="save-variables" :disabled="!!Object.keys(errors).length" @click="save">{{ planMode?'应用到草稿':'保存变量' }}</button></div></footer>
   </dialog>
 </template>
 
@@ -111,6 +120,11 @@ h3 { display: flex; align-items: center; gap: 10px; color: #242622; font-size: 1
 h3 small { font-size: 10px; font-weight: 400; color: #73766e; }
 .variables-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px 22px; }
 .variables-grid > * { min-width: 0; }
+.builtin-field-row { min-width: 0; }
+.builtin-field-row.removable { position: relative; }
+.builtin-field-row.removable :deep(.field > span:first-child) { padding-right: 20px; }
+.delete-builtin { position: absolute; top: 2px; right: 0; width: 16px; min-height: 16px; padding: 0; border: 0; color: #73766e; line-height: 1; }
+.delete-builtin:hover:not(:disabled) { background: transparent; color: #242622; }
 .variables-dialog :deep(.field) { color: #73766e; font-size: 11px; margin-bottom: 0; gap: 7px; }
 .variables-dialog :deep(.field > span:first-child) { display: flex; align-items: center; justify-content: space-between; min-height: 24px; }
 .variables-dialog :deep(.field input), .variables-dialog :deep(.field select) { width: 100%; height: 38px; font: inherit; color: #242622; border: 1px solid #dddfd7; border-radius: 2px; background: #fff; padding: 8px 10px; }

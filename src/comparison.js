@@ -14,6 +14,13 @@ export const globalFields = [
 ];
 const legacyGlobalKeys = [...globalFields.map(([key]) => key), "compressionThresholdType"];
 export const globalKeys = [...fields.map(([key]) => key), "compressionThresholdType"];
+const defaultSimulation = createConfig().simulation;
+const deletePath = (object, path) => {
+  const keys = path.split(".");
+  const key = keys.pop();
+  const parent = keys.reduce((value, part) => value?.[part], object);
+  if (parent && typeof parent === "object") delete parent[key];
+};
 export const thresholdKey = simulation => simulation.compressionThresholdType === "TURN" ? "compressionThresholdTurnCount" : "compressionThresholdToken";
 export const thresholdField = simulation => {
   const field = globalFields.find(([key]) => key === thresholdKey(simulation));
@@ -23,7 +30,9 @@ export const isGlobalField = key => globalKeys.includes(key);
 export function resolvePlan(plan, globalSimulation, globalModelId, globalModel) {
   if (!plan?.simulation) return plan;
   const simulation = { ...plan.simulation, initialContext: { ...plan.simulation.initialContext } };
-  for (const key of globalKeys) if (globalSimulation && plan.useGlobal?.[key] && getValue(globalSimulation, key) !== undefined) setValue(simulation, key, getValue(globalSimulation, key));
+  const removedFields = new Set(Array.isArray(globalSimulation?.removedFields) ? globalSimulation.removedFields : []);
+  for (const key of globalKeys) if (!removedFields.has(key) && globalSimulation && plan.useGlobal?.[key] && getValue(globalSimulation, key) !== undefined) setValue(simulation, key, getValue(globalSimulation, key));
+  for (const key of removedFields) setValue(simulation, key, getValue(defaultSimulation, key));
   const variables = { ...plan.simulation.variables };
   for (const [key, variable] of Object.entries(globalSimulation?.variables || {})) {
     if (plan.useGlobal?.['variables.' + key] !== false) variables[key] = { ...variable };
@@ -35,8 +44,12 @@ export function resolvePlan(plan, globalSimulation, globalModelId, globalModel) 
 export function validateGlobals(globalSimulation) {
   const errors = {};
   if (!globalSimulation || typeof globalSimulation !== "object" || Array.isArray(globalSimulation)) return { global: "全局配置无效" };
+  const removedFields = globalSimulation.removedFields;
+  if (removedFields !== undefined && (!Array.isArray(removedFields) || removedFields.some(key => !fields.some(([field]) => field === key)) || new Set(removedFields).size !== removedFields.length)) errors.removedFields = "已删除的内置变量列表无效";
+  const removed = new Set(Array.isArray(removedFields) ? removedFields : []);
   try { validateVariables(globalSimulation.variables); } catch (error) { errors.variables = error.message; }
   for (const [key, label, unit, min, max] of fields) {
+    if (removed.has(key)) continue;
     if (key.startsWith("compressionThreshold") && key !== thresholdKey(globalSimulation || {})) continue;
     const value = getValue(globalSimulation, key);
     if (value === undefined && !legacyGlobalKeys.includes(key)) continue;
@@ -49,13 +62,31 @@ export function validateGlobals(globalSimulation) {
   return errors;
 }
 
-export function createPlan({ source, name = "自定义方案", id = crypto.randomUUID(), color = planColors[0] } = {}) {
+export function createPlan({ source, name = "自定义方案", id = crypto.randomUUID(), color = planColors[0], removedFields = [] } = {}) {
   const base = source ? structuredClone(source) : createConfig();
+  const useGlobal = source ? { ...source.useGlobal } : { ...Object.fromEntries(globalKeys.map(key => [key, true])), model: true };
+  for (const key of removedFields) {
+    deletePath(base.simulation, key);
+    delete useGlobal[key];
+  }
   return {
     id, name, color,
     simulation: base.simulation, model: base.model, pricing: base.pricing,
-    useGlobal: source ? { ...source.useGlobal } : { ...Object.fromEntries(globalKeys.map(key => [key, true])), model: true },
+    useGlobal,
   };
+}
+
+export function deleteBuiltinField(config, name) {
+  if (!fields.some(([key]) => key === name)) throw new Error("无法删除此内置变量");
+  const removed = new Set(config.globalSimulation.removedFields || []);
+  if (removed.has(name)) return;
+  removed.add(name);
+  config.globalSimulation.removedFields = [...removed];
+  deletePath(config.globalSimulation, name);
+  for (const plan of config.plans) {
+    deletePath(plan.simulation, name);
+    delete plan.useGlobal?.[name];
+  }
 }
 
 export function createComparisonConfig() {
@@ -152,10 +183,11 @@ export function readComparisonConfig(data) {
   // changing those plans' existing independent settings or their inheritance flags.
   let globalSimulation = data.globalSimulation === undefined ? {} : structuredClone(data.globalSimulation);
   if (globalSimulation && typeof globalSimulation === "object" && !Array.isArray(globalSimulation)) {
-    const defaults = createConfig().simulation;
+    const defaults = defaultSimulation;
     globalSimulation.initialContext ??= {};
+    const removedFields = new Set(Array.isArray(globalSimulation.removedFields) ? globalSimulation.removedFields : []);
     for (const key of globalKeys) {
-      if (data.globalSimulation === undefined || (!["turnTotalCount", "toolsTotalCount"].includes(key) && getValue(globalSimulation, key) === undefined)) setValue(globalSimulation, key, getValue(data.plans[0]?.simulation, key) ?? getValue(defaults, key));
+      if (!removedFields.has(key) && (data.globalSimulation === undefined || (!["turnTotalCount", "toolsTotalCount"].includes(key) && getValue(globalSimulation, key) === undefined))) setValue(globalSimulation, key, getValue(data.plans[0]?.simulation, key) ?? getValue(defaults, key));
     }
   }
   const plans = data.plans.map(plan => {
@@ -165,6 +197,10 @@ export function readComparisonConfig(data) {
     for (const key of globalKeys) setValue(normalized.simulation, key, getValue(plan.simulation, key));
     normalized.simulation.variables = structuredClone(plan.simulation.variables || {});
     const result = { ...plan, simulation: normalized.simulation, model: normalized.model, pricing: normalized.pricing };
+    for (const key of globalSimulation?.removedFields || []) {
+      deletePath(result.simulation, key);
+      delete result.useGlobal?.[key];
+    }
     return result;
   });
   const config = { version: 4, unit: "K", baselineId: data.baselineId, plans };

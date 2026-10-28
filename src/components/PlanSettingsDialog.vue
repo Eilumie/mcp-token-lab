@@ -13,7 +13,12 @@ const local = ref(JSON.parse(JSON.stringify(props.plan)));
 const displayedName = computed(() => locale.value === 'en' && ['按需 Tools', '全量 Tools'].includes(local.value.name) ? translateUi(local.value.name) : local.value.name);
 const dialog = ref(null), showVariables = ref(false);
 const titleId = useId();
-const sections = [...groups, { title: '上下文压缩', fields: compressionFields }];
+const sections = computed(() => {
+  const removed = new Set(props.config.globalSimulation.removedFields || []);
+  return [...groups, { title: '上下文压缩', fields: compressionFields }]
+    .map(group => ({ ...group, fields: group.fields.filter(([key]) => !removed.has(key)) }))
+    .filter(group => group.fields.length || group.title === '上下文压缩');
+});
 const effective = computed(() => resolvePlan(local.value, props.config.globalSimulation).simulation);
 const compressionTypeInherited = computed(() => local.value.useGlobal?.compressionThresholdType === true);
 function toggleCompressionType() {

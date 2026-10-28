@@ -22,7 +22,7 @@ function add(source) {
   const base = name;
   while (names.has(name)) name = base + ' ' + index++;
   remember();
-  const plan = createPlan({ source: source ? clone(source) : undefined, name, color: planColors[config.value.plans.length % planColors.length] });
+  const plan = createPlan({ source: source ? clone(source) : undefined, name, color: planColors[config.value.plans.length % planColors.length], removedFields: config.value.globalSimulation.removedFields || [] });
   config.value.plans.push(plan);
   if (!config.value.baselineId) config.value.baselineId = plan.id;
   notify(source ? '已复制方案' : '已新增方案');
