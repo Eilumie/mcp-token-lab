@@ -83,7 +83,7 @@ npm run dev
 使用相同模型和费率，生成可导入页面的 JSON，并列明其余假设。
 ```
 
-也可直接导入 [完整双方案示例](skills/mcp-token-lab/assets/comparison.example.json)；示例费率为演示假设，请按实际模型调整。生成的 JSON 可在项目目录用页面真实的导入逻辑校验，并完整模拟：
+也可在「模板 → 导入自定义模板」导入 [完整双方案示例](skills/mcp-token-lab/assets/comparison.example.json)，预览后点击「使用模板」；文件包含模板名称、模板描述和 v4 多方案配置。示例费率为演示假设，请按实际模型调整。生成的 JSON 可在项目目录用页面真实的导入逻辑校验，并完整模拟：
 
 ```sh
 node skills/mcp-token-lab/scripts/validate-config.mjs --repo . path/to/comparison.json --simulate

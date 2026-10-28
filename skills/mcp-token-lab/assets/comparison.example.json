@@ -1,143 +1,329 @@
 {
-  "version": 4,
-  "unit": "K",
-  "baselineId": "plan-full",
-  "baselineMode": "manual",
-  "globalSimulation": {
-    "initialContext": {
-      "agentPromptToken": 4
-    },
-    "variables": {},
-    "turnTotalCount": 20,
-    "skillsTotalCount": 10,
-    "toolsTotalCount": 60,
-    "turnAvgSkillsCount": 0.33,
-    "turnAvgToolsCount": 1.5,
-    "expectedPrefixCacheHitRate": 0.9,
-    "skillIndexToken": 0.1,
-    "toolsIndexToken": 0.013,
-    "toolSchemaToken": 0.51,
-    "userMessageToken": 0.1,
-    "skillDetailToken": 3,
-    "toolResultToken": 3,
-    "readSkillPlanToken": 0.1,
-    "schemaPlanToken": 0.1,
-    "callToolsPlanToken": 0.3,
-    "agentResult": 1,
-    "compressionThresholdTurnCount": 10,
-    "compressionThresholdToken": 200,
-    "compressionKeepTurns": 2,
-    "compressionTargetToken": 4,
-    "compressionThresholdType": "TURN",
-    "estimateDuration": true
-  },
-  "globalModelId": "custom",
-  "plans": [
-    {
-      "id": "plan-lazy",
-      "name": "渐进式Tools Schema",
-      "color": "#5869d9",
-      "description": "初始加载 Skill 与 Tool 索引，每轮查询所需 Tool Schema；与全量方案使用相同规模和演示费率，比较输入成本、模型调用次数及预估耗时。节点耗时为演示假设：action 0.3 秒，llm 1.8 秒。",
-      "estimateDuration": true,
-      "simulation": {
-        "flow": {
-          "initial": [
-            {
-              "type": "action",
-              "text": "agent prompt",
-              "token": "initialContext.agentPromptToken",
-              "durationSeconds": 0.3
-            },
-            {
-              "type": "action",
-              "text": "skills discover list",
-              "token": "skillIndexToken * skillsTotalCount",
-              "durationSeconds": 0.3
-            },
-            {
-              "type": "action",
-              "text": "tools discover list",
-              "token": "toolsTotalCount * toolsIndexToken",
-              "durationSeconds": 0.3
-            }
-          ],
-          "turn": [
-            {
-              "type": "action",
-              "text": "user_message",
-              "token": "userMessageToken",
-              "durationSeconds": 0.3
-            },
-            {
-              "type": "llm",
-              "text": "read_skills_plan",
-              "token": "readSkillPlanToken",
-              "durationSeconds": 1.8
-            },
-            {
-              "type": "action",
-              "text": "read_skills",
-              "token": "skillDetailToken * turnAvgSkillsCount",
-              "durationSeconds": 0.3
-            },
-            {
-              "type": "llm",
-              "text": "get_tools_schema_plan",
-              "token": "schemaPlanToken",
-              "durationSeconds": 1.8
-            },
-            {
-              "type": "action",
-              "text": "get_tools_schema",
-              "token": "toolSchemaToken * turnAvgToolsCount",
-              "durationSeconds": 0.3
-            },
-            {
-              "type": "llm",
-              "text": "call_tools_plan",
-              "token": "callToolsPlanToken",
-              "durationSeconds": 1.8
-            },
-            {
-              "type": "action",
-              "text": "call_tools",
-              "token": "toolResultToken * turnAvgToolsCount",
-              "durationSeconds": 0.3
-            },
-            {
-              "type": "llm",
-              "text": "agent_result",
-              "token": "agentResult",
-              "durationSeconds": 1.8
-            }
-          ]
-        },
-        "variables": {},
-        "initialContext": {
-          "agentPromptToken": 4
-        },
-        "turnTotalCount": 20,
-        "expectedPrefixCacheHitRate": 0.9,
-        "skillsTotalCount": 10,
-        "toolsTotalCount": 60,
-        "turnAvgSkillsCount": 0.33,
-        "turnAvgToolsCount": 1.5,
-        "skillIndexToken": 0.1,
-        "toolsIndexToken": 0.013,
-        "toolSchemaToken": 0.51,
-        "userMessageToken": 0.1,
-        "skillDetailToken": 3,
-        "toolResultToken": 3,
-        "readSkillPlanToken": 0.1,
-        "schemaPlanToken": 0.1,
-        "callToolsPlanToken": 0.3,
-        "agentResult": 1,
-        "compressionThresholdType": "TURN",
-        "compressionThresholdToken": 200,
-        "compressionThresholdTurnCount": 10,
-        "compressionTargetToken": 4,
-        "compressionKeepTurns": 2
+  "type": "token-lab-template",
+  "version": 1,
+  "name": "按需 Schema 与全量预加载对比",
+  "description": "比较相同模型和工具规模下，按需读取 Tool Schema 与初始全量预加载的 Token、费用和预估耗时。示例为 20 轮用户消息、60 个工具，每轮平均调用 1.5 个工具；费率和节点耗时均为演示假设，使用前请按实际场景调整。",
+  "config": {
+    "version": 4,
+    "unit": "K",
+    "baselineId": "plan-full",
+    "baselineMode": "manual",
+    "globalSimulation": {
+      "initialContext": {
+        "agentPromptToken": 4
       },
+      "variables": {},
+      "turnTotalCount": 20,
+      "skillsTotalCount": 10,
+      "toolsTotalCount": 60,
+      "turnAvgSkillsCount": 0.33,
+      "turnAvgToolsCount": 1.5,
+      "expectedPrefixCacheHitRate": 0.9,
+      "skillIndexToken": 0.1,
+      "toolsIndexToken": 0.013,
+      "toolSchemaToken": 0.51,
+      "userMessageToken": 0.1,
+      "skillDetailToken": 3,
+      "toolResultToken": 3,
+      "readSkillPlanToken": 0.1,
+      "schemaPlanToken": 0.1,
+      "callToolsPlanToken": 0.3,
+      "agentResult": 1,
+      "compressionThresholdTurnCount": 10,
+      "compressionThresholdToken": 200,
+      "compressionKeepTurns": 2,
+      "compressionTargetToken": 4,
+      "compressionThresholdType": "TURN",
+      "estimateDuration": true
+    },
+    "globalModelId": "custom",
+    "plans": [
+      {
+        "id": "plan-lazy",
+        "name": "渐进式Tools Schema",
+        "color": "#5869d9",
+        "description": "初始加载 Skill 与 Tool 索引，每轮查询所需 Tool Schema；与全量方案使用相同规模和演示费率，比较输入成本、模型调用次数及预估耗时。节点耗时为演示假设：action 0.3 秒，llm 1.8 秒。",
+        "estimateDuration": true,
+        "simulation": {
+          "flow": {
+            "initial": [
+              {
+                "type": "action",
+                "text": "agent prompt",
+                "token": "initialContext.agentPromptToken",
+                "durationSeconds": 0.3
+              },
+              {
+                "type": "action",
+                "text": "skills discover list",
+                "token": "skillIndexToken * skillsTotalCount",
+                "durationSeconds": 0.3
+              },
+              {
+                "type": "action",
+                "text": "tools discover list",
+                "token": "toolsTotalCount * toolsIndexToken",
+                "durationSeconds": 0.3
+              }
+            ],
+            "turn": [
+              {
+                "type": "action",
+                "text": "user_message",
+                "token": "userMessageToken",
+                "durationSeconds": 0.3
+              },
+              {
+                "type": "llm",
+                "text": "read_skills_plan",
+                "token": "readSkillPlanToken",
+                "durationSeconds": 1.8
+              },
+              {
+                "type": "action",
+                "text": "read_skills",
+                "token": "skillDetailToken * turnAvgSkillsCount",
+                "durationSeconds": 0.3
+              },
+              {
+                "type": "llm",
+                "text": "get_tools_schema_plan",
+                "token": "schemaPlanToken",
+                "durationSeconds": 1.8
+              },
+              {
+                "type": "action",
+                "text": "get_tools_schema",
+                "token": "toolSchemaToken * turnAvgToolsCount",
+                "durationSeconds": 0.3
+              },
+              {
+                "type": "llm",
+                "text": "call_tools_plan",
+                "token": "callToolsPlanToken",
+                "durationSeconds": 1.8
+              },
+              {
+                "type": "action",
+                "text": "call_tools",
+                "token": "toolResultToken * turnAvgToolsCount",
+                "durationSeconds": 0.3
+              },
+              {
+                "type": "llm",
+                "text": "agent_result",
+                "token": "agentResult",
+                "durationSeconds": 1.8
+              }
+            ]
+          },
+          "variables": {},
+          "initialContext": {
+            "agentPromptToken": 4
+          },
+          "turnTotalCount": 20,
+          "expectedPrefixCacheHitRate": 0.9,
+          "skillsTotalCount": 10,
+          "toolsTotalCount": 60,
+          "turnAvgSkillsCount": 0.33,
+          "turnAvgToolsCount": 1.5,
+          "skillIndexToken": 0.1,
+          "toolsIndexToken": 0.013,
+          "toolSchemaToken": 0.51,
+          "userMessageToken": 0.1,
+          "skillDetailToken": 3,
+          "toolResultToken": 3,
+          "readSkillPlanToken": 0.1,
+          "schemaPlanToken": 0.1,
+          "callToolsPlanToken": 0.3,
+          "agentResult": 1,
+          "compressionThresholdType": "TURN",
+          "compressionThresholdToken": 200,
+          "compressionThresholdTurnCount": 10,
+          "compressionTargetToken": 4,
+          "compressionKeepTurns": 2
+        },
+        "model": {
+          "name": "演示模型（假设费率）",
+          "currency": "$",
+          "inputCachedPrice": 0.2,
+          "inputNotCachedPrice": 2,
+          "outputPrice": 8
+        },
+        "pricing": {
+          "id": "custom",
+          "label": "演示假设，非实际报价",
+          "source": "",
+          "date": "",
+          "note": "仅用于演示配置格式；请替换为目标模型的 USD / 百万 Token 单价"
+        },
+        "useGlobal": {
+          "turnTotalCount": true,
+          "skillsTotalCount": true,
+          "toolsTotalCount": true,
+          "turnAvgSkillsCount": true,
+          "turnAvgToolsCount": true,
+          "expectedPrefixCacheHitRate": true,
+          "initialContext.agentPromptToken": true,
+          "skillIndexToken": true,
+          "toolsIndexToken": true,
+          "toolSchemaToken": true,
+          "userMessageToken": true,
+          "skillDetailToken": true,
+          "toolResultToken": true,
+          "readSkillPlanToken": true,
+          "schemaPlanToken": true,
+          "callToolsPlanToken": true,
+          "agentResult": true,
+          "compressionThresholdTurnCount": true,
+          "compressionThresholdToken": true,
+          "compressionKeepTurns": true,
+          "compressionTargetToken": true,
+          "compressionThresholdType": true,
+          "model": true
+        }
+      },
+      {
+        "id": "plan-full",
+        "name": "MCP默认全量tools/list",
+        "color": "#d99b61",
+        "description": "初始预加载全部 Tool Schema，每轮省去 Schema 查询计划和返回节点；作为固定对比基准。与按需方案使用相同规模、演示费率和相同步骤耗时假设。",
+        "estimateDuration": true,
+        "simulation": {
+          "flow": {
+            "initial": [
+              {
+                "type": "action",
+                "text": "agent prompt",
+                "token": "initialContext.agentPromptToken",
+                "durationSeconds": 0.3
+              },
+              {
+                "type": "action",
+                "text": "skills discover list",
+                "token": "skillIndexToken * skillsTotalCount",
+                "durationSeconds": 0.3
+              },
+              {
+                "type": "action",
+                "text": "tools discover list",
+                "token": "toolsTotalCount * toolsIndexToken",
+                "durationSeconds": 0.3
+              },
+              {
+                "type": "action",
+                "text": "tools schema list",
+                "token": "toolsTotalCount * toolSchemaToken",
+                "durationSeconds": 0.3
+              }
+            ],
+            "turn": [
+              {
+                "type": "action",
+                "text": "user_message",
+                "token": "userMessageToken",
+                "durationSeconds": 0.3
+              },
+              {
+                "type": "llm",
+                "text": "read_skills_plan",
+                "token": "readSkillPlanToken",
+                "durationSeconds": 1.8
+              },
+              {
+                "type": "action",
+                "text": "read_skills",
+                "token": "skillDetailToken * turnAvgSkillsCount",
+                "durationSeconds": 0.3
+              },
+              {
+                "type": "llm",
+                "text": "call_tools_plan",
+                "token": "callToolsPlanToken",
+                "durationSeconds": 1.8
+              },
+              {
+                "type": "action",
+                "text": "call_tools",
+                "token": "toolResultToken * turnAvgToolsCount",
+                "durationSeconds": 0.3
+              },
+              {
+                "type": "llm",
+                "text": "agent_result",
+                "token": "agentResult",
+                "durationSeconds": 1.8
+              }
+            ]
+          },
+          "variables": {},
+          "initialContext": {
+            "agentPromptToken": 4
+          },
+          "turnTotalCount": 20,
+          "expectedPrefixCacheHitRate": 0.9,
+          "skillsTotalCount": 10,
+          "toolsTotalCount": 60,
+          "turnAvgSkillsCount": 0.33,
+          "turnAvgToolsCount": 1.5,
+          "skillIndexToken": 0.1,
+          "toolsIndexToken": 0.013,
+          "toolSchemaToken": 0.51,
+          "userMessageToken": 0.1,
+          "skillDetailToken": 3,
+          "toolResultToken": 3,
+          "readSkillPlanToken": 0.1,
+          "schemaPlanToken": 0.1,
+          "callToolsPlanToken": 0.3,
+          "agentResult": 1,
+          "compressionThresholdType": "TURN",
+          "compressionThresholdToken": 200,
+          "compressionThresholdTurnCount": 10,
+          "compressionTargetToken": 4,
+          "compressionKeepTurns": 2
+        },
+        "model": {
+          "name": "演示模型（假设费率）",
+          "currency": "$",
+          "inputCachedPrice": 0.2,
+          "inputNotCachedPrice": 2,
+          "outputPrice": 8
+        },
+        "pricing": {
+          "id": "custom",
+          "label": "演示假设，非实际报价",
+          "source": "",
+          "date": "",
+          "note": "仅用于演示配置格式；请替换为目标模型的 USD / 百万 Token 单价"
+        },
+        "useGlobal": {
+          "turnTotalCount": true,
+          "skillsTotalCount": true,
+          "toolsTotalCount": true,
+          "turnAvgSkillsCount": true,
+          "turnAvgToolsCount": true,
+          "expectedPrefixCacheHitRate": true,
+          "initialContext.agentPromptToken": true,
+          "skillIndexToken": true,
+          "toolsIndexToken": true,
+          "toolSchemaToken": true,
+          "userMessageToken": true,
+          "skillDetailToken": true,
+          "toolResultToken": true,
+          "readSkillPlanToken": true,
+          "schemaPlanToken": true,
+          "callToolsPlanToken": true,
+          "agentResult": true,
+          "compressionThresholdTurnCount": true,
+          "compressionThresholdToken": true,
+          "compressionKeepTurns": true,
+          "compressionTargetToken": true,
+          "compressionThresholdType": true,
+          "model": true
+        }
+      }
+    ],
+    "globalModel": {
       "model": {
         "name": "演示模型（假设费率）",
         "currency": "$",
@@ -151,187 +337,7 @@
         "source": "",
         "date": "",
         "note": "仅用于演示配置格式；请替换为目标模型的 USD / 百万 Token 单价"
-      },
-      "useGlobal": {
-        "turnTotalCount": true,
-        "skillsTotalCount": true,
-        "toolsTotalCount": true,
-        "turnAvgSkillsCount": true,
-        "turnAvgToolsCount": true,
-        "expectedPrefixCacheHitRate": true,
-        "initialContext.agentPromptToken": true,
-        "skillIndexToken": true,
-        "toolsIndexToken": true,
-        "toolSchemaToken": true,
-        "userMessageToken": true,
-        "skillDetailToken": true,
-        "toolResultToken": true,
-        "readSkillPlanToken": true,
-        "schemaPlanToken": true,
-        "callToolsPlanToken": true,
-        "agentResult": true,
-        "compressionThresholdTurnCount": true,
-        "compressionThresholdToken": true,
-        "compressionKeepTurns": true,
-        "compressionTargetToken": true,
-        "compressionThresholdType": true,
-        "model": true
       }
-    },
-    {
-      "id": "plan-full",
-      "name": "MCP默认全量tools/list",
-      "color": "#d99b61",
-      "description": "初始预加载全部 Tool Schema，每轮省去 Schema 查询计划和返回节点；作为固定对比基准。与按需方案使用相同规模、演示费率和相同步骤耗时假设。",
-      "estimateDuration": true,
-      "simulation": {
-        "flow": {
-          "initial": [
-            {
-              "type": "action",
-              "text": "agent prompt",
-              "token": "initialContext.agentPromptToken",
-              "durationSeconds": 0.3
-            },
-            {
-              "type": "action",
-              "text": "skills discover list",
-              "token": "skillIndexToken * skillsTotalCount",
-              "durationSeconds": 0.3
-            },
-            {
-              "type": "action",
-              "text": "tools discover list",
-              "token": "toolsTotalCount * toolsIndexToken",
-              "durationSeconds": 0.3
-            },
-            {
-              "type": "action",
-              "text": "tools schema list",
-              "token": "toolsTotalCount * toolSchemaToken",
-              "durationSeconds": 0.3
-            }
-          ],
-          "turn": [
-            {
-              "type": "action",
-              "text": "user_message",
-              "token": "userMessageToken",
-              "durationSeconds": 0.3
-            },
-            {
-              "type": "llm",
-              "text": "read_skills_plan",
-              "token": "readSkillPlanToken",
-              "durationSeconds": 1.8
-            },
-            {
-              "type": "action",
-              "text": "read_skills",
-              "token": "skillDetailToken * turnAvgSkillsCount",
-              "durationSeconds": 0.3
-            },
-            {
-              "type": "llm",
-              "text": "call_tools_plan",
-              "token": "callToolsPlanToken",
-              "durationSeconds": 1.8
-            },
-            {
-              "type": "action",
-              "text": "call_tools",
-              "token": "toolResultToken * turnAvgToolsCount",
-              "durationSeconds": 0.3
-            },
-            {
-              "type": "llm",
-              "text": "agent_result",
-              "token": "agentResult",
-              "durationSeconds": 1.8
-            }
-          ]
-        },
-        "variables": {},
-        "initialContext": {
-          "agentPromptToken": 4
-        },
-        "turnTotalCount": 20,
-        "expectedPrefixCacheHitRate": 0.9,
-        "skillsTotalCount": 10,
-        "toolsTotalCount": 60,
-        "turnAvgSkillsCount": 0.33,
-        "turnAvgToolsCount": 1.5,
-        "skillIndexToken": 0.1,
-        "toolsIndexToken": 0.013,
-        "toolSchemaToken": 0.51,
-        "userMessageToken": 0.1,
-        "skillDetailToken": 3,
-        "toolResultToken": 3,
-        "readSkillPlanToken": 0.1,
-        "schemaPlanToken": 0.1,
-        "callToolsPlanToken": 0.3,
-        "agentResult": 1,
-        "compressionThresholdType": "TURN",
-        "compressionThresholdToken": 200,
-        "compressionThresholdTurnCount": 10,
-        "compressionTargetToken": 4,
-        "compressionKeepTurns": 2
-      },
-      "model": {
-        "name": "演示模型（假设费率）",
-        "currency": "$",
-        "inputCachedPrice": 0.2,
-        "inputNotCachedPrice": 2,
-        "outputPrice": 8
-      },
-      "pricing": {
-        "id": "custom",
-        "label": "演示假设，非实际报价",
-        "source": "",
-        "date": "",
-        "note": "仅用于演示配置格式；请替换为目标模型的 USD / 百万 Token 单价"
-      },
-      "useGlobal": {
-        "turnTotalCount": true,
-        "skillsTotalCount": true,
-        "toolsTotalCount": true,
-        "turnAvgSkillsCount": true,
-        "turnAvgToolsCount": true,
-        "expectedPrefixCacheHitRate": true,
-        "initialContext.agentPromptToken": true,
-        "skillIndexToken": true,
-        "toolsIndexToken": true,
-        "toolSchemaToken": true,
-        "userMessageToken": true,
-        "skillDetailToken": true,
-        "toolResultToken": true,
-        "readSkillPlanToken": true,
-        "schemaPlanToken": true,
-        "callToolsPlanToken": true,
-        "agentResult": true,
-        "compressionThresholdTurnCount": true,
-        "compressionThresholdToken": true,
-        "compressionKeepTurns": true,
-        "compressionTargetToken": true,
-        "compressionThresholdType": true,
-        "model": true
-      }
-    }
-  ],
-  "globalModel": {
-    "model": {
-      "name": "演示模型（假设费率）",
-      "currency": "$",
-      "inputCachedPrice": 0.2,
-      "inputNotCachedPrice": 2,
-      "outputPrice": 8
-    },
-    "pricing": {
-      "id": "custom",
-      "label": "演示假设，非实际报价",
-      "source": "",
-      "date": "",
-      "note": "仅用于演示配置格式；请替换为目标模型的 USD / 百万 Token 单价"
     }
   }
 }

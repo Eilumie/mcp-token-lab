@@ -21,10 +21,14 @@ try {
   await stat(resolve(repo, 'src/comparison.js'));
   const { readComparisonConfig, validateComparison } = await import(pathToFileURL(resolve(repo, 'src/comparison.js')).href);
   const raw = JSON.parse(await readFile(file, 'utf8'));
-  const config = readComparisonConfig(raw);
+  const template = raw?.type === 'token-lab-template'
+    ? (await import(pathToFileURL(resolve(repo, 'src/templates.js')).href)).readTemplate(raw)
+    : null;
+  const config = template ? template.config : readComparisonConfig(raw);
   const errors = validateComparison(config);
   if (Object.keys(errors).length) throw new Error(JSON.stringify(errors));
   const output = { valid: true, file, version: config.version, plans: config.plans.length, simulated: false };
+  if (template) output.template = { version: template.version, name: template.name, description: template.description };
   if (simulate) {
     const { simulate: run } = await import(pathToFileURL(resolve(repo, 'src/session-report.js')).href);
     output.results = run(config).map(result => ({
