@@ -89,7 +89,10 @@ function checkConservation(result) {
 }
 
 test("10 轮基准，末轮压缩请求和最终上下文完整计入", () => {
-  const results = simulateTemplates(setup({ turnTotalCount: 10, skillsTotalCount: 1 }));
+  const config = setup({ turnTotalCount: 10, skillsTotalCount: 1 });
+  // Pin the historical fixture prices instead of relying on the UI's default model.
+  Object.assign(config.model, { inputCachedPrice: 1.5, inputNotCachedPrice: 12, outputPrice: 36 });
+  const results = simulateTemplates(config);
   const expected = [
     [41, 5.27, 1558.773, 251.747, 19, 24.98, 6.0431235],
     [31, 51.17, 2342.448, 330.172, 18, 69.15, 8.123736],

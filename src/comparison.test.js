@@ -183,6 +183,8 @@ function legacyFixture(version = 3) {
   const base = createConfig();
   base.simulation.turnTotalCount = 10;
   base.simulation.skillsTotalCount = 1;
+  // Keep legacy cost expectations independent of the current default model preset.
+  Object.assign(base.model, { inputCachedPrice: 1.5, inputNotCachedPrice: 12, outputPrice: 36 });
   const flow = base.simulation.flow;
   flow.initial.splice(3, 0, { type: "action", text: "tools schema list", token: ["toolsTotalCount", "toolSchemaToken"], toolsMode: "FULL_TOOLS_SCHEMA" });
   flow.turn[3].toolsMode = "LAZY_TOOLS_SCHEMA";
