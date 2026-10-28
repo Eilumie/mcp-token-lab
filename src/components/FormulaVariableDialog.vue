@@ -35,7 +35,7 @@ onBeforeUnmount(() => { dialog.value?.close(); if (previousFocus?.isConnected) p
 </template>
 
 <style scoped>
-.formula-variable-dialog { box-sizing: border-box; width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); padding: 0; border: 1px solid #dddfd7; border-radius: 2px; color: #242622; background: #fafaf7; box-shadow: 0 24px 80px #24262224; }
+.formula-variable-dialog { box-sizing: border-box; width: min(900px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); padding: 0; border: 1px solid #dddfd7; border-radius: 2px; color: #242622; background: #fafaf7; box-shadow: 0 24px 80px #24262224; }
 .formula-variable-dialog[open] { display: flex; flex-direction: column; }
 .formula-variable-dialog::backdrop { background: #24262266; backdrop-filter: blur(2px); }
 header, footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 22px; flex-shrink: 0; }
@@ -43,7 +43,7 @@ header { border-bottom: 1px solid #dddfd7; } h2 { margin: 0; font-size: 16px; fo
 button { cursor: pointer; border: 1px solid #dddfd7; border-radius: 2px; background: transparent; color: #555950; padding: 8px 14px; font: inherit; } button:hover { background: #eeefe9; } button:focus-visible { outline: 2px solid #b94e30; outline-offset: -2px; } .close { border: 0; padding: 5px; }
 .search { padding: 16px 22px 8px; } input { box-sizing: border-box; width: 100%; padding: 9px; border: 1px solid #dddfd7; border-radius: 2px; background: #fff; color: #242622; font: inherit; } input:focus { outline: none; border-color: #b94e30; box-shadow: 0 0 0 2px #b94e3018; }
 .search p, .empty { color: #73766e; font-size: 11px; line-height: 1.8; }
-.variable-list { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 0 22px 16px; } h3 { margin: 16px 0 8px; color: #73766e; font-size: 12px; font-weight: 500; }
-.variable { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 10px; border-bottom: 0; text-align: left; } .variable:last-child { border-bottom: 1px solid #dddfd7; } .variable > span:first-child { min-width: 0; } code { display: block; color: #242622; font-size: 12px; overflow-wrap: anywhere; } small { display: block; color: #73766e; font-size: 11px; margin-top: 5px; } .value { color: #b94e30; font-size: 12px; overflow-wrap: anywhere; max-width: 40%; }
+.variable-list { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 0 22px 16px; } .variable-list section { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 8px; } h3 { grid-column: 1 / -1; margin: 16px 0 0; color: #73766e; font-size: 12px; font-weight: 500; }
+.variable { display: flex; align-items: center; justify-content: space-between; gap: 16px; box-sizing: border-box; min-width: 0; width: 100%; padding: 12px; text-align: left; } .variable > span:first-child { min-width: 0; } code { display: block; color: #242622; font-size: 12px; overflow-wrap: anywhere; } small { display: block; color: #73766e; font-size: 11px; margin-top: 5px; } .value { color: #b94e30; font-size: 12px; overflow-wrap: anywhere; max-width: 40%; }
 footer { justify-content: flex-end; border-top: 1px solid #dddfd7; font-size: 12px; }
 </style>
