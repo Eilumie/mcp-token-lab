@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { reactive } from "vue";
 import { createConfig, createPresetConfig } from "./config.js";
 import { defaultModelPreset, modelPresets } from "./model-pricing.js";
 import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, resolveBaselineId, planColors, maxPlans, globalKeys, resolvePlan } from "./comparison.js";
@@ -426,6 +427,19 @@ test("手动全局模型费率影响继承方案并可导入导出，独立方�
   close(simulate(restored)[0].cost.total, results[0].cost.total);
   restored.globalModel.model.outputPrice = -1;
   assert.ok(validateComparison(restored).globalModelId);
+});
+
+test("导入的自定义全局模型在响应式页面中可校验且复制互不影响", () => {
+  const config = createComparisonConfig();
+  config.globalModelId = "custom";
+  config.globalModel = { model: { name: "手动模型", currency: "$", inputCachedPrice: 1, inputNotCachedPrice: 2, outputPrice: 3 }, pricing: { id: "custom", tier: { input_tokens_gt: 10 } } };
+  const imported = reactive(readComparisonConfig(JSON.parse(JSON.stringify(config))));
+  assert.deepEqual(validateComparison(imported), {});
+  const resolved = resolvePlan(imported.plans[0], imported.globalSimulation, imported.globalModelId, imported.globalModel);
+  resolved.model.outputPrice = 9;
+  resolved.pricing.tier.input_tokens_gt = 20;
+  assert.equal(imported.globalModel.model.outputPrice, 3);
+  assert.equal(imported.globalModel.pricing.tier.input_tokens_gt, 10);
 });
 
 test("旧配置导入保留各方案模型和自定义费率，无效全局模型被拒绝", () => {

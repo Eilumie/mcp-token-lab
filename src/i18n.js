@@ -12,6 +12,29 @@ export function setLocale(value) {
 // Keep configuration, model IDs, and user input in their original form. These are
 // display translations for the Chinese labels used by the existing application.
 const english = {
+  '模板': 'Templates', '关闭模板': 'Close templates', '选择模板': 'Choose a template',
+  '选择一个起点，探索不同的调用策略。': 'Choose a starting point to explore different calling strategies.',
+  '内置模板与自定义模板': 'Built-in and custom templates', '内置模板': 'Built-in template', '自定义模板': 'Custom template',
+  '导入自定义模板': 'Import custom template', '自定义模板文件': 'Custom template file',
+  '导出为模板': 'Export as template', '使用模板': 'Use template', '模板详情': 'Template details',
+  '模板名称': 'Template name', '模板介绍': 'Template description', '方案列表': 'Plans',
+  '暂无模板介绍': 'No description provided', '将当前配置导出为模板': 'Export current configuration as a template',
+  '为当前配置命名': 'Name this configuration', '描述用途和方案差异': 'Describe its purpose and plan differences',
+  '使用模板将替换当前全局配置和方案，可撤销。': 'Using a template replaces the current global settings and plans. You can undo this.',
+  '已应用模板，可撤销': 'Template applied. You can undo this.', '已导出模板': 'Template exported',
+  '模板名称需为 1–100 个字符': 'Template name must have 1–100 characters',
+  '模板介绍不能超过 1000 个字符': 'Template description must be at most 1000 characters',
+  '不支持的模板版本': 'Unsupported template version',
+  '方案说明': 'Plan description', '方案说明不能超过 1000 个字符': 'Plan description must be at most 1000 characters',
+  '描述方案的目标、策略或适用场景': 'Describe the goals, strategy, or use cases of this plan',
+  'Tools Schema 加载策略': 'Tools Schema loading strategies',
+  '对比渐进式按需加载与默认全量加载，观察初始上下文和调用成本的差异。': 'Compare progressive on-demand loading with full loading to see differences in initial context and calling costs.',
+  '先加载工具索引，每轮按需读取工具 Schema，减少初始上下文。': 'Load the tool index first, then read schemas on demand each turn to reduce initial context.',
+  '初始加载全部工具 Schema，每轮直接调用工具，减少查询步骤。': 'Load all tool schemas initially, then call tools directly each turn to reduce lookup steps.',
+  'Prefix 缓存收益': 'Prefix cache savings',
+  '使用相同流程，对比 0%、50% 和 90% 三档缓存命中率的费用变化。': 'Compare costs at 0%, 50%, and 90% cache hit rates using the same flow.',
+  '上下文压缩频率': 'Context compression frequency',
+  '对比每 5、10、20 轮压缩的策略，观察上下文峰值与压缩费用的变化。': 'Compare compression every 5, 10, and 20 turns to explore peak context and compression costs.',
   '用户消息总轮数 ÷ 实际压缩次数；包含末次压缩后尚未再次触发压缩的用户轮次。': 'Total user turns ÷ actual compressions; includes turns after the last compression.',
   '初始前缀按期望命中率计费 · 每轮流程结束后检查压缩 · 最后一轮触发的压缩也计费': 'The initial prefix uses the expected cache hit rate · Compression is checked after each turn · Compression on the final turn is billed',
   '所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。': 'All lengths use K tokens. Estimated costs use the current settings and rate snapshot; undefined ratios show “—”.',
@@ -215,12 +238,16 @@ const entries = Object.entries(english).sort((a, b) => b[0].length - a[0].length
 export function translateUi(value) {
   if (locale.value === 'zh' || value == null) return value;
   let result = String(value);
+  if (Object.hasOwn(english, result)) return english[result];
   const range = /^(.*?)请输入 (\d+(?:\.\d+)?)(?:–(\d+(?:\.\d+)?))?( 及以上的有限)?数值$/.exec(result);
   if (range) {
     const label = range[1] ? `${translateUi(range[1])}: ` : '';
     return `${label}Enter a finite number ${range[3] ? `from ${range[2]} to ${range[3]}` : `of at least ${range[2]}`}`;
   }
   result = result
+    .replace(/保持执行流程一致，将 Prefix 命中率设置为 (\d+)%，比较缓存对费用的影响。/g, 'Keep the same flow with a $1% Prefix cache hit rate to compare the effect on costs.')
+    .replace(/活跃用户轮次达到 (\d+) 轮后压缩，保留最近 2 轮，摘要长度为 4 K Token。/g, 'Compress after $1 active user turns, retaining the latest 2 turns with a 4 K token summary.')
+    .replace(/每 (\d+) 轮压缩/g, 'Compress every $1 turns')
     .replace(/最多对比 (\d+) 个方案/g, 'Compare up to $1 plans')
     .replace(/每 (\d+) 轮触发/g, 'Every $1 turns')
     .replace(/(\d+)% 概率触发/g, '$1% trigger probability')

@@ -3,12 +3,13 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { ArrowRight, Check, CircleHelp, X } from 'lucide-vue-next';
 import { createComparisonConfig, createPlan, planColors, readComparisonConfig, validateComparison } from './comparison.js';
 import VariablesDialog from './components/VariablesDialog.vue';
+import TemplatesDialog from './components/TemplatesDialog.vue';
 import Home from './components/Home.vue';
 import { downloadFile } from './utils.js';
 
 const config = ref(createComparisonConfig());
 const results = ref([]), busy = ref(false), failure = ref(''), toast = ref('');
-const variablesMode = ref(false), help = ref(false), fileInput = ref(null), lastConfig = ref(null);
+const variablesMode = ref(false), help = ref(false), templatesMode = ref(false), customTemplates = ref([]), lastConfig = ref(null);
 const errors = computed(() => validateComparison(config.value));
 let reportWorker, reportTimer, toastTimer;
 function notify(text) { toast.value = text; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 3500); }
@@ -35,15 +36,11 @@ function remove(id) {
 }
 function saveVariables(next) { remember(); config.value = next; variablesMode.value = false; }
 function exportConfig() { downloadFile('token-lab.json', JSON.stringify(config.value, null, 2), 'application/json'); notify('已导出实验配置'); }
-async function importConfig(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
+function applyTemplate(templateConfig) {
   try {
-    if (file.size > 4000000) throw new Error('文件不能超过 4 MB');
-    const next = readComparisonConfig(JSON.parse(await file.text()));
-    remember(); config.value = next; notify('配置已导入');
+    const next = readComparisonConfig(clone(templateConfig));
+    remember(); config.value = next; templatesMode.value = false; notify('已应用模板，可撤销');
   } catch (error) { notify('导入失败：' + error.message); }
-  finally { event.target.value = ''; }
 }
 watch(config, () => {
   clearTimeout(reportTimer); reportWorker?.terminate(); busy.value = false; failure.value = '';
@@ -64,11 +61,11 @@ onBeforeUnmount(() => { reportWorker?.terminate(); clearTimeout(reportTimer); cl
 
 <template>
   <Home :config="config" :results="results" :busy="busy" :errors="errors" :failure="failure" :can-undo="!!lastConfig"
-    @variables="variablesMode=true" @import="fileInput.click()" @export="exportConfig" @remember="remember" @undo="undo"
+    @variables="variablesMode=true" @templates="templatesMode=true" @export="exportConfig" @remember="remember" @undo="undo"
     @reset="remember();config=createComparisonConfig();notify('已恢复默认方案')"
     @add="add()" @baseline="setBase" @copy="add(config.plans.find(plan=>plan.id===$event))" @remove="remove" />
   <VariablesDialog v-if="variablesMode" :config="config" @close="variablesMode=false" @save="saveVariables" />
-  <input ref="fileInput" type="file" accept=".json" hidden @change="importConfig" />
+  <TemplatesDialog v-if="templatesMode" :custom-templates="customTemplates" @close="templatesMode=false" @import="customTemplates.push($event)" @apply="applyTemplate" />
   <div v-if="toast" class="toast" role="status"><Check :size="15" />{{ toast }}<button v-if="lastConfig" @click="undo">撤销</button><button class="icon-btn" aria-label="关闭提示" @click="toast='' "><X :size="13" /></button></div>
   <div v-if="help" class="help-overlay" @click.self="help=false"><section class="help-panel" role="dialog" aria-modal="true" aria-labelledby="help-title"><button class="icon-btn help-close" aria-label="关闭说明" @click="help=false"><X :size="18" /></button><span class="eyebrow">MCP TOKEN LAB / GUIDE</span><h2 id="help-title">从假设，到成本。</h2><p>1. 设置统一的会话轮次与工具规模。</p><p>2. 配置方案变量和执行流程。</p><p>3. 选择基准，比较成本和上下文变化。</p><p class="field-help">配置仅保存在本次页面会话，刷新前请导出。所有计算在浏览器内完成。</p><button class="btn primary" @click="help=false">开始探索<ArrowRight :size="14" /></button></section></div>
 </template>

@@ -223,3 +223,5 @@
 @media (prefers-reduced-motion: reduce) {
   .home-page .lab-mini-track > i, .home-page .plan-summary-row { transition: none; }
 }
+
+.home-page .plan-description { margin: 0 0 22px; padding-left: 12px; border-left: 2px solid #b94e30; color: #73766e; font-size: 12px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }

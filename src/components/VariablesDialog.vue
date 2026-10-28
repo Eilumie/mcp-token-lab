@@ -86,6 +86,7 @@ function save() { if (!Object.keys(errors.value).length) emit('save', planMode ?
   <dialog ref="dialog" class="variables-dialog" :class="{ 'global-variables-dialog': !planMode }" :aria-labelledby="titleId" @cancel.prevent="emit('close')">
     <header><div><h2 :id="titleId"><SlidersHorizontal :size="18"/>{{ planMode?'方案全部变量':'全部全局变量' }}</h2><p v-if="planMode">逐项继承全局或自定义，修改数值会自动切换为自定义。</p></div><button class="close-dialog" aria-label="关闭全部变量" @click="emit('close')"><X :size="18"/></button></header>
     <div class="variables-body">
+      <section v-if="planMode"><h3>方案说明</h3><label class="field description-field"><span>描述方案的目标、策略或适用场景<small>{{ (localPlan.description || '').length }} / 1000</small></span><textarea v-model="localPlan.description" rows="3" maxlength="1000" aria-label="方案说明" placeholder="描述方案的目标、策略或适用场景" /></label></section>
       <section><h3>模型与费率</h3>
         <PlanModelSettings v-if="planMode" :plan="localPlan" :global-model-id="local.globalModelId" :global-model="local.globalModel" :errors="errors" />
         <div v-else class="variables-grid">
@@ -120,6 +121,7 @@ h3 { display: flex; align-items: center; gap: 10px; color: #242622; font-size: 1
 h3 small { font-size: 10px; font-weight: 400; color: #73766e; }
 .variables-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px 22px; }
 .variables-grid > * { min-width: 0; }
+.description-field small { margin-left: auto; font-size: 10px; }.description-field textarea { box-sizing: border-box; width: 100%; padding: 10px; resize: vertical; min-height: 88px; border: 1px solid #dddfd7; border-radius: 2px; background: #fff; color: #242622; font: inherit; line-height: 1.8; }.description-field textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px #b94e3018; }
 .builtin-field-row { min-width: 0; }
 .builtin-field-row.removable { position: relative; }
 .builtin-field-row.removable :deep(.field > span:first-child) { padding-right: 20px; }

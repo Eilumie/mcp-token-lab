@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue';
-import { Github, Upload, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, ArrowDown, ArrowUp, Star, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
+import { Github, LayoutTemplate, Languages, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, ArrowDown, ArrowUp, Star, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
 import { globalFields, thresholdField, resolveBaselineId, maxPlans } from '../comparison.js';
 import ParameterField from './ParameterField.vue';
 import GlobalModelField from './GlobalModelField.vue';
@@ -13,7 +13,7 @@ import { locale, setLocale } from '../i18n.js';
 import { displayPlanColor } from '../theme.js';
 const brandIcon = `${import.meta.env.BASE_URL}icon/mcp-token-lab-logo.svg`;
 const props = defineProps({ config: Object, results: Array, busy: Boolean, errors: Object, failure: String, canUndo: Boolean });
-const emit = defineEmits(['import','export','remember','reset','add','baseline','copy','remove','undo','variables']);
+const emit = defineEmits(['templates','export','remember','reset','add','baseline','copy','remove','undo','variables']);
 const settingsPlanId = ref(null);
 const settingsPlan = computed(() => props.config.plans.find(plan => plan.id === settingsPlanId.value));
 const expanded = ref(new Set());
@@ -72,7 +72,7 @@ function updateFlow(id, flow) {
     <GlyphBackground />
     <header class="app-header">
       <a class="brand" href="./"><span class="brand-mark header-floating"><img :src="brandIcon" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">MCP Token Lab</b><span class="brand-tagline header-floating">A LITTLE CLARITY FOR EVERY TOKEN</span></strong></a>
-      <nav class="header-actions" aria-label="配置操作"><div class="language-switch" role="group" aria-label="Language"><button type="button" :aria-pressed="locale==='en'" :class="{active:locale==='en'}" @click="setLocale('en')">EN</button><button type="button" :aria-pressed="locale==='zh'" :class="{active:locale==='zh'}" @click="setLocale('zh')">中文</button></div><a class="header-github header-floating" href="https://github.com/zhangHongEn/token-lab" target="_blank" rel="noopener noreferrer" aria-label="在新标签页打开 GitHub 仓库"><Github :size="16" /><span>GitHub</span></a><button class="header-floating" @click="emit('import')"><Upload :size="15"/><span>导入配置</span></button><button class="header-floating" :disabled="!!Object.keys(errors).length" @click="emit('export')"><Download :size="15"/><span>导出配置</span></button></nav>
+      <nav class="header-actions" aria-label="配置操作"><button type="button" class="language-toggle header-floating" :aria-label="locale==='zh'?'Switch to English':'切换为中文'" @click="setLocale(locale==='zh'?'en':'zh')"><Languages :size="15"/><span>{{ locale==='zh'?'中文':'EN' }}</span></button><a class="header-github header-floating" href="https://github.com/zhangHongEn/token-lab" target="_blank" rel="noopener noreferrer" aria-label="在新标签页打开 GitHub 仓库"><Github :size="16" /><span>GitHub</span></a><button class="header-floating" @click="emit('templates')"><LayoutTemplate :size="15"/><span>模板</span></button><button class="header-floating" :disabled="!!Object.keys(errors).length" @click="emit('export')"><Download :size="15"/><span>导出配置</span></button></nav>
     </header>
     <div class="workspace comparison-workspace"><main>
       <section class="lab-intro" aria-labelledby="lab-title">
@@ -118,6 +118,7 @@ function updateFlow(id, flow) {
           </tr>
           <tr v-if="expanded.has(r.planId)" class="plan-detail-row"><td colspan="7">
             <div :id="'plan-detail-'+r.planId" class="plan-expanded-content">
+              <p v-if="config.plans.find(p=>p.id===r.planId)?.description" class="plan-description">{{ config.plans.find(p=>p.id===r.planId).description }}</p>
               <div class="expanded-cost-card"><SummaryCards :results="results" :config="analysisConfig" :visible-plan-id="r.planId" /></div>
               <PlanFlowPreview v-if="config.plans.some(p=>p.id===r.planId)" :plan="config.plans.find(p=>p.id===r.planId)" :global-simulation="config.globalSimulation" :global-model-id="config.globalModelId" :global-model="config.globalModel" @settings="settingsPlanId=$event" @update-flow="updateFlow">
                 <template #actions>

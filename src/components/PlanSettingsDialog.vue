@@ -53,6 +53,7 @@ onBeforeUnmount(() => { dialog.value?.close(); if (previousFocus?.isConnected) p
       <header><div><h2 :id="titleId"><SlidersHorizontal :size="18" />方案配置</h2><p>每项可继承全局或自定义，统一单位为 K Token。</p></div><button class="close" type="button" aria-label="关闭方案配置" @click="emit('close')"><X :size="18" /></button></header>
       <div class="settings-body">
         <label class="field name-field">方案名称<input :value="displayedName" @input="local.name=$event.target.value" maxlength="60" aria-label="方案名称" /></label>
+        <label class="field description-field"><span>方案说明<small>{{ (local.description || '').length }} / 1000</small></span><textarea v-model="local.description" rows="3" maxlength="1000" aria-label="方案说明" placeholder="描述方案的目标、策略或适用场景" /></label>
         <section v-for="group in sections" :key="group.title"><h3>{{ group.title }}</h3><div class="settings-grid">
           <label v-if="group.title === '上下文压缩'" class="field"><span>压缩阈值类型<button type="button" class="inherit-btn" :aria-pressed="compressionTypeInherited" @click.prevent="toggleCompressionType">{{ compressionTypeInherited ? '继承全局' : '自定义' }}</button></span><select :value="effective.compressionThresholdType" aria-label="压缩阈值类型" @change="changeCompressionType"><option value="TURN">用户轮次</option><option value="TOKEN">上下文</option></select></label>
           <PlanVariableField v-for="field in group.fields" :key="field[0]" :plan="local" :globals="config.globalSimulation" :field="field" />
@@ -77,6 +78,7 @@ button:hover:not(:disabled) { background:#eeefe9; } button:disabled { opacity:.5
 .settings-body { padding:0 26px 24px; overflow:auto; overscroll-behavior:contain; }
 section { padding:20px 0; border-top:1px solid #dddfd7; } h3 { color:#242622; font-size:13px; font-weight:550; margin:0 0 17px; }
 .settings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 22px; }.settings-grid > * { min-width:0; }.name-field { max-width:430px; margin-bottom:20px; }
+.description-field { margin-bottom: 20px !important; }.description-field small { margin-left: auto; font-size: 10px; font-weight: 400; }.description-field textarea { box-sizing: border-box; width: 100%; padding: 10px; resize: vertical; min-height: 88px; border: 1px solid #dddfd7; border-radius: 2px; background: #fff; color: #242622; font: inherit; line-height: 1.8; }.description-field textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px #b94e3018; }
 .plan-settings-dialog :deep(.field) { display:flex; flex-direction:column; color:#73766e; font-size:11px; margin-bottom:0; gap:7px; }
 .plan-settings-dialog :deep(.field > span:first-child) { display:flex; align-items:center; min-height:24px; }
 .plan-settings-dialog :deep(.field input), .plan-settings-dialog :deep(.field select) { box-sizing:border-box; width:100%; height:38px; font:inherit; color:#242622; border:1px solid #dddfd7; border-radius:2px; background:#fff; padding:8px 10px; }

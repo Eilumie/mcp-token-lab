@@ -27,6 +27,12 @@ export const thresholdField = simulation => {
   return [field[0], "压缩阈值", ...field.slice(2)];
 };
 export const isGlobalField = key => globalKeys.includes(key);
+// Model configurations are JSON data, but may be wrapped in Vue proxies.
+const copyConfigValue = value => Array.isArray(value)
+  ? value.map(copyConfigValue)
+  : value && typeof value === "object"
+    ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, copyConfigValue(item)]))
+    : value;
 export function resolvePlan(plan, globalSimulation, globalModelId, globalModel) {
   if (!plan?.simulation) return plan;
   const simulation = { ...plan.simulation, initialContext: { ...plan.simulation.initialContext } };
@@ -39,7 +45,7 @@ export function resolvePlan(plan, globalSimulation, globalModelId, globalModel) 
   }
   simulation.variables = variables;
   const preset = plan.useGlobal?.model && modelPresets.find(p => p.id === globalModelId);
-  return { ...plan, simulation, ...(preset ? createPresetConfig(preset) : plan.useGlobal?.model && globalModelId === 'custom' && globalModel ? structuredClone(globalModel) : {}) };
+  return { ...plan, simulation, ...(preset ? createPresetConfig(preset) : plan.useGlobal?.model && globalModelId === 'custom' && globalModel ? copyConfigValue(globalModel) : {}) };
 }
 export function validateGlobals(globalSimulation) {
   const errors = {};
@@ -70,7 +76,7 @@ export function createPlan({ source, name = "自定义方案", id = crypto.rando
     delete useGlobal[key];
   }
   return {
-    id, name, color,
+    id, name, color, description: base.description ?? "",
     simulation: base.simulation, model: base.model, pricing: base.pricing,
     useGlobal,
   };
@@ -113,7 +119,8 @@ export function validatePlan(plan, globalSimulation, globalModelId, globalModel)
   if (plan.useGlobal !== undefined && (!plan.useGlobal || typeof plan.useGlobal !== "object" || Array.isArray(plan.useGlobal) || Object.entries(plan.useGlobal).some(([key, value]) => (!isGlobalField(key) && key !== "model" && !(key.startsWith("variables.") && (Object.hasOwn(plan.simulation.variables || {}, key.slice(10)) || Object.hasOwn(globalSimulation?.variables || {}, key.slice(10))))) || typeof value !== "boolean"))) errors.useGlobal = "全局参数设置无效";
   if (typeof plan.id !== "string" || !plan.id.trim()) errors.id = "方案需要唯一标识";
   if (typeof plan.name !== "string" || !plan.name.trim() || plan.name.length > 60) errors.planName = "方案名称需为 1–60 个字符";
-  const unknown = Object.keys(plan).find(key => !["id", "name", "color", "simulation", "model", "pricing", "useGlobal"].includes(key));
+  if (plan.description !== undefined && (typeof plan.description !== "string" || plan.description.length > 1000)) errors.description = "方案说明不能超过 1000 个字符";
+  const unknown = Object.keys(plan).find(key => !["id", "name", "description", "color", "simulation", "model", "pricing", "useGlobal"].includes(key));
   if (unknown) errors.plan = `方案不支持字段 ${unknown}`;
   if (!planColors.includes(plan.color)) errors.color = "方案颜色无效";
   return errors;
