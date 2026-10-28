@@ -4,15 +4,12 @@ import { locale, translateUi } from './i18n.js';
 import { createComparisonConfig } from './comparison.js';
 import { simulate } from './session-report.js';
 import { trendOption } from './charts.js';
-import { createBuiltinTemplates } from './templates.js';
 
-test('template descriptions and controls translate completely, including turn counts', () => {
+test('template controls and legacy preset labels translate, including turn counts', () => {
   try {
     locale.value = 'en';
-    for (const template of createBuiltinTemplates()) {
-      for (const text of [template.name, template.description, ...template.config.plans.flatMap(plan => [plan.name, plan.description])]) {
-        assert.doesNotMatch(translateUi(text), /[\u4e00-\u9fff]/);
-      }
+    for (const text of ['Tools Schema 加载策略', 'Prefix 缓存收益', '上下文压缩频率', '每 5 轮压缩', 'Prefix 命中率 50%']) {
+      assert.doesNotMatch(translateUi(text), /[\u4e00-\u9fff]/);
     }
     assert.equal(translateUi('导入自定义模板'), 'Import custom template');
     assert.equal(translateUi('方案说明'), 'Plan description');

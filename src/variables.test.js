@@ -52,28 +52,11 @@ test('仅方案内变量支持 JSON 导入，所有数值内置变量可进入�
   plan.simulation.flow.turn[0].token = 'localToken + compressionTargetToken + expectedPrefixCacheHitRate';
   assert.deepEqual(validateComparison(config),{});
   assert.deepEqual(readComparisonConfig(config),config);
-  assert.equal(resolveStepToken(['localToken'],plan.simulation),2.5);
+  assert.equal(resolveStepToken('localToken',plan.simulation),2.5);
   assert.equal(resolveStepToken(plan.simulation.flow.turn[0].token,plan.simulation),7.4);
   assert.equal(formulaVariables({...plan.simulation,turnIndex:999},{turnIndex:2}).turnIndex,2);
 });
 
-test('旧配置新增字段保持独立，修改全局值不改变旧方案结果', () => {
-  const config = createComparisonConfig();
-  const oldKeys = ['turnTotalCount','skillsTotalCount','toolsTotalCount','expectedPrefixCacheHitRate','compressionThresholdType','compressionThresholdTurnCount','compressionThresholdToken'];
-  config.globalSimulation = Object.fromEntries(oldKeys.map(key=>[key,getValue(config.globalSimulation,key)]));
-  for (const plan of config.plans) {
-    plan.useGlobal = Object.fromEntries([...oldKeys,'model'].map(key=>[key,true]));
-    delete plan.simulation.variables;
-  }
-  config.plans[1].simulation.userMessageToken = 4;
-  const before = simulate(config), snapshot = structuredClone(config);
-  const restored = readComparisonConfig(config);
-  assert.deepEqual(config,snapshot);
-  assert.deepEqual(simulate(restored),before);
-  restored.globalSimulation.initialContext.agentPromptToken = 99;
-  restored.globalSimulation.userMessageToken = 88;
-  assert.deepEqual(simulate(restored),before);
-});
 
 test('删除会报告公式中的实际引用，名称子串不误报，独立覆盖可保留', () => {
   const config = createComparisonConfig(), plan = config.plans[0];

@@ -33,7 +33,7 @@
 | `globalModel` | `{ "model": { ... }, "pricing": { ... } }`，供 useGlobal.model 为 true 的方案继承 |
 | `plans[i].id` | 唯一非空字符串，可使用 `"plan-lazy"` 等稳定 ID |
 | `plans[i].name` | 1–60 字符，去掉两端空白后不能重名 |
-| `plans[i].description` | 可选字符串，最多 1,000 字符，可为空；用于说明方案目标、策略、适用场景或关键假设 |
+| `plans[i].description` | 可选字符串，原文最多 1,000 字符，可为空；说明方案目标、策略、适用场景或关键假设，支持下文的 `{{变量名}}` 引用 |
 | `plans[i].estimateDuration` | 可选布尔值，省略为 true；false 仅关闭本方案耗时，单元格显示「—」，不改变全局列显隐或其他方案 |
 | `plans[i].color` | 只能选下方调色板值 |
 | `plans[i].simulation` | 下表完整参数和 flow，即使继承全局也保留完整本地值 |
@@ -50,14 +50,14 @@
 
 ## simulation 参数
 
-这些字段全部显式生成，包括当前不使用的另一种压缩阈值。下列数值是仓库初始参数示例，不代表用户实际场景；完整模板调整了部分规模参数。
+这些字段全部显式生成，包括当前不使用的另一种压缩阈值。用户未指定且已有配置也未提供时，本 skill 统一使用 100 轮、100 个 Tools、TOKEN 模式的 100K 上下文压缩阈值，完整模板采用相同口径；其余数值为示例，不代表用户实际场景。用户明确指定或比较这些参数时按用户要求。
 
 | 字段 | 示例 | 单位 / 约束 |
 | --- | --- | --- |
 | `initialContext.agentPromptToken` | 4 | K Token；嵌套字段 |
 | `turnTotalCount` | 100 | 用户消息轮次，整数 1–1,000 |
 | `skillsTotalCount` | 30 | 非负安全整数 |
-| `toolsTotalCount` | 90 | 非负安全整数 |
+| `toolsTotalCount` | 100 | 非负安全整数 |
 | `turnAvgSkillsCount` | 0.33 | 非负数，可为小数；不超过 Skills 总数 |
 | `turnAvgToolsCount` | 1.5 | 非负数，可为小数；不超过 Tools 总数 |
 | `expectedPrefixCacheHitRate` | 0.9 | 0–1，仅对引擎识别到的相同前缀生效 |
@@ -71,9 +71,9 @@
 | `schemaPlanToken` | 0.1 | 查询 Schema 计划的模型输出，K |
 | `callToolsPlanToken` | 0.3 | 调用工具计划的模型输出，K |
 | `agentResult` | 1 | 最终回复的模型输出，K；字段名没有 Token 后缀 |
-| `compressionThresholdType` | `"TURN"` | `"TURN"` 或 `"TOKEN"` |
+| `compressionThresholdType` | `"TOKEN"` | 默认 TOKEN；也支持用户明确指定的 TURN |
 | `compressionThresholdTurnCount` | 10 | 正安全整数；TURN 模式须大于保留轮次 |
-| `compressionThresholdToken` | 200 | K；TOKEN 模式必须大于 0 |
+| `compressionThresholdToken` | 100 | K；默认 100K，TOKEN 模式必须大于 0 |
 | `compressionKeepTurns` | 2 | 非负安全整数 |
 | `compressionTargetToken` | 4 | 摘要输出长度，非负 K；不是压缩后总上下文 |
 | `variables` | `{}` | 自定义变量表，可为空 |
@@ -86,6 +86,26 @@
 耗时开关是例外：方案开关位于 `plans[i].estimateDuration`，不在 simulation 内，也不支持 `useGlobal.estimateDuration`。全局开关位于 globalSimulation，不能当成数值变量或 Token 公式参数。
 
 自定义变量全局默认继承，包括与本地同名时也覆盖；用 `useGlobal["variables.retrievalToken"]: false` 保留本地值。全局与本地变量合并后每个生效方案最多 100 项。
+
+## 方案说明中的变量
+
+`plans[i].description` 支持 `{{变量名}}`，变量名与步骤公式使用同一个配置参数名，但这里只替换数值，不计算表达式。例如：
+
+```json
+{
+  "description": "共 {{toolsTotalCount}} 个工具，每轮平均调用 {{turnAvgToolsCount}} 个；Prompt 为 {{initialContext.agentPromptToken}} K。"
+}
+```
+
+该片段放在方案顶层；引用上面完整示例的配置时显示「共 100 个工具，每轮平均调用 1.5 个；Prompt 为 4 K。」。自定义变量直接按名引用，如 `{{retrievalToken}}`，先在 globalSimulation.variables 或方案 simulation.variables 定义它，不写 `{{variables.retrievalToken}}`。
+
+- 可引用 simulation 表内的数值参数，包括点号路径 `initialContext.agentPromptToken`，以及自定义变量。`{{ toolsTotalCount }}` 两侧空白有效；变量名区分大小写。
+- 使用当前方案的实际生效值，遵守内置参数的 useGlobal 开关和自定义变量的默认全局继承规则。修改全局值、独立覆盖或恢复继承后，方案列表、详情卡片和模板预览同步更新。
+- 数值按配置原值显示，零值有效；Token 长度仍为 K，说明中手工写单位。`{{expectedPrefixCacheHitRate}}` 在值为 0.9 时显示 `0.9`，不能在后面直接加 `%` 当作 90%。可写「命中率 {{expectedPrefixCacheHitRate}}（0–1）」；不支持百分比格式指令。
+- 不支持 `{{toolsTotalCount * toolSchemaToken}}`、Math 函数或格式过滤器，也不读取 turnIndex / llmIndex、模型单价、compressionThresholdType、耗时开关、节点字段或模拟结果。需要展示计算后的常量时，将数值明确存进自定义变量；它不会自动随其他变量重算。
+- 未知变量、没有有效数值的变量及 removedFields 内已删除的内置变量保留占位原文；编辑器提示未知引用，导入不会因此失败。不支持的表达式同样原样显示；新生成说明不要依赖这种行为，应使用可解析的引用。
+- 原文（含花括号和变量名）总长最多 1,000 字符；导入、导出和复制保留原文，不把预览值写回 JSON。该语法仅用于方案说明，模板外层 description 和方案名称不替换变量。
+- 页面可用「插入变量」选择当前方案可用参数，并查看「说明预览」。自定义变量在方案说明中仍被引用时不可删除；先修改引用，独立覆盖方案不受全局变量删除影响。
 
 ## 模型和来源
 
@@ -147,7 +167,7 @@ pricing.contextWindow 可选，单位为原始 Token；pricing.tier 可选，格
 
 ### 耗时开关与计算口径
 
-开关必须使用 JSON 布尔值 true / false，不能用 `"false"`、0、1 或 null。新文件建议显式写出两个开关；旧文件省略时默认开启。
+开关必须使用 JSON 布尔值 true / false，不能用 `"false"`、0、1 或 null。新文件建议显式写出两个开关；开关省略时默认开启。
 
 | 全局 estimateDuration | 方案 estimateDuration | 实际统计与页面行为 |
 | --- | --- | --- |
@@ -208,4 +228,6 @@ llmIndex === 0 ? callToolsPlanToken : agentResult
 
 ## 最后检查
 
-确认 JSON 可解析；模板外层类型和版本正确，名称有效且新模板描述非空，内部配置为 v4；所有方案参数完整、ID / 名称唯一、颜色有效、基准存在、价格单位正确、平均数量不超过总数、压缩阈值有效、变量全部定义、模板描述和各方案说明均为最多 1,000 字符的字符串、两级耗时开关位置和类型正确、节点耗时为非负有限数，以及各方案继承开关确实保留实验差异。导入先添加自定义模板，点击「使用模板」才替换页面当前整份配置，不是追加方案；需要保留旧实验时先导出。
+确认 JSON 可解析；模板外层类型和版本正确，名称有效且新模板描述非空，内部配置为 v4；所有方案参数完整、ID / 名称唯一、颜色有效、基准存在、价格单位正确、平均数量不超过总数、压缩阈值有效、变量全部定义、模板描述和各方案说明原文均为最多 1,000 字符的字符串、说明引用按本方案实际配置可解析且单位正确、两级耗时开关位置和类型正确、节点耗时为非负有限数，以及各方案继承开关确实保留实验差异。导入先添加自定义模板，点击「使用模板」才替换页面当前整份配置，不是追加方案；需要保留旧实验时先导出。
+
+仅支持当前配置结构，不接受旧版本或自动补全历史全局字段；globalSimulation 和 globalModelId 须提供。导入流程必须同时包含 initial / turn 数组，Token 仅支持数值或公式字符串，不接受参数名数组。

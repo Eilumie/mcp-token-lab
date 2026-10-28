@@ -4,6 +4,7 @@ import { SlidersHorizontal, X } from 'lucide-vue-next';
 import { compressionFields, groups, isFieldVisible } from '../config.js';
 import { resolvePlan, validatePlan } from '../comparison.js';
 import PlanVariableField from './PlanVariableField.vue';
+import PlanDescriptionField from './PlanDescriptionField.vue';
 import VariablesDialog from './VariablesDialog.vue';
 import { locale, translateUi } from '../i18n.js';
 
@@ -53,7 +54,7 @@ onBeforeUnmount(() => { dialog.value?.close(); if (previousFocus?.isConnected) p
       <header><div><h2 :id="titleId"><SlidersHorizontal :size="18" />方案配置</h2><p>每项可继承全局或自定义，统一单位为 K Token。</p></div><button class="close" type="button" aria-label="关闭方案配置" @click="emit('close')"><X :size="18" /></button></header>
       <div class="settings-body">
         <label class="field name-field">方案名称<input :value="displayedName" @input="local.name=$event.target.value" maxlength="60" aria-label="方案名称" /></label>
-        <label class="field description-field"><span>方案说明<small>{{ (local.description || '').length }} / 1000</small></span><textarea v-model="local.description" rows="3" maxlength="1000" aria-label="方案说明" placeholder="描述方案的目标、策略或适用场景" /></label>
+        <PlanDescriptionField v-model="local.description" :simulation="{ ...effective, removedFields: config.globalSimulation.removedFields }" />
         <section v-for="group in sections" :key="group.title"><h3>{{ group.title }}</h3><div class="settings-grid">
           <label v-if="group.title === '会话规模'" class="field"><span>是否模拟耗时</span><select :value="local.estimateDuration !== false" aria-label="是否模拟耗时" @change="local.estimateDuration = $event.target.value === 'true'"><option value="true">{{ locale === 'zh' ? '是' : 'Yes' }}</option><option value="false">{{ locale === 'zh' ? '否' : 'No' }}</option></select></label>
           <label v-if="group.title === '上下文压缩'" class="field"><span>压缩阈值类型<button type="button" class="inherit-btn" :aria-pressed="compressionTypeInherited" @click.prevent="toggleCompressionType">{{ compressionTypeInherited ? '继承全局' : '自定义' }}</button></span><select :value="effective.compressionThresholdType" aria-label="压缩阈值类型" @change="changeCompressionType"><option value="TURN">用户轮次</option><option value="TOKEN">上下文</option></select></label>

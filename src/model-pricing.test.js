@@ -45,7 +45,7 @@ test("海外模型保留官方美元价格、来源、分档及优惠说明", ()
 });
 
 test("美元配置导入保留实际单价，导入导出不修改费率数值", () => {
-  for (const currency of ["$", "USD"]) {
+  for (const currency of ["$"]) {
     const config = createConfig();
     config.model = { name: "自定义模型", currency, inputCachedPrice: 0, inputNotCachedPrice: 7, outputPrice: 14 };
     delete config.pricing;
@@ -57,10 +57,9 @@ test("美元配置导入保留实际单价，导入导出不修改费率数值",
     config.model.inputNotCachedPrice = "7";
     assert.throws(() => readConfig(config), /单价/);
   }
-  const old = createConfig();
-  old.version = 2;
-  old.model.outputPrice = 14;
-  assert.ok(readComparisonConfig(old).plans.every(p => p.model.currency === "$" && p.model.outputPrice === 14));
+  const invalid = createConfig();
+  invalid.model.currency = "USD";
+  assert.throws(() => readConfig(invalid), /美元/);
 });
 
 test("国内、海外模型可直接比较，导入与 CSV 均为 USD，费用守恒", () => {

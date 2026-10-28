@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue';
 import { Github, LayoutTemplate, Languages, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, ArrowDown, Star, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
-import { globalFields, thresholdField, resolveBaselineId, maxPlans } from '../comparison.js';
+import { globalFields, thresholdField, resolveBaselineId, resolvePlanDescription, maxPlans } from '../comparison.js';
 import ParameterField from './ParameterField.vue';
 import FieldHint from './FieldHint.vue';
 import GlobalModelField from './GlobalModelField.vue';
@@ -16,6 +16,7 @@ const brandIcon = `${import.meta.env.BASE_URL}icon/mcp-token-lab-logo.svg`;
 const props = defineProps({ config: Object, results: Array, busy: Boolean, errors: Object, failure: String, canUndo: Boolean });
 const emit = defineEmits(['templates','export','remember','reset','add','baseline','copy','remove','undo','variables']);
 const settingsPlanId = ref(null);
+const descriptions = computed(() => Object.fromEntries(props.config.plans.map(plan => [plan.id, resolvePlanDescription(plan, props.config.globalSimulation)])));
 const settingsPlan = computed(() => props.config.plans.find(plan => plan.id === settingsPlanId.value));
 const showDuration = computed(() => props.config.globalSimulation?.estimateDuration !== false);
 const expanded = ref(new Set());
@@ -109,7 +110,7 @@ function updateFlow(id, flow) {
         <table class="comparison-table"><thead><tr><th>方案 / 模型</th><th>会话总费用</th><th>初始上下文</th><th>峰值输入</th><th>LLM次数</th><th v-if="showDuration" class="duration-column">每轮平均TTFT<FieldHint text="仅预计时间, 实际LLM可能受prompt或上下文大小影响响应速度" /></th><th title="用户消息总轮数 ÷ 实际压缩次数；包含末次压缩后尚未再次触发压缩的用户轮次。">上下文压缩</th></tr></thead><tbody>
           <template v-for="r in results" :key="r.planId">
           <tr :id="'plan-row-'+r.planId" class="plan-summary-row" :class="{'row-expanded':expanded.has(r.planId)}" @click="togglePlan(r.planId)">
-            <td><div class="plan-identity"><button class="row-expand-button" :aria-label="(expanded.has(r.planId)?'收起':'展开')+'方案详情 '+r.planName" :aria-expanded="expanded.has(r.planId)" :aria-controls="'plan-detail-'+r.planId" @click.stop="togglePlan(r.planId)"><ChevronDown v-if="expanded.has(r.planId)" :size="15"/><ChevronRight v-else :size="15"/></button><span class="plan-icon" :style="{color:planColor(r)}"><Workflow :size="19"/></span><div><button class="plan-title" :aria-expanded="expanded.has(r.planId)" @click.stop="togglePlan(r.planId)">{{ r.planName }}</button><span v-if="r.planId===baselineId" class="badge">基准</span><p v-if="config.plans.find(p=>p.id===r.planId)?.description" class="plan-description">{{ config.plans.find(p=>p.id===r.planId).description }}</p></div></div></td>
+            <td><div class="plan-identity"><button class="row-expand-button" :aria-label="(expanded.has(r.planId)?'收起':'展开')+'方案详情 '+r.planName" :aria-expanded="expanded.has(r.planId)" :aria-controls="'plan-detail-'+r.planId" @click.stop="togglePlan(r.planId)"><ChevronDown v-if="expanded.has(r.planId)" :size="15"/><ChevronRight v-else :size="15"/></button><span class="plan-icon" :style="{color:planColor(r)}"><Workflow :size="19"/></span><div><button class="plan-title" :aria-expanded="expanded.has(r.planId)" @click.stop="togglePlan(r.planId)">{{ r.planName }}</button><span v-if="r.planId===baselineId" class="badge">基准</span><p v-if="descriptions[r.planId]" class="plan-description">{{ descriptions[r.planId] }}</p></div></div></td>
             <td class="price-cell">{{ m(r.cost.total) }}<span class="cost-comparison" title="相对基准">(<span v-if="r.planId===baselineId" class="muted">Base</span><span v-else class="delta" :class="{positive:r.cost.total>baseline.cost.total}">{{ baseline.cost.total ? (r.cost.total >= baseline.cost.total ? '+' : '-') + pct(Math.abs(r.cost.total-baseline.cost.total)/baseline.cost.total) : '—' }}</span>)</span></td>
             <td>{{ n(r.initialContext) }}<span class="unit">K</span></td>
             <td>{{ n(r.peakInput) }}<span class="unit">K</span></td>

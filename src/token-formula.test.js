@@ -39,11 +39,11 @@ test("缓存公式按本方案的最新变量计算，不共享不同方案的�
   assert.throws(() => evaluateFormula("count * 2", Object.create({ count: 2 })), /未知/);
 });
 
-test("流程支持公式、嵌套参数和旧乘积数组，并给出步骤位置", () => {
+test("流程支持公式和嵌套参数，拒绝数组并给出步骤位置", () => {
   const config = createSessionConfig();
   assert.equal(resolveStepToken("initialContext.agentPromptToken + userMessageToken", config), 4.1);
   assert.equal(resolveStepToken("toolResultToken * turnAvgToolsCount", config), 4.5);
-  assert.equal(resolveStepToken(["toolResultToken", "turnAvgToolsCount"], config), 4.5);
+  assert.throws(() => resolveStepToken(["toolResultToken", "turnAvgToolsCount"], config), /数值或公式字符串/);
   assert.equal(resolveStepToken("turnTotalCount / 10", config), 10);
   assert.throws(() => validateFlow({ initial: [], turn: [{ type: "llm", text: "输出", token: "bad + 1" }] }, config), /flow.turn 第 1 步.*未知/);
 });
@@ -74,7 +74,7 @@ test("公式可导入导出，并用于初始上下文和模型输出的实际�
 
 test("运行索引随用户轮次和已启用模型调用变化，压缩不插入计数，reset 重置", () => {
   const session = new Session({
-    turnTotalCount: 4, compressionThresholdTurnCount: 2, compressionKeepTurns: 0,
+    turnTotalCount: 4, compressionThresholdType: "TURN", compressionThresholdTurnCount: 2, compressionKeepTurns: 0,
     flow: {
       initial: [{ type: "action", text: "初始索引", token: "turnIndex + llmIndex" }],
       turn: [

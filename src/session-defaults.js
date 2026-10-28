@@ -11,7 +11,7 @@ export function createSessionConfig() {
     turnTotalCount: 100,
     expectedPrefixCacheHitRate: 0.9,
     skillsTotalCount: 30,
-    toolsTotalCount: 90,
+    toolsTotalCount: 100,
     turnAvgSkillsCount: 0.33,
     turnAvgToolsCount: 1.5,
     skillIndexToken: 0.1,
@@ -25,7 +25,7 @@ export function createSessionConfig() {
     callToolsPlanToken: 0.3,
     agentResult: 1,
     // TOKEN || TURN
-    compressionThresholdType: "TURN",
+    compressionThresholdType: "TOKEN",
     compressionThresholdToken: 200,
     compressionThresholdTurnCount: 10,
     compressionTargetToken: 4,

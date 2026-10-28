@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { X } from 'lucide-vue-next';
 import { resolvePlan, validatePlan } from '../comparison.js';
-import { previewStep, tokenFormula } from '../session-flow.js';
+import FormulaVariableDialog from './FormulaVariableDialog.vue';
+import { formulaVariables, runtimeParameters, stepRuntime, tokenParameters, previewStep, tokenFormula } from '../session-flow.js';
 import { sourceNames } from '../session-report.js';
 import { locale, translateUi } from '../i18n.js';
 
@@ -18,7 +19,30 @@ const name = ref(sourceNames[step.text] || step.text);
 const displayedName = computed(() => locale.value === 'en' ? translateUi(name.value) : name.value);
 const formulaMode = ref(typeof step.token !== 'number');
 const formula = ref(tokenFormula(step.token));
-const dialog = ref(null);
+const dialog = ref(null), formulaInput = ref(null), showVariables = ref(false);
+let formulaSelection = { start: 0, end: 0 };
+const variables = computed(() => {
+  const config = effective.value.simulation;
+  const values = formulaVariables(config, stepRuntime(draft.value.simulation.flow, props.phase, props.index));
+  return Object.entries(values).map(([name, value]) => ({
+    name, value,
+    label: tokenParameters[name] || runtimeParameters[name] || config.variables?.[name]?.label || name,
+    group: Object.hasOwn(runtimeParameters, name) ? '运行时变量' : Object.hasOwn(tokenParameters, name) ? '内置变量' : '自定义变量',
+  }));
+});
+function openVariables() {
+  formulaSelection = { start: formulaInput.value.selectionStart, end: formulaInput.value.selectionEnd };
+  showVariables.value = true;
+}
+async function insertVariable(name) {
+  const { start, end } = formulaSelection;
+  formula.value = formula.value.slice(0, start) + name + formula.value.slice(end);
+  step.token = formula.value;
+  showVariables.value = false;
+  await nextTick();
+  formulaInput.value.focus();
+  formulaInput.value.setSelectionRange(start + name.length, start + name.length);
+}
 const effective = computed(() => resolvePlan(draft.value, props.globalSimulation, props.globalModelId, props.globalModel));
 const errors = computed(() => validatePlan(draft.value, props.globalSimulation, props.globalModelId, props.globalModel));
 const preview = computed(() => previewStep(draft.value.simulation.flow, props.phase, props.index, effective.value.simulation));
@@ -30,6 +54,7 @@ function setMode(asFormula) {
   formulaMode.value = asFormula;
 }
 function setTrigger(type) {
+  if (type === (step.trigger?.type || 'always')) return;
   if (type === 'always') delete step.trigger;
   else step.trigger = { type, value: type === 'probability' ? 100 : 2 };
 }
@@ -53,10 +78,10 @@ onBeforeUnmount(() => previousFocus?.isConnected && previousFocus.focus());
           <label v-if="phase === 'turn'">节点类型<select v-model="step.type"><option value="action">追加上下文</option><option value="llm">调用模型</option></select></label>
           <label class="enabled"><input type="checkbox" :checked="step.enabled !== false" @change="step.enabled = $event.target.checked" />启用节点</label>
           <label>节点耗时（秒）<input :value="step.durationSeconds ?? ''" type="number" min="0" step="any" :placeholder="step.type === 'llm' ? '1.8' : '0.3'" @input="updateDuration" /><small>留空使用默认值：工具 / 上下文 0.3s，LLM 1.8s；可设为 0。</small></label>
-          <label v-if="phase === 'turn'">触发方式<select :value="step.trigger?.type || 'always'" @change="setTrigger($event.target.value)"><option value="always">每轮触发</option><option value="probability">按百分比触发</option><option value="interval">每 N 轮消息触发</option></select></label>
+          <div v-if="phase === 'turn'"><span class="field-title">触发方式</span><div class="modes" role="group" aria-label="触发方式"><button v-for="option in [{ value: 'always', label: '每轮触发' }, { value: 'probability', label: '按百分比触发' }, { value: 'interval', label: '每 N 轮消息触发' }]" :key="option.value" type="button" :class="{ active: (step.trigger?.type || 'always') === option.value }" :aria-pressed="(step.trigger?.type || 'always') === option.value" @click="setTrigger(option.value)">{{ option.label }}</button></div></div>
           <label v-if="step.trigger">{{ step.trigger.type === 'probability' ? '触发概率（%）' : '消息轮次间隔' }}<input v-model.number="step.trigger.value" type="number" :min="step.trigger.type === 'probability' ? 0 : 1" :max="step.trigger.type === 'probability' ? 100 : undefined" :step="step.trigger.type === 'probability' ? 'any' : 1" /><small v-if="step.trigger.type === 'interval'">首轮触发，之后每隔 N 轮触发一次；例如 N=3 时在第 1、4、7 轮触发。</small></label>
-          <div><span class="field-title">Token 长度</span><div class="modes"><button type="button" :class="{ active: formulaMode }" :aria-pressed="formulaMode" @click="setMode(true)">公式</button><button type="button" :class="{ active: !formulaMode }" :aria-pressed="!formulaMode" @click="setMode(false)">固定数值</button></div></div>
-          <label v-if="formulaMode">Token 公式<textarea v-model="formula" rows="3" spellcheck="false" @input="step.token = formula"></textarea></label>
+          <div><span class="field-title">Token 长度</span><div class="modes" role="group" aria-label="Token 长度"><button type="button" :class="{ active: formulaMode }" :aria-pressed="formulaMode" @click="setMode(true)">公式</button><button type="button" :class="{ active: !formulaMode }" :aria-pressed="!formulaMode" @click="setMode(false)">固定数值</button></div></div>
+          <div v-if="formulaMode" class="formula-field"><div class="formula-heading"><label for="node-token-formula">Token 公式</label><button type="button" class="insert-variable" @click="openVariables">插入变量</button></div><textarea id="node-token-formula" ref="formulaInput" v-model="formula" rows="3" spellcheck="false" @input="step.token = formula"></textarea></div>
           <label v-else>固定 Token 长度（K）<input v-model.number="step.token" type="number" min="0" step="any" /></label>
           <p class="preview">当前预览：{{ preview.value === null ? '—' : Number(preview.value).toLocaleString('en-US', { maximumFractionDigits: 3 }) }} K Token</p>
           <p v-if="Object.keys(errors).length" class="error" role="alert">{{ Object.values(errors)[0] }}</p>
@@ -64,6 +89,7 @@ onBeforeUnmount(() => previousFocus?.isConnected && previousFocus.focus());
         <footer><button type="button" @click="emit('close')">取消</button><button class="save" type="submit" :disabled="!!Object.keys(errors).length">保存节点</button></footer>
       </form>
     </dialog>
+    <FormulaVariableDialog v-if="showVariables" :variables="variables" @close="showVariables = false" @insert="insertVariable" />
   </Teleport>
 </template>
 
@@ -74,6 +100,7 @@ header, footer { display: flex; align-items: center; justify-content: space-betw
 header { border-bottom: 1px solid #dddfd7; } h2 { margin: 0; color: #242622; font-size: 16px; font-weight: 550; } header p { margin: 6px 0 0; color: #73766e; font-size: 11px; }
 button { cursor: pointer; border: 1px solid #dddfd7; border-radius: 2px; background: transparent; color: #555950; padding: 8px 14px; } button:hover:not(:disabled) { background: #eeefe9; } button:disabled { opacity: .5; cursor: not-allowed; } .close { border: 0; padding: 5px; }
 .fields { display: grid; gap: 14px; padding: 20px 22px; } label, .field-title { display: grid; gap: 6px; font-size: 12px; color: #73766e; } input:not([type=checkbox]), select, textarea { box-sizing: border-box; width: 100%; border: 1px solid #dddfd7; border-radius: 2px; padding: 9px; background: #fff; color: #242622; font: inherit; } input:focus, select:focus, textarea:focus { outline: none; border-color: #b94e30; box-shadow: 0 0 0 2px #b94e3018; } textarea { resize: vertical; font-family: var(--mono, monospace); } .enabled { display: flex; align-items: center; gap: 8px; }
-.modes { display: inline-flex; margin-top: 6px; padding: 2px; border-radius: 2px; background: #eeefe9; } .modes button { border: 0; padding: 6px 11px; background: transparent; font-size: 11px; } .modes .active { background: #fff; color: #b94e30; box-shadow: 0 1px 3px #24262212; }
+.modes { display: inline-flex; flex-wrap: wrap; margin-top: 6px; padding: 2px; border-radius: 2px; background: #eeefe9; } .modes button { border: 0; padding: 6px 11px; background: transparent; font-size: 11px; } .modes .active { background: #fff; color: #b94e30; box-shadow: 0 1px 3px #24262212; }
+.formula-field { display: grid; gap: 6px; } .formula-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; } .insert-variable { padding: 5px 8px; font-size: 11px; } button:focus-visible { outline: 2px solid #b94e30; outline-offset: 2px; }
 .preview { margin: 0; color: #73766e; font-size: 12px; } .error { margin: 0; color: #a53e32; font-size: 12px; line-height: 1.6; } footer { justify-content: flex-end; border-top: 1px solid #dddfd7; } .save { background: #242622; border-color: #242622; color: white; } .save:hover:not(:disabled) { background: #42483b; }
 </style>

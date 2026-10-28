@@ -8,6 +8,7 @@ import { resolvePlan, validateComparison, validatePlan, deleteVariable, deleteBu
 import { validateVariableName } from '../variables.js';
 import ParameterField from './ParameterField.vue';
 import PlanVariableField from './PlanVariableField.vue';
+import PlanDescriptionField from './PlanDescriptionField.vue';
 import { locale, translateUi } from '../i18n.js';
 const props = defineProps({ config: Object, plan: Object });
 const emit = defineEmits(['close', 'save']);
@@ -88,7 +89,7 @@ function save() { if (!Object.keys(errors.value).length) emit('save', planMode ?
   <dialog ref="dialog" class="variables-dialog" :class="{ 'global-variables-dialog': !planMode }" :aria-labelledby="titleId" @cancel.prevent="emit('close')">
     <header><div><h2 :id="titleId"><SlidersHorizontal :size="18"/>{{ planMode?'方案全部变量':'全部全局变量' }}</h2><p v-if="planMode">逐项继承全局或自定义，修改数值会自动切换为自定义。</p></div><button class="close-dialog" aria-label="关闭全部变量" @click="emit('close')"><X :size="18"/></button></header>
     <div class="variables-body">
-      <section v-if="planMode"><h3>方案说明</h3><label class="field description-field"><span>描述方案的目标、策略或适用场景<small>{{ (localPlan.description || '').length }} / 1000</small></span><textarea v-model="localPlan.description" rows="3" maxlength="1000" aria-label="方案说明" placeholder="描述方案的目标、策略或适用场景" /></label></section>
+      <section v-if="planMode"><PlanDescriptionField v-model="localPlan.description" :simulation="{ ...effective, removedFields: local.globalSimulation.removedFields }" /></section>
       <section><h3>模型与费率</h3>
         <PlanModelSettings v-if="planMode" :plan="localPlan" :global-model-id="local.globalModelId" :global-model="local.globalModel" :errors="errors" />
         <div v-else class="variables-grid">

@@ -94,11 +94,7 @@ export function readConfig(data) {
   }
   if (data.simulation.variables !== undefined) normalized.simulation.variables = structuredClone(data.simulation.variables);
   normalized.simulation.compressionThresholdType = data.simulation.compressionThresholdType;
-  if (data.simulation.flow !== undefined) {
-    const flow = data.simulation.flow;
-    if (!flow || typeof flow !== "object" || Array.isArray(flow)) throw new Error("flow 必须是流程配置对象");
-    normalized.simulation.flow = { ...normalized.simulation.flow, ...structuredClone(flow) };
-  }
+  normalized.simulation.flow = structuredClone(data.simulation.flow);
   for (const key of ["name", "currency", ...priceFields.map(([key]) => key)]) normalized.model[key] = data.model[key];
   normalized.pricing = { id: "custom", label: "手动费率", source: "", date: "" };
   if (data.pricing && typeof data.pricing === "object") {
@@ -109,7 +105,6 @@ export function readConfig(data) {
     const tier = data.pricing.tier;
     if (tier && Number.isFinite(tier.input_tokens_gt) && Number.isFinite(tier.input_tokens_lte) && tier.input_tokens_gt >= 0 && tier.input_tokens_lte > tier.input_tokens_gt) normalized.pricing.tier = { input_tokens_gt: tier.input_tokens_gt, input_tokens_lte: tier.input_tokens_lte };
   }
-  if (normalized.model.currency === "USD") normalized.model.currency = "$";
   const errors = validate(normalized);
   if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
   return normalized;

@@ -19,7 +19,7 @@ try {
   repo = resolve(repo);
   file = resolve(file);
   await stat(resolve(repo, 'src/comparison.js'));
-  const { readComparisonConfig, validateComparison } = await import(pathToFileURL(resolve(repo, 'src/comparison.js')).href);
+  const { readComparisonConfig, validateComparison, resolvePlanDescription } = await import(pathToFileURL(resolve(repo, 'src/comparison.js')).href);
   const raw = JSON.parse(await readFile(file, 'utf8'));
   const template = raw?.type === 'token-lab-template'
     ? (await import(pathToFileURL(resolve(repo, 'src/templates.js')).href)).readTemplate(raw)
@@ -29,6 +29,13 @@ try {
   if (Object.keys(errors).length) throw new Error(JSON.stringify(errors));
   const output = { valid: true, file, version: config.version, plans: config.plans.length, simulated: false };
   if (template) output.template = { version: template.version, name: template.name, description: template.description };
+  const { descriptionReferences } = await import(pathToFileURL(resolve(repo, 'src/plan-description.js')).href);
+  output.planDescriptions = config.plans.map(plan => {
+    const rendered = resolvePlanDescription(plan, config.globalSimulation);
+    return { id: plan.id, rendered, unresolvedVariables: descriptionReferences(rendered) };
+  });
+  output.warnings = output.planDescriptions.filter(plan => plan.unresolvedVariables.length)
+    .map(plan => `方案 ${plan.id} 的说明含未解析变量：${plan.unresolvedVariables.join('、')}`);
   if (simulate) {
     const { simulate: run } = await import(pathToFileURL(resolve(repo, 'src/session-report.js')).href);
     output.results = run(config).map(result => ({

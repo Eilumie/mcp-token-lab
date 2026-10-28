@@ -8,6 +8,7 @@ const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9
 const setup = (turnTotalCount = 4) => {
   const config = createComparisonConfig();
   config.globalSimulation.turnTotalCount = turnTotalCount;
+  config.globalSimulation.compressionThresholdType = 'TURN';
   return config;
 };
 
@@ -57,7 +58,7 @@ test('压缩耗时计入触发轮次，包括末轮和重复压缩，reset 不�
   const [result] = simulate(config);
   assert.deepEqual(result.rounds.map(round => round.durationSeconds), [0.5, 2.3, 0.5, 2.3, 0.5, 2.3]);
   close(result.averageTurnDurationSeconds, 1.4);
-  const session = new Session({ ...plan.simulation, turnTotalCount: 6, compressionThresholdTurnCount: 2, compressionKeepTurns: 0, model: plan.model });
+  const session = new Session({ ...plan.simulation, turnTotalCount: 6, compressionThresholdType: 'TURN', compressionThresholdTurnCount: 2, compressionKeepTurns: 0, model: plan.model });
   session.reset();
   const before = buildReport(session);
   session.reset();
@@ -132,9 +133,9 @@ test('JSON、Worker 与复制保留全局和方案开关及节点耗时，缺省
   delete config.plans[0].estimateDuration;
   assert.equal(simulate(readComparisonConfig(config))[0].estimateDuration, true);
   config.plans[0].estimateDuration = false;
-  const legacy = readComparisonConfig(config);
-  assert.equal(legacy.plans[0].estimateDuration, false);
-  assert.equal(simulate(legacy)[0].estimateDuration, false);
+  const independent = readComparisonConfig(config);
+  assert.equal(independent.plans[0].estimateDuration, false);
+  assert.equal(simulate(independent)[0].estimateDuration, false);
 });
 
 test('非法耗时与全局开关在校验和导入时拒绝，耗时溢出报告错误', () => {

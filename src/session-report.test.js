@@ -12,14 +12,14 @@ import { createDefaultFlow, createPreloadedFlow } from "./session-flow.js";
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) <= Math.max(1e-9, Math.abs(expected) * 1e-10), actual + " != " + expected);
 const setup = (simulation = {}) => {
   const config = createConfig();
-  Object.assign(config.simulation, simulation);
+  Object.assign(config.simulation, { compressionThresholdType: "TURN" }, simulation);
   return config;
 };
 
 // 单会话测试显式包装为一个方案；默认模板测试分别传入两套流程。
 const simulate = config => {
   const plan = createPlan({ source: config, id: "test-plan" });
-  return simulateComparison({ version: 4, unit: "K", baselineId: plan.id, plans: [plan] });
+  return simulateComparison({ ...createComparisonConfig(), baselineId: plan.id, plans: [plan] });
 };
 const simulateTemplates = config => {
   const comparison = createComparisonConfig();
@@ -89,7 +89,7 @@ function checkConservation(result) {
 }
 
 test("10 轮基准，末轮压缩请求和最终上下文完整计入", () => {
-  const config = setup({ turnTotalCount: 10, skillsTotalCount: 1 });
+  const config = setup({ turnTotalCount: 10, skillsTotalCount: 1, toolsTotalCount: 90 });
   // Pin the historical fixture prices instead of relying on the UI's default model.
   Object.assign(config.model, { inputCachedPrice: 1.5, inputNotCachedPrice: 12, outputPrice: 36 });
   const results = simulateTemplates(config);
@@ -271,7 +271,7 @@ test("流程支持参数乘积、停用步骤和连续模型调用，步骤名�
   const config = setup({
     turnTotalCount: 1, toolsTotalCount: 2, toolSchemaToken: 3,
     flow: {
-      initial: [{ type: "action", text: "自定义 Schema", token: ["toolsTotalCount", "toolSchemaToken"] }],
+      initial: [{ type: "action", text: "自定义 Schema", token: "toolsTotalCount * toolSchemaToken" }],
       turn: [
         { type: "llm", text: "首次生成", token: "agentResult" },
         { type: "llm", text: "按需补充", token: 2 },
@@ -364,7 +364,7 @@ test("reset 按最新配置重建 initial，引用稳定且动作编号唯一，
   assert.deepEqual(buildReport(first), before);
 });
 
-test("自定义流程经过 JSON 和 Worker 克隆后保留，缺省流程及单阶段覆盖使用默认值", () => {
+test("自定义流程经过 JSON 和 Worker 克隆后保留，导入要求完整流程", () => {
   const config = setup({ turnTotalCount: 3 });
   config.simulation.flow.initial = [];
   config.simulation.flow.turn = [{ type: "llm", text: "直接回复", token: 2 }];
@@ -372,7 +372,9 @@ test("自定义流程经过 JSON 和 Worker 克隆后保留，缺省流程及单
   assert.deepEqual(imported, config);
   assert.deepEqual(simulate(structuredClone(imported)), simulate(config));
   delete config.simulation.flow;
-  assert.deepEqual(readConfig(config).simulation.flow, createConfig().simulation.flow);
+  assert.throws(() => readConfig(config), /flow/);
+  config.simulation.flow = { initial: [] };
+  assert.throws(() => readConfig(config), /flow.turn/);
   const session = new Session({ flow: { initial: [] } });
   assert.deepEqual(session.getInitialContext(), []);
   assert.deepEqual(session.config.flow.turn, createConfig().simulation.flow.turn);
@@ -403,8 +405,8 @@ test("非法流程在导入与 Session 执行前被拒绝", () => {
   }
   assert.throws(() => new Session({
     toolsTotalCount: 1e300, toolSchemaToken: 1e300,
-    flow: { initial: [{ type: "action", text: "溢出", token: ["toolsTotalCount", "toolSchemaToken"] }] },
-  }), /超出/);
+    flow: { initial: [{ type: "action", text: "溢出", token: "toolsTotalCount * toolSchemaToken" }] },
+  }), /非负有限/);
   const session = new Session();
   session.config.flow.turn[0].token = -1;
   assert.throws(() => session.reset(), /Token/);

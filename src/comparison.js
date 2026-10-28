@@ -1,9 +1,9 @@
 import { createConfig, createPresetConfig, readConfig, validate, groups, compressionFields, fields, integers, getValue, setValue } from "./config.js";
 import { validateVariables, validateVariableName } from "./variables.js";
+import { descriptionReferences, renderPlanDescription } from './plan-description.js';
 import { formulaReferences } from "./token-formula.js";
 import { defaultModelPreset, modelPresets } from "./model-pricing.js";
 import { createPreloadedFlow } from "./session-flow.js";
-import { migrateLegacyComparison } from "./legacy-config.js";
 
 export const planColors = ["#5869d9", "#d99b61", "#449b87", "#9a76c3", "#5c9ebd", "#c77891", "#9b9b4d", "#768397"];
 export const maxPlans = 8;
@@ -12,7 +12,6 @@ export const globalFields = [
   groups[1].fields[0],
   ...compressionFields.filter(([key]) => ["compressionThresholdTurnCount", "compressionThresholdToken"].includes(key)),
 ];
-const legacyGlobalKeys = [...globalFields.map(([key]) => key), "compressionThresholdType"];
 export const globalKeys = [...fields.map(([key]) => key), "compressionThresholdType"];
 const defaultSimulation = createConfig().simulation;
 const deletePath = (object, path) => {
@@ -59,7 +58,6 @@ export function validateGlobals(globalSimulation) {
     if (removed.has(key)) continue;
     if (key.startsWith("compressionThreshold") && key !== thresholdKey(globalSimulation || {})) continue;
     const value = getValue(globalSimulation, key);
-    if (value === undefined && !legacyGlobalKeys.includes(key)) continue;
     const upper = unit === "%" ? 1 : max;
     if (typeof value !== "number" || !Number.isFinite(value) || value < min || (upper !== undefined && value > upper)) errors[key] = unit === "%" ? "请输入 0–100%" : `${label}请输入 ${min}${max ? `–${max}` : " 及以上的有限"}数值`;
     else if (integers.has(key) && !Number.isSafeInteger(value)) errors[key] = "请输入整数";
@@ -67,6 +65,11 @@ export function validateGlobals(globalSimulation) {
   }
   if (!["TURN", "TOKEN"].includes(globalSimulation?.compressionThresholdType)) errors.compressionThresholdType = "请选择压缩阈值类型";
   return errors;
+}
+
+export function resolvePlanDescription(plan, globalSimulation) {
+  const effective = resolvePlan(plan, globalSimulation);
+  return renderPlanDescription(plan?.description, { ...effective?.simulation, removedFields: globalSimulation?.removedFields });
 }
 
 export function createPlan({ source, name = "自定义方案", id = crypto.randomUUID(), color = planColors[0], removedFields = [] } = {}) {
@@ -130,10 +133,10 @@ export function validatePlan(plan, globalSimulation, globalModelId, globalModel)
 
 export function variableReferences(plan, name) {
   const matches = [];
+  if (descriptionReferences(plan.description).includes(name)) matches.push(`${plan.name} / 方案说明`);
   for (const phase of ['initial', 'turn']) for (const step of plan.simulation.flow[phase]) {
     let references = [];
-    if (Array.isArray(step.token)) references = step.token;
-    else if (typeof step.token === 'string') {
+    if (typeof step.token === 'string') {
       try { references = formulaReferences(step.token); }
       catch { throw new Error(`请先修复「${plan.name} / ${step.text}」的公式再删除变量`); }
     }
@@ -146,7 +149,7 @@ export function deleteVariable(config, name, plan) {
   validateVariableName(name);
   const consumers = plan ? [plan] : config.plans.filter(p => p.useGlobal?.['variables.' + name] !== false);
   const references = consumers.flatMap(p => variableReferences(p, name));
-  if (references.length) throw new Error(`变量仍被引用：${references.join('、')}。请先修改这些公式。`);
+  if (references.length) throw new Error(`变量仍被引用：${references.join('、')}。请先修改这些引用。`);
   if (plan) {
     delete plan.simulation.variables[name];
     delete plan.useGlobal?.['variables.' + name];
@@ -164,8 +167,8 @@ export function validateComparison(config) {
   if (config?.version !== 4 || config.unit !== "K") errors.version = "请使用 v4 多方案配置（K Token）";
   if (config?.baselineMode !== undefined && !["auto", "manual"].includes(config.baselineMode)) errors.baselineMode = "Base模式无效";
   if (!Array.isArray(config?.plans) || config.plans.length > maxPlans) return { plans: `最多对比 ${maxPlans} 个方案` };
-  if (config.globalSimulation !== undefined) for (const [key, message] of Object.entries(validateGlobals(config.globalSimulation))) errors[`globalSimulation.${key}`] = message;
-  if (config.globalModelId !== undefined && !modelPresets.some(p => p.id === config.globalModelId) && config.globalModelId !== 'custom') errors.globalModelId = "请选择有效的全局模型";
+  for (const [key, message] of Object.entries(validateGlobals(config.globalSimulation))) errors[`globalSimulation.${key}`] = message;
+  if (!modelPresets.some(p => p.id === config.globalModelId) && config.globalModelId !== 'custom') errors.globalModelId = "请选择有效的全局模型";
   if (config.globalModelId === 'custom') {
     const model = config.globalModel?.model;
     if (!model || !config.globalModel?.pricing || typeof config.globalModel.pricing !== 'object' || typeof model.name !== 'string' || !model.name.trim() || model.currency !== '$' || ['inputCachedPrice', 'inputNotCachedPrice', 'outputPrice'].some(key => !Number.isFinite(model[key]) || model[key] < 0)) errors.globalModelId = '请输入有效的全局模型名称和非负费率';
@@ -185,20 +188,11 @@ export function validateComparison(config) {
 }
 
 export function readComparisonConfig(data) {
-  if (data?.version === 2 || data?.version === 3) data = migrateLegacyComparison(data);
-  if (data?.version !== 4 || data.unit !== "K" || !Array.isArray(data.plans)) throw new Error("仅支持 v4 多方案配置，或导入 v2 / v3 旧配置（K Token）。");
+  if (data?.version !== 4 || data.unit !== "K" || !Array.isArray(data.plans)) throw new Error("仅支持当前多方案配置（K Token）。");
   if (data.plans.length > maxPlans) throw new Error(`最多对比 ${maxPlans} 个方案`);
-  // Older exports only shared rounds and tools. Fill new global controls without
-  // changing those plans' existing independent settings or their inheritance flags.
-  let globalSimulation = data.globalSimulation === undefined ? {} : structuredClone(data.globalSimulation);
-  if (globalSimulation && typeof globalSimulation === "object" && !Array.isArray(globalSimulation)) {
-    const defaults = defaultSimulation;
-    globalSimulation.initialContext ??= {};
-    const removedFields = new Set(Array.isArray(globalSimulation.removedFields) ? globalSimulation.removedFields : []);
-    for (const key of globalKeys) {
-      if (!removedFields.has(key) && (data.globalSimulation === undefined || (!["turnTotalCount", "toolsTotalCount"].includes(key) && getValue(globalSimulation, key) === undefined))) setValue(globalSimulation, key, getValue(data.plans[0]?.simulation, key) ?? getValue(defaults, key));
-    }
-  }
+  const globalErrors = validateGlobals(data.globalSimulation);
+  if (Object.keys(globalErrors).length) throw new Error(Object.values(globalErrors)[0]);
+  const globalSimulation = structuredClone(data.globalSimulation);
   const plans = data.plans.map(plan => {
     if (!plan || typeof plan !== "object") throw new Error("方案配置无效");
     validateVariables(plan.simulation?.variables);
@@ -214,11 +208,8 @@ export function readComparisonConfig(data) {
   });
   const config = { version: 4, unit: "K", baselineId: data.baselineId, plans };
   config.globalSimulation = globalSimulation;
-  config.globalModelId = data.globalModelId === undefined ? defaultModelPreset.id : data.globalModelId;
+  config.globalModelId = data.globalModelId;
   if (data.globalModel !== undefined) config.globalModel = structuredClone(data.globalModel);
-  // Exports predating global models keep each plan's original model and prices.
-  if (data.globalModelId === undefined) plans.forEach(plan => { plan.useGlobal = { ...plan.useGlobal, model: false }; });
-  if (data.globalSimulation === undefined) plans.forEach(plan => { plan.useGlobal = { ...Object.fromEntries(globalKeys.map(key => [key, false])), model: plan.useGlobal?.model === true }; });
   if (data.baselineMode !== undefined) config.baselineMode = data.baselineMode;
   const errors = validateComparison(config);
   if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);

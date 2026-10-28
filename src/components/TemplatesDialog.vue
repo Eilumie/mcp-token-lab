@@ -2,12 +2,14 @@
 import { computed, onBeforeUnmount, onMounted, ref, useId } from 'vue';
 import { Check, LayoutTemplate, Upload, X } from 'lucide-vue-next';
 import { createBuiltinTemplates, readTemplate } from '../templates.js';
+import defaultTemplates from '../config/default-template/index.js';
+import { resolvePlanDescription } from '../comparison.js';
 
 const props = defineProps({ customTemplates: Array });
 const emit = defineEmits(['close', 'import', 'apply']);
-const builtins = createBuiltinTemplates();
+const builtins = createBuiltinTemplates(defaultTemplates);
 const templates = computed(() => [...builtins, ...props.customTemplates]);
-const selectedId = ref(builtins[0].id);
+const selectedId = ref(builtins[0]?.id ?? props.customTemplates[0]?.id);
 const selected = computed(() => templates.value.find(item => item.id === selectedId.value));
 const dialog = ref(null), fileInput = ref(null), message = ref('');
 const titleId = useId();
@@ -43,7 +45,7 @@ onBeforeUnmount(() => { dialog.value?.close(); if (previousFocus?.isConnected) p
         <section v-if="selected" class="template-detail" aria-label="模板详情">
           <span class="eyebrow">TEMPLATE / PREVIEW</span><h3>{{ selected.name }}</h3><p class="detail-intro">{{ selected.description || '暂无模板介绍' }}</p>
           <h4>方案列表 <small>{{ selected.config.plans.length }}</small></h4>
-          <ol class="template-plans"><li v-for="(plan, index) in selected.config.plans" :key="plan.id"><span class="plan-number">{{ String(index + 1).padStart(2, '0') }}</span><div><strong>{{ plan.name }}</strong><p v-if="plan.description">{{ plan.description }}</p></div></li></ol>
+          <ol class="template-plans"><li v-for="(plan, index) in selected.config.plans" :key="plan.id"><span class="plan-number">{{ String(index + 1).padStart(2, '0') }}</span><div><strong>{{ plan.name }}</strong><p v-if="plan.description">{{ resolvePlanDescription(plan, selected.config.globalSimulation) }}</p></div></li></ol>
           <p class="template-note">使用模板将替换当前全局配置和方案，可撤销。</p>
         </section>
       </div>

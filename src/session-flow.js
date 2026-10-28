@@ -113,7 +113,7 @@ export function createPreloadedFlow() {
 }
 
 export function tokenFormula(token) {
-  return Array.isArray(token) ? token.join(" * ") : String(token);
+  return String(token);
 }
 
 export function formulaVariables(config, runtime = {}) {
@@ -131,21 +131,7 @@ export function resolveStepToken(token, config, runtime) {
     throw new RangeError("Token 必须是非负有限数值");
   }
   if (typeof token === "string") return evaluateFormula(token, formulaVariables(config, runtime));
-  // 兼容旧版参数乘积数组；页面编辑后保存为公式字符串。
-  const factors = token;
-  if (!Array.isArray(factors) || factors.length === 0) {
-    throw new TypeError("Token 必须是数值、公式字符串或非空参数名数组");
-  }
-  const result = factors.reduce((total, path) => {
-    if (typeof path !== "string" || !Object.hasOwn(formulaVariables(config, runtime), path)) {
-      throw new RangeError(`未知 Token 参数：${String(path)}`);
-    }
-    const value = formulaVariables(config, runtime)[path];
-    if (!Number.isFinite(value) || value < 0) throw new RangeError(`${path} 必须是非负有限数值`);
-    return total * value;
-  }, 1);
-  if (!Number.isFinite(result)) throw new RangeError("Token 乘积超出可计算范围");
-  return result;
+  throw new TypeError("Token 必须是数值或公式字符串");
 }
 
 export function validateFlow(flow, config) {

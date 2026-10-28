@@ -10,7 +10,7 @@ const llm = (text, token = 1, trigger) => ({ ...action(text, token, trigger), ty
 const interval = value => ({ type: "interval", value });
 const probability = value => ({ type: "probability", value });
 const makeSession = (turn, extra = {}) => new Session({
-  turnTotalCount: 7, compressionThresholdTurnCount: 100, compressionKeepTurns: 0,
+  turnTotalCount: 7, compressionThresholdType: "TURN", compressionThresholdTurnCount: 100, compressionKeepTurns: 0,
   model: { inputCachedPrice: 1, inputNotCachedPrice: 2, outputPrice: 3 },
   flow: { initial: [], turn }, ...extra,
 });

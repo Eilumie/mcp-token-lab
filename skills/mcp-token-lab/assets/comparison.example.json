@@ -2,7 +2,7 @@
   "type": "token-lab-template",
   "version": 1,
   "name": "按需 Schema 与全量预加载对比",
-  "description": "比较相同模型和工具规模下，按需读取 Tool Schema 与初始全量预加载的 Token、费用和预估耗时。示例为 20 轮用户消息、60 个工具，每轮平均调用 1.5 个工具；费率和节点耗时均为演示假设，使用前请按实际场景调整。",
+  "description": "比较相同模型和工具规模下，按需读取 Tool Schema 与初始全量预加载的 Token、费用和预估耗时。统一使用 100 轮用户消息、100 个工具、100K Token 上下文压缩阈值，每轮平均调用 1.5 个工具；费率和节点耗时均为演示假设，使用前请按实际场景调整。",
   "config": {
     "version": 4,
     "unit": "K",
@@ -13,9 +13,9 @@
         "agentPromptToken": 4
       },
       "variables": {},
-      "turnTotalCount": 20,
+      "turnTotalCount": 100,
       "skillsTotalCount": 10,
-      "toolsTotalCount": 60,
+      "toolsTotalCount": 100,
       "turnAvgSkillsCount": 0.33,
       "turnAvgToolsCount": 1.5,
       "expectedPrefixCacheHitRate": 0.9,
@@ -30,10 +30,10 @@
       "callToolsPlanToken": 0.3,
       "agentResult": 1,
       "compressionThresholdTurnCount": 10,
-      "compressionThresholdToken": 200,
+      "compressionThresholdToken": 100,
       "compressionKeepTurns": 2,
       "compressionTargetToken": 4,
-      "compressionThresholdType": "TURN",
+      "compressionThresholdType": "TOKEN",
       "estimateDuration": true
     },
     "globalModelId": "custom",
@@ -42,7 +42,7 @@
         "id": "plan-lazy",
         "name": "渐进式Tools Schema",
         "color": "#5869d9",
-        "description": "初始加载 Skill 与 Tool 索引，每轮查询所需 Tool Schema；与全量方案使用相同规模和演示费率，比较输入成本、模型调用次数及预估耗时。节点耗时为演示假设：action 0.3 秒，llm 1.8 秒。",
+        "description": "共 {{turnTotalCount}} 轮、{{toolsTotalCount}} 个工具，Prompt 为 {{initialContext.agentPromptToken}} K。初始加载 Skill 与 Tool 索引，每轮按需查询 Schema，平均调用 {{turnAvgToolsCount}} 个工具；与全量方案使用相同演示费率。节点耗时为演示假设：action 0.3 秒，llm 1.8 秒。",
         "estimateDuration": true,
         "simulation": {
           "flow": {
@@ -121,10 +121,10 @@
           "initialContext": {
             "agentPromptToken": 4
           },
-          "turnTotalCount": 20,
+          "turnTotalCount": 100,
           "expectedPrefixCacheHitRate": 0.9,
           "skillsTotalCount": 10,
-          "toolsTotalCount": 60,
+          "toolsTotalCount": 100,
           "turnAvgSkillsCount": 0.33,
           "turnAvgToolsCount": 1.5,
           "skillIndexToken": 0.1,
@@ -137,8 +137,8 @@
           "schemaPlanToken": 0.1,
           "callToolsPlanToken": 0.3,
           "agentResult": 1,
-          "compressionThresholdType": "TURN",
-          "compressionThresholdToken": 200,
+          "compressionThresholdType": "TOKEN",
+          "compressionThresholdToken": 100,
           "compressionThresholdTurnCount": 10,
           "compressionTargetToken": 4,
           "compressionKeepTurns": 2
@@ -187,7 +187,7 @@
         "id": "plan-full",
         "name": "MCP默认全量tools/list",
         "color": "#d99b61",
-        "description": "初始预加载全部 Tool Schema，每轮省去 Schema 查询计划和返回节点；作为固定对比基准。与按需方案使用相同规模、演示费率和相同步骤耗时假设。",
+        "description": "共 {{turnTotalCount}} 轮，初始预加载 {{toolsTotalCount}} 个工具的全部 Schema，单个 Schema 为 {{toolSchemaToken}} K；每轮省去 Schema 查询计划和返回节点，作为固定对比基准。与按需方案使用相同规模、演示费率和相同步骤耗时假设。",
         "estimateDuration": true,
         "simulation": {
           "flow": {
@@ -260,10 +260,10 @@
           "initialContext": {
             "agentPromptToken": 4
           },
-          "turnTotalCount": 20,
+          "turnTotalCount": 100,
           "expectedPrefixCacheHitRate": 0.9,
           "skillsTotalCount": 10,
-          "toolsTotalCount": 60,
+          "toolsTotalCount": 100,
           "turnAvgSkillsCount": 0.33,
           "turnAvgToolsCount": 1.5,
           "skillIndexToken": 0.1,
@@ -276,8 +276,8 @@
           "schemaPlanToken": 0.1,
           "callToolsPlanToken": 0.3,
           "agentResult": 1,
-          "compressionThresholdType": "TURN",
-          "compressionThresholdToken": 200,
+          "compressionThresholdType": "TOKEN",
+          "compressionThresholdToken": 100,
           "compressionThresholdTurnCount": 10,
           "compressionTargetToken": 4,
           "compressionKeepTurns": 2

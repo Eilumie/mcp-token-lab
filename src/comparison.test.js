@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { reactive } from "vue";
-import { createConfig, createPresetConfig } from "./config.js";
+import { createPresetConfig } from "./config.js";
 import { defaultModelPreset, modelPresets } from "./model-pricing.js";
 import { createComparisonConfig, createPlan, readComparisonConfig, validateComparison, resolveBaselineId, planColors, maxPlans, globalKeys, resolvePlan } from "./comparison.js";
 import { simulate } from "./session-report.js";
@@ -11,6 +11,7 @@ import { buildCsv } from "./export.js";
 const small = () => {
   const config = createComparisonConfig();
   config.globalSimulation.turnTotalCount = 3;
+  config.globalSimulation.compressionThresholdType = "TURN";
   return config;
 };
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`);
@@ -96,7 +97,7 @@ test("多个图表和 CSV 包含全部方案", () => {
   assert.ok(!csv.includes("undefined"));
 });
 
-test("v4 配置往返保留方案、基准及自定义价格；旧 v2 导入迁移成两方案", () => {
+test("当前配置往返保留方案、基准及自定义价格", () => {
   const config = small();
   config.plans[0].name = "我的按需方案";
   config.plans[0].model.outputPrice = 1.234;
@@ -104,14 +105,7 @@ test("v4 配置往返保留方案、基准及自定义价格；旧 v2 导入迁�
   const imported = readComparisonConfig(JSON.parse(JSON.stringify(config)));
   assert.deepEqual(imported, config);
   assert.deepEqual(simulate(imported), simulate(config));
-  const legacy = createConfig();
-  legacy.version = 2;
-  delete legacy.simulation.flow;
-  legacy.model.outputPrice = 123;
-  const migrated = readComparisonConfig(legacy);
-  assert.equal(migrated.version, 4);
-  assert.deepEqual(migrated.plans.map(p => p.model.outputPrice), [123, 123]);
-  assert.equal(migrated.plans[0].simulation.turnTotalCount, legacy.simulation.turnTotalCount);
+
 });
 
 test("单方案与空方案均能保存、计算，改变基准不改变实际成本", () => {
@@ -178,78 +172,6 @@ test("八方案比较的输入、输出、来源费用与各自请求记录守�
   }
 });
 
-// 模拟旧版导出的通用流程：同一流程通过模式条件选择不同步骤。
-function legacyFixture(version = 3) {
-  const base = createConfig();
-  base.simulation.turnTotalCount = 10;
-  base.simulation.skillsTotalCount = 1;
-  // Keep legacy cost expectations independent of the current default model preset.
-  Object.assign(base.model, { inputCachedPrice: 1.5, inputNotCachedPrice: 12, outputPrice: 36 });
-  const flow = base.simulation.flow;
-  flow.initial.splice(3, 0, { type: "action", text: "tools schema list", token: ["toolsTotalCount", "toolSchemaToken"], toolsMode: "FULL_TOOLS_SCHEMA" });
-  flow.turn[3].toolsMode = "LAZY_TOOLS_SCHEMA";
-  flow.turn[4].toolsMode = "LAZY_TOOLS_SCHEMA";
-  if (version === 2) return { ...base, version: 2 };
-  const plans = ["LAZY_TOOLS_SCHEMA", "FULL_TOOLS_SCHEMA"].map((toolsMode, i) => ({
-    ...createPlan({ source: base, id: `legacy-${i}`, name: `旧方案 ${i}`, color: planColors[i] }), toolsMode,
-  }));
-  return { version: 3, unit: "K", baselineId: plans[1].id, plans };
-}
-
-test("旧 v2 / v3 条件流程导入为显式步骤，保留基准费用与请求数", () => {
-  for (const version of [2, 3]) {
-    const original = legacyFixture(version);
-    const snapshot = structuredClone(original);
-    const migrated = readComparisonConfig(original);
-    assert.deepEqual(original, snapshot);
-    assert.equal(migrated.version, 4);
-    assert.ok(!JSON.stringify(migrated).includes("toolsMode"));
-    const results = simulate(migrated);
-    assert.deepEqual(results.map(r => r.requests.length), [41, 31]);
-    close(results[0].cost.total, 6.0431235);
-    close(results[1].cost.total, 8.123736);
-    assert.deepEqual(readComparisonConfig(migrated), migrated);
-    if (version === 3) assert.equal(migrated.baselineId, original.baselineId);
-  }
-});
-
-test("旧 v3 自定义、停用、空阶段与缺省阶段迁移不会补入错误步骤", () => {
-  const old = legacyFixture();
-  old.plans[0].simulation.flow = { initial: [], turn: [
-    { type: "llm", text: "生成", token: 2 },
-    { type: "llm", text: "禁用", token: 999, enabled: false },
-    { type: "llm", text: "另一模式", token: 999, toolsMode: "FULL_TOOLS_SCHEMA" },
-  ] };
-  old.plans[1].simulation.flow = { turn: [] };
-  old.plans.forEach(plan => plan.simulation.turnTotalCount = 1);
-  const migrated = readComparisonConfig(old);
-  assert.deepEqual(migrated.plans[0].simulation.flow.initial, []);
-  assert.equal(migrated.plans[0].simulation.flow.turn.length, 2);
-  assert.ok(migrated.plans[1].simulation.flow.initial.some(step => step.text === "tools schema list"));
-  const results = simulate(migrated);
-  assert.deepEqual(results.map(r => r.requests.length), [1, 0]);
-  assert.equal(results[0].output, 2);
-  assert.equal(results[1].cost.total, 0);
-  assert.ok(!JSON.stringify(migrated).includes("toolsMode"));
-});
-
-test("旧模式配置在导入时验证，新配置拒绝模式条件", () => {
-  for (const mutate of [
-    c => c.plans[0].toolsMode = "unknown",
-    c => c.plans[0].simulation.flow.turn[0].toolsMode = "unknown",
-    c => c.plans[0].simulation.flow = null,
-  ]) {
-    const old = legacyFixture();
-    mutate(old);
-    assert.throws(() => readComparisonConfig(old));
-  }
-  const config = small();
-  config.plans[0].simulation.flow.turn[0].toolsMode = "LAZY_TOOLS_SCHEMA";
-  assert.throws(() => readComparisonConfig(config), /不支持字段/);
-  assert.throws(() => simulate(config), /不支持字段/);
-});
-
-
 test("全局轮次和 Tools 驱动模拟，独立覆盖与恢复继承按字段生效", () => {
   const config = small();
   config.globalSimulation.toolsTotalCount = 120;
@@ -279,20 +201,6 @@ test("全局轮次和 Tools 驱动模拟，独立覆盖与恢复继承按字段�
   assert.equal(plan.useGlobal.turnTotalCount, true);
 });
 
-test("旧 v4 导入保持不同轮次和 Tools 数量，不被全局值覆盖", () => {
-  const old = small();
-  delete old.globalSimulation;
-  old.plans.forEach((p, i) => {
-    delete p.useGlobal;
-    p.simulation.turnTotalCount = i + 2;
-    p.simulation.toolsTotalCount = 30 + i * 20;
-  });
-  const imported = readComparisonConfig(old);
-  assert.deepEqual(simulate(imported), simulate(old));
-  imported.globalSimulation.turnTotalCount = 9;
-  imported.globalSimulation.toolsTotalCount = 200;
-  assert.deepEqual(simulate(imported), simulate(old));
-});
 
 test("全局值、继承设置与跨字段约束均校验实际生效参数", () => {
   for (const mutate of [
@@ -345,22 +253,6 @@ test("新增全局 Skills、命中率和压缩设置参与计算，覆盖后不�
   assert.equal(simulate(config)[1].compressions.length, 0);
 });
 
-test("仅含轮次和 Tools 的旧全局配置可导入，新增字段保持原方案值", () => {
-  const old = small();
-  const addedKeys = globalKeys.filter(key => !["turnTotalCount", "toolsTotalCount"].includes(key));
-  for (const key of addedKeys) {
-    delete old.globalSimulation[key];
-    for (const plan of old.plans) delete plan.useGlobal[key];
-  }
-  Object.assign(old.plans[1].simulation, { skillsTotalCount: 50, expectedPrefixCacheHitRate: 0.55, compressionThresholdType: "TOKEN", compressionThresholdToken: 15 });
-  const imported = readComparisonConfig(old);
-  const before = simulate(imported);
-  for (const key of addedKeys) assert.equal(resolvePlan(imported.plans[1], imported.globalSimulation).simulation[key], old.plans[1].simulation[key]);
-  Object.assign(imported.globalSimulation, { skillsTotalCount: 900, expectedPrefixCacheHitRate: 0.1, compressionThresholdType: "TOKEN", compressionThresholdToken: 1000 });
-  assert.deepEqual(simulate(imported), before);
-  assert.deepEqual(readComparisonConfig(imported), imported);
-  assert.equal(old.globalSimulation.skillsTotalCount, undefined);
-});
 
 test("新增全局字段校验范围、整数和方案保留轮次，触发方式与阈值可分别覆盖", () => {
   for (const mutate of [
@@ -444,22 +336,8 @@ test("导入的自定义全局模型在响应式页面中可校验且复制互�
   assert.equal(imported.globalModel.pricing.tier.input_tokens_gt, 10);
 });
 
-test("旧配置导入保留各方案模型和自定义费率，无效全局模型被拒绝", () => {
-  const old = small();
-  delete old.globalModelId;
-  old.plans.forEach((p, i) => {
-    delete p.useGlobal.model;
-    p.model.outputPrice = i + 0.123;
-    p.pricing = { id: "custom", label: "手动费率", source: "", date: "" };
-  });
-  const snapshot = structuredClone(old);
-  const before = simulate(old);
-  const imported = readComparisonConfig(old);
-  assert.deepEqual(old, snapshot);
-  imported.globalModelId = modelPresets.at(-1).id;
-  assert.ok(imported.plans.every(p => p.useGlobal.model === false));
-  assert.deepEqual(simulate(imported), before);
-  for (const id of ["custom", "missing", "", null, { outputPrice: 0 }]) {
+test("无效或缺失的全局模型被拒绝", () => {
+  for (const id of [undefined, "custom", "missing", "", null, { outputPrice: 0 }]) {
     const invalid = small();
     invalid.globalModelId = id;
     assert.ok(validateComparison(invalid).globalModelId);
@@ -469,4 +347,33 @@ test("旧配置导入保留各方案模型和自定义费率，无效全局模�
   const invalid = small();
   invalid.plans[0].useGlobal.model = "true";
   assert.throws(() => readComparisonConfig(invalid), /全局参数/);
+});
+
+test("只接受当前版本，拒绝旧格式且不补全缺失的全局配置", () => {
+  for (const version of [undefined, 1, 2, 3, 5, "4"]) {
+    const config = small();
+    config.version = version;
+    const snapshot = structuredClone(config);
+    assert.throws(() => readComparisonConfig(config), /仅支持当前/);
+    assert.throws(() => simulate(config));
+    assert.deepEqual(config, snapshot);
+  }
+  for (const mutate of [
+    config => delete config.globalSimulation,
+    config => delete config.globalSimulation.initialContext,
+    config => delete config.globalSimulation.userMessageToken,
+    config => delete config.globalModelId,
+    config => delete config.plans[0].simulation.flow,
+    config => delete config.plans[0].simulation.flow.turn,
+    config => config.plans[0].simulation.flow.turn[0].token = ["toolsTotalCount", "toolSchemaToken"],
+    config => config.plans[0].toolsMode = "LAZY_TOOLS_SCHEMA",
+    config => config.plans[0].simulation.flow.turn[0].toolsMode = "FULL_TOOLS_SCHEMA",
+  ]) {
+    const config = small();
+    mutate(config);
+    const snapshot = structuredClone(config);
+    assert.throws(() => readComparisonConfig(config));
+    assert.throws(() => simulate(config));
+    assert.deepEqual(config, snapshot);
+  }
 });
