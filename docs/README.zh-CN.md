@@ -82,7 +82,6 @@ MCP Token Lab 将这些问题变成一组可以修改、对比、复现的模拟
 
 **不要把这组结果理解成“渐进加载总是更省”。** 同一实验只把工具数从 100 改为 10，费用排序就会反转：全量 Schema 策略反而更便宜。不同策略的模拟请求数量也不相同，更不能据此断言任务完成质量一致。
 
-完整假设、敏感性分析与验证命令见 [可复现实验](examples/README.md)。在网页中选择 **Templates → Import custom template**，导入 `docs/examples/strategy-comparison.json` 并使用模板，即可复现实验。应用模板会覆盖现有配置，请先导出需要保留的数据。
 
 ## 本地运行
 
