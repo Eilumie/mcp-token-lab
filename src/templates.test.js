@@ -94,9 +94,9 @@ test('new JSON entries and nested templates load without changing an import list
   assert.throws(() => createBuiltinTemplates({ './broken.json': {} }), /默认模板 \.\/broken\.json/);
 });
 
-test('initial and reset configurations use the first template without sharing mutable state', () => {
+test('initial and reset configurations use the selected default template without sharing mutable state', () => {
   const sources = defaultTemplateSources();
-  const expected = createBuiltinTemplates(sources)[0].config;
+  const expected = createBuiltinTemplates(sources).find(template => template.id === 'builtin-progressive-tool-no-compress').config;
   const before = structuredClone(sources);
   const initial = createDefaultConfig(sources);
   assert.deepEqual(initial, expected);
