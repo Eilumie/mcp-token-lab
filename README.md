@@ -67,11 +67,26 @@ Open a user turn to explore modeled LLM calls and their input composition. Disti
 
 ### 07 · Reuse templates and exchange configurations
 
-Use the five built-in JSON templates, import a custom scenario, export a configuration for review, or restore the default plans. The interface supports English and Chinese.
+Use the six built-in JSON templates, import a custom scenario, export a configuration for review, or restore the default plans. The interface supports English and Chinese.
 
 <img src="docs/screenshots/08-import-export-controls.webp" alt="Controls for restoring plans, exporting configuration, opening templates and adding a plan" width="460" />
 
 <sub>Screenshot shows the available controls, not an opened template dialog. Configuration edits and imported templates are kept in memory: export before refreshing the page. The language preference is stored locally.</sub>
+
+## Built-in strategy templates
+
+Open **Templates** in the plan toolbar, select a template, review its plans, then click **Use template**. Each template provides editable settings and workflows. Applying one replaces the current settings and plans; you can undo that change or export your configuration first.
+
+| Template | Strategies compared | What to explore |
+|---|---|---|
+| [`progressive-tool-no-compress`](src/config/default-template/progressive-tool-no-compress.json) **(startup default)** | MCP Full tools/list · Hosted Tool Search · Progressive Tool Schema | Compare schema-loading approaches over 25 turns without compression. |
+| [`progressive-tool-100k`](src/config/default-template/progressive-tool-100k.json) | Same three loading strategies | Explore how a **100K-token** compression threshold affects context growth and cost over 100 turns. |
+| [`progressive-tool-200k`](src/config/default-template/progressive-tool-200k.json) | Same three loading strategies | Contrast a higher **200K-token** compression threshold over 100 turns. |
+| [`tool-search`](src/config/default-template/tool-search.json) | Full Schema · Regex Search · BM25 Search · Semantic Search (Top 5 each) | Compare full preload with modeled Top-5 discovery and selective schema loading. |
+| [`tool-namespace-hybrid`](src/config/default-template/tool-namespace-hybrid.json) | Flat Tools · Namespace (12 groups × 10 tools) · Hybrid (5 pinned + Top 5) | Explore namespace grouping, periodic discovery, and keeping frequently used tool schemas loaded. |
+| [`tool-result-shaping`](src/config/default-template/tool-result-shaping.json) | Raw Tool Result · Field Projection (1.5K/tool) · Code Aggregation (~1.5K/batch) | Compare how trimming or aggregating tool results changes context size and estimated cost. |
+
+All six templates are stored as JSON files in [`src/config/default-template/`](src/config/default-template/) and can be customized in the interface.
 
 ## Quick start
 

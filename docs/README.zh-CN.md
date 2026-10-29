@@ -62,11 +62,26 @@ MCP Token Lab 将这些问题变成一组可以修改、对比、复现的模拟
 
 ### 07 · 模板、配置导入导出与中英文界面
 
-内置五种 JSON 模板，可导入自定义模板、导出当前配置、恢复默认方案，也支持中英文切换。
+内置六种 JSON 模板，可导入自定义模板、导出当前配置、恢复默认方案，也支持中英文切换。
 
 <img src="screenshots/08-import-export-controls.webp" alt="模板和导出配置入口" width="460" />
 
 **说明：** 此图展示操作入口，没有展示弹窗内容。当前方案配置保存在内存中，刷新前需要手动导出；语言偏好存储在本地。
+
+## 内置策略模板
+
+在方案对比区域点击 **「模板」**，选择模板并查看包含的方案，然后点击 **「使用模板」**。六个模板都可以在加载后继续修改参数和执行流程。使用模板会替换当前全局设置与方案，可撤销；需要另存当前设置时，请先导出配置。
+
+| 内置模板 | 对比方案 | 适用场景 |
+|---|---|---|
+| [`progressive-tool-no-compress`](../src/config/default-template/progressive-tool-no-compress.json) **（启动默认）** | MCP Full tools/list · Hosted Tool Search · Progressive Tool Schema | 模拟 **25 轮、不压缩上下文**，直观比较不同工具 Schema 加载方式。 |
+| [`progressive-tool-100k`](../src/config/default-template/progressive-tool-100k.json) | 同上三种工具加载策略 | 模拟 **100 轮、100K Token 压缩阈值**，观察上下文增长及压缩对费用的影响。 |
+| [`progressive-tool-200k`](../src/config/default-template/progressive-tool-200k.json) | 同上三种工具加载策略 | 模拟 **100 轮、200K Token 压缩阈值**，对比更高压缩阈值的影响。 |
+| [`tool-search`](../src/config/default-template/tool-search.json) | Full Schema · Regex Search · BM25 Search · Semantic Search（各 Top 5） | 对比全量预加载与不同工具搜索策略下的按需 Schema 加载。 |
+| [`tool-namespace-hybrid`](../src/config/default-template/tool-namespace-hybrid.json) | Flat Tools · Namespace（12 组 × 10 工具）· Hybrid（5 个常驻 + Top 5） | 探索工具分组、定期发现与常用工具常驻的混合加载方案。 |
+| [`tool-result-shaping`](../src/config/default-template/tool-result-shaping.json) | Raw Tool Result · Field Projection（每工具 1.5K）· Code Aggregation（每批约 1.5K） | 比较原始结果、字段精简与结果聚合对上下文和预估费用的影响。 |
+
+所有模板均位于 [`src/config/default-template/`](../src/config/default-template/)，可作为自定义方案的起点。
 
 ## 本地运行
 
