@@ -8,8 +8,6 @@ An interactive playground for exploring how **MCP tool loading, context growth, 
 
 [**Live demo**](https://zhanghongen.github.io/mcp-token-lab/) · [中文文档](docs/README.zh-CN.md)
 
-<img src="docs/screenshots/01-overview.webp" alt="MCP Token Lab interface: choose a strategy, configure the simulation, compare results" width="900" />
-
 </div>
 
 ## Why MCP Token Lab?
@@ -25,53 +23,41 @@ MCP Token Lab makes those trade-offs **visible, configurable, and comparable** w
 
 ## Feature tour
 
-### 01 · Configure the workload
+### 01 · Configure and compare strategies
 
-Set the model **pricing preset** and shared assumptions, including user turns, tool and skill counts, expected prefix-cache hit rate, and compression trigger. Override inherited values in individual plans when you need a controlled comparison.
+Use **Global settings** to set model pricing, session turns, skill and tool counts, expected prefix-cache hit rate, and compression thresholds. Compare **up to eight plans** side by side by total session cost, initial context, peak request input, LLM calls, modeled per-turn timing, and compression. Plans inherit global settings by default but can override them; choose an automatic or manual baseline.
 
-<img src="docs/screenshots/02-global-settings.webp" alt="Global settings for model rates, turns, tools, cache hit rate and compression" width="900" />
+<img src="docs/features/compare-plans.png" alt="Global settings and comparison of MCP tool-loading strategies" width="1100" />
 
-<sub>Model selection controls accounting rates; it does not establish a live connection to that model. Built-in rates are static snapshots and may be outdated.</sub>
+### 02 · Design each plan's execution flow
 
-### 02 · Compare up to eight plans
+Expand any plan to inspect its cost summary, **initial context**, and **per-turn execution flow**. Add context actions and LLM calls, edit token expressions, variables and step durations, and use interval or probability triggers to model schema discovery, tool results, and agent responses.
 
-Start from built-in strategy templates, add or duplicate plans, choose a baseline, and compare total estimated session cost, initial context, peak request input, call count and modeled timing. The automatic baseline is the highest-cost plan, and you can choose a manual baseline instead.
+<img src="docs/features/execution-flow..png" alt="Plan cost summary, initial context, and editable per-turn execution flow" width="1100" />
 
-<img src="docs/screenshots/03-compare-plans.webp" alt="Comparison of full tool schemas, hosted tool search, and progressive schema loading" width="900" />
+### 03 · Track session cost trends
 
-<sub>The displayed percentages are relative to the selected baseline for that particular scenario—not universal savings claims.</sub>
+Switch between **cumulative cost** and **per-turn cost** to see how strategies evolve across a conversation. The chart can mark context-compression events.
 
-### 03 · Build an execution flow
+<img src="docs/features/session-trend.png" alt="Session cost trend chart comparing three tool-loading strategies" width="1100" />
 
-Inspect and edit the **initial context** and **per-user-turn flow**. Add context actions or model requests, set token expressions and durations, define custom variables, disable steps, and use deterministic interval or probability triggers. Model schema discovery, tool results and agent responses as explicit steps.
+### 04 · Attribute the cost
 
-<img src="docs/screenshots/04-execution-flow.webp" alt="Plan details with initial context, per-turn execution steps, and estimated token costs" width="900" />
+Use the stacked **Cost breakdown** chart to identify the contribution of tool schemas, skill context, tool results, model outputs, and other sources to estimated session spending.
 
-### 04 · Track cost across turns
+<img src="docs/features/cost-breakdown.png" alt="Cost breakdown stacked bar chart by context source" width="1100" />
 
-Switch between **cumulative** and **per-turn** estimated cost to see how strategies diverge over the simulated conversation. Useful for spotting nonlinear effects of repeated context consumption and compression events.
+### 05 · Inspect prefix caching and requests
 
-<img src="docs/screenshots/05-session-trend.webp" alt="Session cost trend chart comparing three simulated strategies" width="900" />
+In **Request details**, select a plan, jump to a turn, and expand individual LLM calls. Trace input context grouped by source turn and distinguish **cache hits**, **cache misses**, and **partial hits** for each request.
 
-### 05 · Attribute the cost
+<img src="docs/features/prefix-cache-detail.png" alt="Per-turn LLM calls with prefix cache hit and miss details" width="1100" />
 
-Compare stacked cost breakdowns by context source and workflow step. See whether the modeled spend comes from tool schemas, skill content, user messages, tool results, model responses or other inputs.
+### 06 · Choose a starting template
 
-<img src="docs/screenshots/06-cost-breakdown.webp" alt="Stacked cost breakdown across strategies and token sources" width="900" />
+Open **Templates** to browse six built-in strategy scenarios and preview their plans before applying one. Import a custom JSON template from the dialog, or export the current configuration from the plan toolbar. The interface supports English and Chinese.
 
-### 06 · Inspect individual requests
-
-Open a user turn to explore modeled LLM calls and their input composition. Distinguish **cache-hit**, **cache-miss** and **partial-hit** portions, and inspect which context actions contributed to a request.
-
-<img src="docs/screenshots/07-request-details.webp" alt="Per-turn model requests and token accounting details" width="900" />
-
-### 07 · Reuse templates and exchange configurations
-
-Use the six built-in JSON templates, import a custom scenario, export a configuration for review, or restore the default plans. The interface supports English and Chinese.
-
-<img src="docs/screenshots/08-import-export-controls.webp" alt="Controls for restoring plans, exporting configuration, opening templates and adding a plan" width="460" />
-
-<sub>Screenshot shows the available controls, not an opened template dialog. Configuration edits and imported templates are kept in memory: export before refreshing the page. The language preference is stored locally.</sub>
+<img src="docs/features/templates.png" alt="Built-in template picker showing six scenarios and plan preview" width="900" />
 
 ## Built-in strategy templates
 
