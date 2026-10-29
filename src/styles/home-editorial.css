@@ -10,7 +10,7 @@
   color: var(--ink);
 }
 .home-page .app-header {
-  height: 82px;
+  height: 64px;
   padding-inline: max(32px, calc((100vw - 1224px) / 2));
   --header-surface-opacity: .82;
   background: transparent;
@@ -61,7 +61,7 @@
 .home-page .lab-mini-track { height: 4px; background: #e8eae3; }
 .home-page .lab-mini-track > i { height: 100%; display: block; transition: width .25s ease; }
 .home-page .section-index { margin-right: 13px; font: 10px var(--mono); color: #929787; letter-spacing: 0; }
-.home-page .global-settings { padding: 25px 0 28px; margin: 0 0 28px; border: 0; border-top: 1px solid var(--line); background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
+.home-page .global-settings { padding: 0 0 28px; margin: 0 0 28px; border: 0; background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
 .home-page .global-settings h2 { font-size: 14px; gap: 0; color: var(--ink); }
 .home-page .global-settings p { margin: 6px 0 0 26px; font-size: 11px; color: var(--muted); }
 .home-page .global-settings-heading > button { border: 0; background: transparent; color: #565e4f; padding-inline: 0; font-size: 11px; }
@@ -78,6 +78,10 @@
 .home-page .comparison-heading .plan-count { font: 10px var(--mono); color: #8b9182; margin-left: 13px; }
 .home-page .plan-toolbar { gap: 16px; }
 .home-page .plan-toolbar button { font-size: 11px; }
+.home-page .plan-toolbar button:not(.primary-button) { color: #62695e; background: transparent; border-color: transparent; box-shadow: none; }
+.home-page .plan-toolbar button:not(.primary-button):hover:not(:disabled) { color: #242622; background: #f0f1eb; border-color: transparent; }
+.home-page .plan-toolbar button.plan-toolbar-emphasis { color: #344233; background: #f0f3ec; border-color: #d5ded0; }
+.home-page .plan-toolbar button.plan-toolbar-emphasis:hover:not(:disabled) { color: #242622; background: #e4eadf; border-color: #bdcbb7; }
 .home-page .comparison-table-wrap { border: 0; border-radius: 0; background: transparent; box-shadow: none; margin-bottom: 0; }
 .home-page .comparison-table th { border-radius: 0 !important; height: 37px; padding-inline: 10px; background: #f0f1eb; color: #777d6e; font-size: 10px; border-bottom: 1px solid var(--line); }
 .home-page .comparison-table td { padding: 22px 10px; background: transparent; border-bottom: 1px solid var(--line); color: #52594c; }
@@ -176,7 +180,7 @@
   .home-page .lab-insight-value > strong { font-size: 44px; letter-spacing: -2px; }
   .home-page .lab-mini-comparison { margin-top: 18px; }
   .home-page .lab-mini-row { grid-template-columns: 95px minmax(0,1fr) 55px; }
-  .home-page .global-settings { padding: 22px 0; }
+  .home-page .global-settings { padding: 0 0 22px; }
   .home-page .global-settings-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; }
   .home-page .global-settings-fields > .field,
   .home-page .global-settings-fields > .field:nth-child(n+5) { grid-column: auto; }
@@ -215,3 +219,10 @@
 }
 
 .home-page .comparison-table .plan-description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; max-width: 280px; margin: 5px 0 0; color: #73766e; font-size: 11px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* The strategy intro links to the existing configuration, without running an agent. */
+#global-settings { scroll-margin-top: 16px; }
+#global-settings-title:focus-visible { outline: 2px solid #286e67; outline-offset: 6px; }
+@media (max-width: 700px) {
+  .home-page .comparison-table-wrap { overflow-x: auto; }
+}

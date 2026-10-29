@@ -12,6 +12,8 @@ import { downloadFile } from './utils.js';
 const config = ref(createDefaultConfig(defaultTemplates));
 const results = ref([]), busy = ref(false), failure = ref(''), toast = ref('');
 const variablesMode = ref(false), templatesMode = ref(false), customTemplates = ref([]), lastConfig = ref(null);
+const requestedTemplate = ref(null);
+function openTemplates(id) { requestedTemplate.value = typeof id === 'string' ? id : null; templatesMode.value = true; }
 const errors = computed(() => validateComparison(config.value));
 let reportWorker, reportTimer, toastTimer;
 function notify(text) { toast.value = text; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 3500); }
@@ -63,10 +65,10 @@ onBeforeUnmount(() => { reportWorker?.terminate(); clearTimeout(reportTimer); cl
 
 <template>
   <Home :config="config" :results="results" :busy="busy" :errors="errors" :failure="failure" :can-undo="!!lastConfig"
-    @variables="variablesMode=true" @templates="templatesMode=true" @export="exportConfig" @remember="remember" @undo="undo"
+    @variables="variablesMode=true" @templates="openTemplates" @export="exportConfig" @remember="remember" @undo="undo"
     @reset="remember();config=createDefaultConfig(defaultTemplates);notify('已恢复默认方案')"
     @add="add()" @baseline="setBase" @copy="add(config.plans.find(plan=>plan.id===$event))" @remove="remove" />
   <VariablesDialog v-if="variablesMode" :config="config" @close="variablesMode=false" @save="saveVariables" />
-  <TemplatesDialog v-if="templatesMode" :custom-templates="customTemplates" @close="templatesMode=false" @import="customTemplates.push($event)" @apply="applyTemplate" />
+  <TemplatesDialog v-if="templatesMode" :custom-templates="customTemplates" :initial-template-id="requestedTemplate" @close="templatesMode=false" @import="customTemplates.push($event)" @apply="applyTemplate" />
   <div v-if="toast" class="toast" role="status"><Check :size="15" />{{ toast }}<button v-if="lastConfig" @click="undo">撤销</button><button class="icon-btn" aria-label="关闭提示" @click="toast='' "><X :size="13" /></button></div>
 </template>

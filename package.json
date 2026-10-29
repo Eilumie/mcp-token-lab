@@ -1,7 +1,7 @@
 {
   "name": "token-lab",
   "version": "1.0.0",
-  "description": "A browser-based simulator for Agent token usage, caching, compression, and cost.",
+  "description": "Simulate how MCP tool count, full-schema or progressive loading, and compression policies affect context growth, cache reuse, token usage and estimated costs.",
   "license": "MIT",
   "repository": {
     "type": "git",

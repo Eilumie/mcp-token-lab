@@ -5,11 +5,11 @@ import { createBuiltinTemplates, readTemplate } from '../templates.js';
 import defaultTemplates from '../config/default-template/index.js';
 import { resolvePlanDescription } from '../comparison.js';
 
-const props = defineProps({ customTemplates: Array });
+const props = defineProps({ customTemplates: Array, initialTemplateId: String });
 const emit = defineEmits(['close', 'import', 'apply']);
 const builtins = createBuiltinTemplates(defaultTemplates);
 const templates = computed(() => [...builtins, ...props.customTemplates]);
-const selectedId = ref(builtins[0]?.id ?? props.customTemplates[0]?.id);
+const selectedId = ref(templates.value.some(item => item.id === props.initialTemplateId) ? props.initialTemplateId : builtins[0]?.id ?? props.customTemplates[0]?.id);
 const selected = computed(() => templates.value.find(item => item.id === selectedId.value));
 const dialog = ref(null), fileInput = ref(null), message = ref('');
 const titleId = useId();
