@@ -12,9 +12,6 @@ An interactive playground for exploring how **MCP tool loading, context growth, 
 
 </div>
 
-> [!IMPORTANT]
-> **This is a simulation, not an agent benchmark.** MCP Token Lab runs a deterministic accounting model in your browser. It does **not** connect to MCP servers, execute agents, call LLM APIs, tokenize real tool schemas, or measure answer quality. Results are conditional estimates based on your assumptions—not provider billing records or guaranteed savings.
-
 ## Why MCP Token Lab?
 
 As an agent gains tools and takes more turns, its context can become expensive. Should you preload every tool schema, discover tools on demand, or selectively load schemas? How much could prefix caching help? When does context compression pay for itself?
