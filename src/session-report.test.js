@@ -201,7 +201,7 @@ test("零内容和零价格不丢弃请求，末次输出费用归因完整", ()
   });
 });
 
-test("配置校验与快照往返：不兼容旧版本，不替换费率", () => {
+test("配置校验与快照往返：保留费率并验证必要字段", () => {
   const config = createConfig();
   assert.deepEqual(validate(config), {});
   config.model.inputCachedPrice = 0.12345;
@@ -212,7 +212,7 @@ test("配置校验与快照往返：不兼容旧版本，不替换费率", () =>
   assert.ok(validate(setup({ expectedPrefixCacheHitRate: 1.01 })).expectedPrefixCacheHitRate);
   assert.ok(validate(setup({ compressionKeepTurns: 10 })).compressionThresholdTurnCount);
   assert.ok(validate(setup({ compressionThresholdType: "TOKEN", compressionThresholdToken: 0 })).compressionThresholdToken);
-  assert.throws(() => readConfig({ version: 1 }));
+  assert.equal(Object.hasOwn(config, "version"), false);
   assert.throws(() => readConfig({ ...config, unit: "Token" }));
   assert.throws(() => readConfig({ ...config, simulation: {} }));
 });

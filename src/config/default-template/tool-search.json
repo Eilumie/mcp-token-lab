@@ -1,5 +1,4 @@
 {
-  "version": 4,
   "unit": "K",
   "description": "Full Schema (Baseline) vs Regex Search (Top 5) vs BM25 Search (Top 5) vs Semantic Search (Top 5)",
   "baselineId": "plan-1",

@@ -27,7 +27,7 @@ try {
   const config = template ? template.config : readComparisonConfig(raw);
   const errors = validateComparison(config);
   if (Object.keys(errors).length) throw new Error(JSON.stringify(errors));
-  const output = { valid: true, file, version: config.version, plans: config.plans.length, simulated: false };
+  const output = { valid: true, file, plans: config.plans.length, simulated: false };
   if (template) output.template = { version: template.version, name: template.name, description: template.description };
   const { descriptionReferences } = await import(pathToFileURL(resolve(repo, 'src/plan-description.js')).href);
   output.planDescriptions = config.plans.map(plan => {

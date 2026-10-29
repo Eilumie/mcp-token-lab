@@ -1,5 +1,4 @@
 {
-  "version": 4,
   "unit": "K",
   "description": "Raw Tool Result (Baseline) vs Field Projection (1.5K/Tool) vs Code Aggregation (~1.5K/Batch)",
   "baselineId": "plan-1",

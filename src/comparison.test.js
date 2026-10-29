@@ -345,16 +345,10 @@ test("无效或缺失的全局模型被拒绝", () => {
   assert.throws(() => readComparisonConfig(invalid), /全局参数/);
 });
 
-test("只接受当前版本，拒绝旧格式且不补全缺失的全局配置", () => {
-  for (const version of [undefined, 1, 2, 3, 5, "4"]) {
-    const config = small();
-    config.version = version;
-    const snapshot = structuredClone(config);
-    assert.throws(() => readComparisonConfig(config), /仅支持当前/);
-    assert.throws(() => simulate(config));
-    assert.deepEqual(config, snapshot);
-  }
+test("只接受有效配置结构，不补全缺失字段", () => {
+  assert.equal(Object.hasOwn(small(), "version"), false);
   for (const mutate of [
+    config => config.unit = "Token",
     config => delete config.globalSimulation,
     config => delete config.globalSimulation.initialContext,
     config => delete config.globalSimulation.userMessageToken,

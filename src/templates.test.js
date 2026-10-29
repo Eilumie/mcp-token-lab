@@ -16,6 +16,7 @@ test('template export/import preserves metadata, plan descriptions, and current 
   assert.equal(exported.description, '两套策略');
   assert.deepEqual(readTemplate(JSON.parse(JSON.stringify(exported))), exported);
   assert.deepEqual(exported.config, config);
+  assert.equal(Object.hasOwn(exported.config, 'version'), false);
   exported.config.plans[0].description = '修改';
   assert.deepEqual(config, before);
   assert.equal(createPlan({ source: config.plans[0] }).description, config.plans[0].description);
@@ -28,11 +29,9 @@ test('current config files import as custom templates and descriptions remain op
   assert.equal(template.name, '当前配置');
   assert.deepEqual(template.config, config);
   assert.deepEqual(readComparisonConfig(config), config);
-  for (const version of [2, 3]) {
-    const previous = { ...config, version };
-    assert.throws(() => readTemplate(previous), /当前多方案配置/);
-    assert.throws(() => readTemplate({ type: 'token-lab-template', version: 1, name: '旧格式', config: previous }), /当前多方案配置/);
-  }
+  assert.equal(Object.hasOwn(config, 'version'), false);
+  assert.throws(() => readTemplate({ ...config, unit: 'Token' }), /K Token/);
+  assert.throws(() => readTemplate({ type: 'token-lab-template', version: 1, name: '错误单位', config: { ...config, unit: 'Token' } }), /K Token/);
 });
 
 test('invalid template metadata and invalid plan descriptions are rejected', () => {
@@ -41,7 +40,7 @@ test('invalid template metadata and invalid plan descriptions are rejected', () 
   assert.throws(() => createTemplate(config, 'a'.repeat(101)), /模板名称/);
   assert.throws(() => createTemplate(config, 'test', 'a'.repeat(1001)), /模板介绍/);
   assert.throws(() => readTemplate({ type: 'token-lab-template', version: 2 }), /模板版本/);
-  assert.throws(() => readTemplate({ type: 'token-lab-template', version: 1, name: 'test', config: {} }), /当前多方案配置/);
+  assert.throws(() => readTemplate({ type: 'token-lab-template', version: 1, name: 'test', config: {} }), /K Token/);
   for (const description of [42, {}, 'a'.repeat(1001)]) {
     config.plans[0].description = description;
     assert.throws(() => readComparisonConfig(config), /方案说明/);

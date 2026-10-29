@@ -107,7 +107,7 @@ export function createComparisonConfig() {
   plans[1].simulation.flow = createPreloadedFlow();
   const globalSimulation = { initialContext: {}, variables: {}, estimateDuration: true };
   for (const key of globalKeys) setValue(globalSimulation, key, getValue(plans[0].simulation, key));
-  return { version: 4, unit: "K", baselineId: plans[0].id, baselineMode: "auto", globalSimulation, globalModelId: defaultModelPreset.id, plans };
+  return { unit: "K", baselineId: plans[0].id, baselineMode: "auto", globalSimulation, globalModelId: defaultModelPreset.id, plans };
 }
 
 export function resolveBaselineId(config, results) {
@@ -164,7 +164,7 @@ export function deleteVariable(config, name, plan) {
 
 export function validateComparison(config) {
   const errors = {};
-  if (config?.version !== 4 || config.unit !== "K") errors.version = "请使用 v4 多方案配置（K Token）";
+  if (config?.unit !== "K") errors.unit = "配置单位必须为 K Token";
   if (config?.baselineMode !== undefined && !["auto", "manual"].includes(config.baselineMode)) errors.baselineMode = "Base模式无效";
   if (!Array.isArray(config?.plans) || config.plans.length > maxPlans) return { plans: `最多对比 ${maxPlans} 个方案` };
   for (const [key, message] of Object.entries(validateGlobals(config.globalSimulation))) errors[`globalSimulation.${key}`] = message;
@@ -188,7 +188,7 @@ export function validateComparison(config) {
 }
 
 export function readComparisonConfig(data) {
-  if (data?.version !== 4 || data.unit !== "K" || !Array.isArray(data.plans)) throw new Error("仅支持当前多方案配置（K Token）。");
+  if (data?.unit !== "K" || !Array.isArray(data.plans)) throw new Error("配置需要 K Token 单位和 plans 数组。");
   if (data.plans.length > maxPlans) throw new Error(`最多对比 ${maxPlans} 个方案`);
   const globalErrors = validateGlobals(data.globalSimulation);
   if (Object.keys(globalErrors).length) throw new Error(Object.values(globalErrors)[0]);
@@ -196,7 +196,7 @@ export function readComparisonConfig(data) {
   const plans = data.plans.map(plan => {
     if (!plan || typeof plan !== "object") throw new Error("方案配置无效");
     validateVariables(plan.simulation?.variables);
-    const normalized = readConfig({ ...resolvePlan(plan, data.globalSimulation), version: 4, unit: "K" });
+    const normalized = readConfig({ ...resolvePlan(plan, data.globalSimulation), unit: "K" });
     for (const key of globalKeys) setValue(normalized.simulation, key, getValue(plan.simulation, key));
     normalized.simulation.variables = structuredClone(plan.simulation.variables || {});
     const result = { ...plan, simulation: normalized.simulation, model: normalized.model, pricing: normalized.pricing };
@@ -206,7 +206,7 @@ export function readComparisonConfig(data) {
     }
     return result;
   });
-  const config = { version: 4, unit: "K", baselineId: data.baselineId, plans };
+  const config = { unit: "K", baselineId: data.baselineId, plans };
   config.globalSimulation = globalSimulation;
   config.globalModelId = data.globalModelId;
   if (data.globalModel !== undefined) config.globalModel = structuredClone(data.globalModel);
