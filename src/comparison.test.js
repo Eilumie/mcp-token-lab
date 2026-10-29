@@ -226,7 +226,7 @@ test("全局值、继承设置与跨字段约束均校验实际生效参数", ()
 
 test("新增全局 Skills、命中率和压缩设置参与计算，覆盖后不随全局改变", () => {
   const config = small();
-  Object.assign(config.globalSimulation, { turnTotalCount: 8, skillsTotalCount: 40, expectedPrefixCacheHitRate: 0.4, compressionThresholdTurnCount: 4 });
+  Object.assign(config.globalSimulation, { turnTotalCount: 8, skillsTotalCount: 40, expectedPrefixCacheHitRate: 0.4, compressionThresholdTurnCount: 4, compressionKeepTurns: 2 });
   const plan = config.plans[1];
   for (const key of ["skillsTotalCount", "expectedPrefixCacheHitRate", "compressionThresholdType", "compressionThresholdTurnCount", "compressionThresholdToken"]) plan.useGlobal[key] = false;
   Object.assign(plan.simulation, { skillsTotalCount: 10, expectedPrefixCacheHitRate: 0.8, compressionThresholdType: "TURN", compressionThresholdTurnCount: 6 });
@@ -257,7 +257,7 @@ test("新增全局字段校验范围、整数和方案保留轮次，触发方�
     c => c.globalSimulation.expectedPrefixCacheHitRate = 90,
     c => c.globalSimulation.expectedPrefixCacheHitRate = -0.1,
     c => c.globalSimulation.compressionThresholdType = "UNKNOWN",
-    c => c.globalSimulation.compressionThresholdTurnCount = 2,
+    c => c.globalSimulation.compressionThresholdTurnCount = c.globalSimulation.compressionKeepTurns,
     c => c.globalSimulation.compressionThresholdTurnCount = 3.5,
     c => Object.assign(c.globalSimulation, { compressionThresholdType: "TOKEN", compressionThresholdToken: 0 }),
   ]) {
