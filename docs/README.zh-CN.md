@@ -69,12 +69,34 @@ MCP Token Lab 将这些问题变成一组可以修改、对比、复现的模拟
 
 所有模板均位于 [`src/config/default-template/`](../src/config/default-template/)，可作为自定义方案的起点。
 
+## 使用 AI Skill 生成自定义对比方案
+
+仓库还提供 [**`mcp-token-lab` Skill**](../skills/mcp-token-lab/SKILL.md)，可让 AI 编程助手根据你的 Agent 流程和比较目标生成**可导入的多方案 JSON 模板**，比较 Schema 全量加载与按需发现、缓存、上下文压缩、模型费率假设或步骤耗时。Skill 由 AI 助手使用，**与网页内置的六个模板不同**。
+
+**安装与调用：** 按照所使用 AI 助手的 Agent Skills 安装说明，注册 [`skills/mcp-token-lab/`](../skills/mcp-token-lab/) 目录。若助手支持按名称调用 Skill，可输入：
+
+```text
+使用 $mcp-token-lab 生成可导入 MCP Token Lab 的 JSON 模板，
+比较 100 个工具、100 轮会话中全量预加载 MCP Schema 和按需发现
+两种策略。统一模型费率，并列出关键假设和方案差异。
+```
+
+**验证生成的 JSON：** 安装仓库依赖后，在仓库根目录执行（将文件名换成实际生成的文件）：
+
+```bash
+node skills/mcp-token-lab/scripts/validate-config.mjs --repo . ./my-scenario.json --simulate --strict
+```
+
+脚本会调用应用真实的配置导入器、模拟全部轮次，并在严格模式下拒绝无效或无法解析的说明占位符。通过后打开[在线应用](https://zhanghongen.github.io/mcp-token-lab/)，选择 **模板 → 导入自定义模板**，选中 JSON 并点击 **使用模板**。应用模板会替换当前配置与方案（可撤销）。
+
+参见[导入格式说明](../skills/mcp-token-lab/references/import-format.md)和[完整 JSON 示例](../skills/mcp-token-lab/assets/comparison.example.json)。使用网页内置模板无需安装 Skill。
+
 ## 本地运行
 
 推荐 **Node.js 22.12+**（项目声明支持 Node 20.19+）以及 **pnpm 10.18.3**。
 
 ```bash
-git clone https://github.com/zhangHongEn/mcp-token-lab.git
+git clone https://github.com/Enlacia/mcp-token-lab.git
 cd mcp-token-lab
 npm install --global pnpm@10.18.3
 pnpm install --frozen-lockfile
@@ -101,7 +123,7 @@ pnpm preview --host 127.0.0.1
 
 ## 参与贡献
 
-欢迎反馈问题、提供可复现配置和提交 PR。报告问题时请尽量附带配置 JSON、复现步骤、预期结果与实际结果。可以通过 [GitHub Issues](https://github.com/zhangHongEn/mcp-token-lab/issues) 讨论。
+欢迎反馈问题、提供可复现配置和提交 PR。报告问题时请尽量附带配置 JSON、复现步骤、预期结果与实际结果。可以通过 [GitHub Issues](https://github.com/Enlacia/mcp-token-lab/issues) 讨论。
 
 ## 开源协议
 

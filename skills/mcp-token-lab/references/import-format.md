@@ -14,7 +14,7 @@
 
 结构为 `{ "type": "token-lab-template", "version": 1, "name": "…", "description": "…", "config": { "unit": "K", … } }`，完整 JSON 以示例文件为准。外层模板版本与内部配置不是同一个概念。模板描述与单个方案的说明分别填写在外层 `description` 和 `config.plans[i].description`。
 
-导入入口为「模板 → 导入自定义模板 → 选择 JSON → 使用模板」。普通配置仍可从同一入口导入，此时模板名称取文件名，模板介绍为空；只有用户明确要求普通配置时才省略模板外层。修改已有文件时先识别两种格式，不要把模板元信息塞进 普通配置。
+导入入口为「模板 → 导入自定义模板 → 选择 JSON → 使用模板」。普通配置仍可从同一入口导入，此时模板名称取文件名，若顶层存在 `description` 则使用该描述，否则模板介绍为空；只有用户明确要求普通配置时才省略模板外层。修改已有文件时先识别两种格式，不要把模板元信息塞进普通配置。
 
 ## config 顶层及方案
 
@@ -225,6 +225,16 @@ llmIndex === 0 ? callToolsPlanToken : agentResult
 - trigger 只允许 type / value，initial 不接受 trigger。
 - 计划 LLM 未触发不会自动跳过后面的工具结果节点。需要联动时可给相关节点相同 interval，或按 turnIndex 写确定性条件；不要给两个概率节点相同百分比就当成相关事件。
 - `token: 0` 的 LLM 仍会发起请求并计输入费用；要跳过请求应使用 enabled 或 trigger。
+
+## 校验生成结果
+
+从仓库根目录执行，检查页面导入、全部轮次模拟及说明占位符：
+
+```bash
+node skills/mcp-token-lab/scripts/validate-config.mjs --repo . ./my-scenario.json --simulate --strict
+```
+
+省略 `--simulate` 时只验证导入结构与说明，不保证后续轮次的公式安全；省略 `--strict` 时未解析变量、不支持的占位表达式和未配对的双花括号仅显示警告。文件最大支持 4 MB。脚本报告的 `valid: true` 表示已执行的检查通过，不代表真实 Agent 的费用或回答质量。
 
 ## 最后检查
 

@@ -74,12 +74,35 @@ Open **Templates** in the plan toolbar, select a template, review its plans, the
 
 All six templates are stored as JSON files in [`src/config/default-template/`](src/config/default-template/) and can be customized in the interface.
 
+## AI assistant Skill: generate custom scenarios
+
+This repository also includes **[`mcp-token-lab`](skills/mcp-token-lab/SKILL.md)**, an Agent Skill for generating importable comparison JSON with an AI coding assistant. Describe your Agent workflow and the strategies you want to compare—tool-schema loading, caching, compression, model pricing assumptions, or step durations. The Skill runs in your AI assistant; it is **separate from the six built-in templates** in the web app.
+
+**Set up:** Install or register the [`skills/mcp-token-lab/`](skills/mcp-token-lab/) directory with an Agent Skills-compatible assistant according to its instructions. If named Skill invocation is supported, use a prompt such as:
+
+```text
+Use $mcp-token-lab to generate an importable JSON template comparing
+full MCP tool-schema preloading with on-demand discovery for 100 tools
+over 100 user turns. Keep model pricing identical between plans and
+explain the assumptions.
+```
+
+**Validate:** With the project dependencies installed, run this from the repository root, replacing `my-scenario.json` with the generated file:
+
+```bash
+node skills/mcp-token-lab/scripts/validate-config.mjs --repo . ./my-scenario.json --simulate --strict
+```
+
+The checker uses the application's importer, runs the complete simulation, and rejects unresolved or invalid description placeholders. Once valid, open the [live app](https://zhanghongen.github.io/mcp-token-lab/), select **Templates → Import custom template**, choose the JSON, then click **Use template**. Applying a template replaces current settings and plans (with an undo option).
+
+See the [format reference](skills/mcp-token-lab/references/import-format.md) and [sample template](skills/mcp-token-lab/assets/comparison.example.json). No Skill installation is required for the web app's built-in templates.
+
 ## Quick start
 
 **Requirements:** Node.js **22.12+ recommended** (Node 20.19+ is declared supported) and **pnpm 10.18.3**. No API key, environment file or backend is needed.
 
 ```bash
-git clone https://github.com/zhangHongEn/mcp-token-lab.git
+git clone https://github.com/Enlacia/mcp-token-lab.git
 cd mcp-token-lab
 npm install --global pnpm@10.18.3
 pnpm install --frozen-lockfile
@@ -112,7 +135,7 @@ The simulation runs locally in your browser. Current configuration is not persis
 
 ## Contributing
 
-Issues, bug reports, reproducible scenario files and pull requests are welcome. Include the exported configuration, steps to reproduce, and expected versus actual results. Discuss contributions in [GitHub Issues](https://github.com/zhangHongEn/mcp-token-lab/issues).
+Issues, bug reports, reproducible scenario files and pull requests are welcome. Include the exported configuration, steps to reproduce, and expected versus actual results. Discuss contributions in [GitHub Issues](https://github.com/Enlacia/mcp-token-lab/issues).
 
 ## License
 
@@ -122,5 +145,5 @@ Issues, bug reports, reproducible scenario files and pull requests are welcome. 
 
 <div align="center">
   <a href="https://zhanghongen.github.io/mcp-token-lab/">Explore the simulator</a> ·
-  <a href="https://github.com/zhangHongEn/mcp-token-lab/issues">Report an issue</a>
+  <a href="https://github.com/Enlacia/mcp-token-lab/issues">Report an issue</a>
 </div>
