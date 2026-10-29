@@ -91,7 +91,6 @@ The repository includes a fixture comparing **full tool-schema loading** with **
 
 **The outcome depends on the assumptions.** In the same fixture, changing only the tool count from 100 to 10 reverses the cost ranking: full schemas become cheaper. The strategies also have different numbers of modeled requests; no equal-quality conclusion follows.
 
-For exact assumptions, outputs and sensitivity checks, see [the reproducible experiment](docs/examples/README.md). In the UI, open **Templates → Import custom template**, select `docs/examples/strategy-comparison.json`, then **Use template**. Applying it replaces your current configuration; export first if you need to retain your work.
 
 ## Quick start
 
