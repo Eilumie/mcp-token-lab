@@ -8,7 +8,7 @@ import { cacheState, indexTurnRequests, modelInputActions, offsetIndex, requestD
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
 function makeSession(overrides = {}) {
   const config = createConfig();
-  const session = new Session({ ...config.simulation, model: config.model, turnTotalCount: 20, compressionThresholdType: 'TURN', ...overrides });
+  const session = new Session({ ...config.simulation, model: config.model, turnTotalCount: 20, compressionThresholdType: 'TURN', compressionKeepTurns: 2, ...overrides });
   session.reset();
   return session;
 }
