@@ -15,4 +15,4 @@ The WebP assets are optimized for GitHub README display. The original PNG crops 
 | `07-request-details.webp` | Token accounting and per-turn requests |
 | `08-import-export-controls.webp` | Import/export and template toolbar (not an opened dialog) |
 
-**Interpretation:** Screenshots illustrate UI state, not measured agent execution or verified savings. See [simulation model](../simulation-model.md) for accounting assumptions.
+**Interpretation:** Screenshots illustrate the interface at capture time.

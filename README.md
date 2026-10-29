@@ -6,7 +6,7 @@
 
 An interactive playground for exploring how **MCP tool loading, context growth, prefix caching, and compression** change token usage and estimated LLM costs across multi-turn agent sessions.
 
-[**Live demo**](https://zhanghongen.github.io/mcp-token-lab/) · [中文文档](docs/README.zh-CN.md) · [Reproducible experiment](docs/examples/README.md) · [Simulation model](docs/simulation-model.md)
+[**Live demo**](https://zhanghongen.github.io/mcp-token-lab/) · [中文文档](docs/README.zh-CN.md)
 
 <img src="docs/screenshots/01-overview.webp" alt="MCP Token Lab interface: choose a strategy, configure the simulation, compare results" width="900" />
 
@@ -22,7 +22,6 @@ MCP Token Lab makes those trade-offs **visible, configurable, and comparable** w
 - **Tune the workload** — turns, tool/skill counts, token sizes, custom variables and per-plan overrides.
 - **Inspect the mechanics** — initial context, per-turn steps, model requests, caching and compression.
 - **Understand the bill** — total cost, token attribution, trend lines, peak input and request-level breakdowns.
-- **Reproduce the experiment** — import/export configurations and verify a committed fixture against the simulation engine.
 
 ## Feature tour
 
@@ -74,21 +73,6 @@ Use the five built-in JSON templates, import a custom scenario, export a configu
 
 <sub>Screenshot shows the available controls, not an opened template dialog. Configuration edits and imported templates are kept in memory: export before refreshing the page. The language preference is stored locally.</sub>
 
-## Try a reproducible comparison
-
-The repository includes a fixture comparing **full tool-schema loading** with **progressive loading**, using 100 simulated turns, 100 tools, 30 skills, a 90% expected prefix-cache hit rate and a 100K context compression threshold. The fixture uses **synthetic** USD-per-million-token rates, not a provider quote.
-
-| Fixture result | Progressive loading | Full schemas |
-|---|---:|---:|
-| Initial context | 8.3K | 59.3K |
-| Cumulative input, cached + fresh | 26,497.64K | 29,339.50K |
-| Model requests (including compression) | 409 | 324 |
-| Compression events | 9 | 24 |
-| Estimated total | **$13.115365** | **$14.866832** |
-
-**The outcome depends on the assumptions.** In the same fixture, changing only the tool count from 100 to 10 reverses the cost ranking: full schemas become cheaper. The strategies also have different numbers of modeled requests; no equal-quality conclusion follows.
-
-
 ## Quick start
 
 **Requirements:** Node.js **22.12+ recommended** (Node 20.19+ is declared supported) and **pnpm 10.18.3**. No API key, environment file or backend is needed.
@@ -108,30 +92,9 @@ pnpm test
 pnpm build
 pnpm preview --host 127.0.0.1
 
-# Verify the committed experiment against the engine
-node scripts/reproduce-example.mjs --check
 ```
 
 The production build is generated in `dist/` and can be served as static files.
-
-## How the accounting works
-
-Each scenario defines initial context plus a sequence of context actions and model-request steps per turn. A deterministic engine accounts for token additions, repeated request inputs, expected prefix-cache matches, output tokens and optional compression requests. Cost is calculated from configured rates:
-
-```text
-request cost (USD) =
-  (cached input K × cached rate
- + fresh input K × fresh rate
- + output K × output rate) / 1000
-```
-
-- **Units:** `1K = 1,000 tokens`; pricing rates are in **USD per 1M tokens**.
-- **Caching:** Expected cache reuse is a fractional accounting assumption, not an observed provider cache hit.
-- **Compression:** Evaluated after a completed user turn; it adds another modeled request and can exceed the threshold before triggering.
-- **Timing:** Durations are configured step estimates. The UI's **Avg. TTFT per turn** currently represents aggregate modeled step duration, **not measured time to first token**.
-- **Limits:** No real tokenization, production traces, model execution, tool success scoring, provider window enforcement, automatic rate-tier transitions or billing reconciliation.
-
-Read [Simulation model, assumptions and limits](docs/simulation-model.md) before interpreting the numbers as engineering evidence.
 
 ## Under the hood
 

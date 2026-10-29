@@ -37,4 +37,4 @@ This is a suggested metadata snippet, not a complete replacement package.json.
 
 ## Screenshot provenance
 
-The screenshots in `docs/screenshots/` are crops of the full-page screenshot supplied for this request, from the English-language MCP Token Lab interface. They reflect that captured UI state; they are **not** new live-browser captures of interactive dialogs. Feature labels and detailed explanations were cross-checked against the public GitHub README, package.json, simulation-model documentation, and reproducible-example documentation. Replace the screenshots after UI changes or when you want clean high-resolution captures of dialogs and controls.
+The screenshots in `docs/screenshots/` are crops of the full-page screenshot supplied for this request, from the English-language MCP Token Lab interface. They reflect that captured UI state; they are **not** new live-browser captures of interactive dialogs. Feature labels and descriptions were reviewed against the project's README and application source. Replace the screenshots after UI changes or when you want clean high-resolution captures of dialogs and controls.
