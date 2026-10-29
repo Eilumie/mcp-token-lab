@@ -29,7 +29,7 @@ export function createSessionConfig() {
     compressionThresholdToken: 200,
     compressionThresholdTurnCount: 10,
     compressionTargetToken: 4,
-    compressionKeepTurns: 2,
+    compressionKeepTurns: 1,
     model: {},
   };
 }

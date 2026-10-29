@@ -28,7 +28,7 @@
     "agentResult": 1,
     "compressionThresholdTurnCount": 10,
     "compressionThresholdToken": 100,
-    "compressionKeepTurns": 2,
+    "compressionKeepTurns": 1,
     "compressionTargetToken": 4,
     "compressionThresholdType": "TOKEN"
   },
@@ -135,7 +135,7 @@
         "agentResult": 1,
         "compressionThresholdTurnCount": 10,
         "compressionThresholdToken": 100,
-        "compressionKeepTurns": 2,
+        "compressionKeepTurns": 1,
         "compressionTargetToken": 4,
         "compressionThresholdType": "TOKEN"
       },
@@ -217,7 +217,7 @@
         "agentResult": 1,
         "compressionThresholdTurnCount": 10,
         "compressionThresholdToken": 100,
-        "compressionKeepTurns": 2,
+        "compressionKeepTurns": 1,
         "compressionTargetToken": 4,
         "compressionThresholdType": "TOKEN",
         "flow": {
@@ -425,7 +425,7 @@
         "agentResult": 1,
         "compressionThresholdTurnCount": 10,
         "compressionThresholdToken": 100,
-        "compressionKeepTurns": 2,
+        "compressionKeepTurns": 1,
         "compressionTargetToken": 4,
         "compressionThresholdType": "TOKEN"
       },
