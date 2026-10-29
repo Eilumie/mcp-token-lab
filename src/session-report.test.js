@@ -12,7 +12,8 @@ import { createDefaultFlow, createPreloadedFlow } from "./session-flow.js";
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) <= Math.max(1e-9, Math.abs(expected) * 1e-10), actual + " != " + expected);
 const setup = (simulation = {}) => {
   const config = createConfig();
-  Object.assign(config.simulation, { compressionThresholdType: "TURN" }, simulation);
+  // Keep historical report fixtures independent of the app's changing defaults.
+  Object.assign(config.simulation, { compressionThresholdType: "TURN", compressionKeepTurns: 2 }, simulation);
   return config;
 };
 
