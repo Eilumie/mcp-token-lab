@@ -51,7 +51,7 @@ export function setValue(object, path, value) {
 }
 export function createConfig() {
   const { model, ...simulation } = createSessionConfig();
-  return { version: 4, unit: "K", simulation, ...createPresetConfig(defaultModelPreset) };
+  return { unit: "K", simulation, ...createPresetConfig(defaultModelPreset) };
 }
 export function createPresetConfig(preset) {
   return {
@@ -85,7 +85,7 @@ export function validate(config) {
   return errors;
 }
 export function readConfig(data) {
-  if (data?.version !== 4 || data.unit !== "K" || !data.simulation || !data.model) throw new Error("仅支持 Session v4 配置（K Token）。");
+  if (data?.unit !== "K" || !data.simulation || !data.model) throw new Error("配置需要 K Token 单位、simulation 和 model。");
   const normalized = createConfig();
   for (const [key] of fields) {
     const value = getValue(data.simulation, key);

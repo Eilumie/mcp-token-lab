@@ -4,7 +4,6 @@
   "name": "按需 Schema 与全量预加载对比",
   "description": "比较相同模型和工具规模下，按需读取 Tool Schema 与初始全量预加载的 Token、费用和预估耗时。统一使用 100 轮用户消息、100 个工具、100K Token 上下文压缩阈值，每轮平均调用 1.5 个工具；费率和节点耗时均为演示假设，使用前请按实际场景调整。",
   "config": {
-    "version": 4,
     "unit": "K",
     "baselineId": "plan-full",
     "baselineMode": "manual",

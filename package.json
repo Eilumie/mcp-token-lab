@@ -20,7 +20,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/*.test.js"
+    "test": "node --test src/*.test.js skills/mcp-token-lab/scripts/*.test.mjs"
   },
   "dependencies": {
     "acorn": "^8.19.0",

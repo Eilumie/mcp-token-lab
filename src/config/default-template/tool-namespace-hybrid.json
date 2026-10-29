@@ -1,5 +1,4 @@
 {
-  "version": 4,
   "unit": "K",
   "description": "Flat Tools (Baseline) vs Namespace (12 Groups × 10 Tools) vs Hybrid (5 Pinned + Top 5)",
   "baselineId": "plan-1",
