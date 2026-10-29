@@ -6,7 +6,7 @@
 
 An interactive playground for exploring how **MCP tool loading, context growth, prefix caching, and compression** change token usage and estimated LLM costs across multi-turn agent sessions.
 
-[**Live demo**](https://zhanghongen.github.io/mcp-token-lab/) · [中文文档](docs/README.zh-CN.md)
+[**Live demo**](https://enlacia.github.io/mcp-token-lab/) · [中文文档](docs/README.zh-CN.md)
 
 </div>
 
@@ -93,7 +93,7 @@ explain the assumptions.
 node skills/mcp-token-lab/scripts/validate-config.mjs --repo . ./my-scenario.json --simulate --strict
 ```
 
-The checker uses the application's importer, runs the complete simulation, and rejects unresolved or invalid description placeholders. Once valid, open the [live app](https://zhanghongen.github.io/mcp-token-lab/), select **Templates → Import custom template**, choose the JSON, then click **Use template**. Applying a template replaces current settings and plans (with an undo option).
+The checker uses the application's importer, runs the complete simulation, and rejects unresolved or invalid description placeholders. Once valid, open the [live app](https://enlacia.github.io/mcp-token-lab/), select **Templates → Import custom template**, choose the JSON, then click **Use template**. Applying a template replaces current settings and plans (with an undo option).
 
 See the [format reference](skills/mcp-token-lab/references/import-format.md) and [sample template](skills/mcp-token-lab/assets/comparison.example.json). No Skill installation is required for the web app's built-in templates.
 
@@ -144,6 +144,6 @@ Issues, bug reports, reproducible scenario files and pull requests are welcome. 
 ---
 
 <div align="center">
-  <a href="https://zhanghongen.github.io/mcp-token-lab/">Explore the simulator</a> ·
+  <a href="https://enlacia.github.io/mcp-token-lab/">Explore the simulator</a> ·
   <a href="https://github.com/Enlacia/mcp-token-lab/issues">Report an issue</a>
 </div>

@@ -6,7 +6,7 @@
 
 在浏览器里模拟并对比 **MCP 工具加载、上下文增长、前缀缓存与上下文压缩** 对多轮 Agent 会话 Token 消耗及预估成本的影响。
 
-[**在线体验**](https://zhanghongen.github.io/mcp-token-lab/) · [English README](../README.md)
+[**在线体验**](https://enlacia.github.io/mcp-token-lab/) · [English README](../README.md)
 
 </div>
 
@@ -87,7 +87,7 @@ MCP Token Lab 将这些问题变成一组可以修改、对比、复现的模拟
 node skills/mcp-token-lab/scripts/validate-config.mjs --repo . ./my-scenario.json --simulate --strict
 ```
 
-脚本会调用应用真实的配置导入器、模拟全部轮次，并在严格模式下拒绝无效或无法解析的说明占位符。通过后打开[在线应用](https://zhanghongen.github.io/mcp-token-lab/)，选择 **模板 → 导入自定义模板**，选中 JSON 并点击 **使用模板**。应用模板会替换当前配置与方案（可撤销）。
+脚本会调用应用真实的配置导入器、模拟全部轮次，并在严格模式下拒绝无效或无法解析的说明占位符。通过后打开[在线应用](https://enlacia.github.io/mcp-token-lab/)，选择 **模板 → 导入自定义模板**，选中 JSON 并点击 **使用模板**。应用模板会替换当前配置与方案（可撤销）。
 
 参见[导入格式说明](../skills/mcp-token-lab/references/import-format.md)和[完整 JSON 示例](../skills/mcp-token-lab/assets/comparison.example.json)。使用网页内置模板无需安装 Skill。
 
