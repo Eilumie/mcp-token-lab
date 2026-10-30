@@ -1,0 +1,203 @@
+export const homeContent = {
+  en: {
+    title: 'Understand your agent’s context costs',
+    intro: 'MCP Token Lab is a free MCP token calculator and agent cost simulator. Model a repeatable workflow, compare up to eight plans, and see how tool schemas, skill context, tool results and model outputs accumulate across a conversation.',
+    methodTitle: 'How the estimate works',
+    method: 'Each action appends content to the conversation. Each LLM step sends the current context and appends its output. The simulator separates cached input, uncached input and output charges using your configured USD rates per million tokens. Compression is checked at the end of each turn, including the final turn.',
+    stepsTitle: 'Start with a workflow, then change one strategy',
+    steps: ['Choose a built-in template or import your own JSON configuration.', 'Set turns, tool counts, token lengths, model rates and compression assumptions.', 'Keep shared assumptions consistent and change the strategy you want to compare.', 'Compare session cost, context growth, LLM calls and modeled timing; export your configuration to reproduce the experiment.'],
+    guidesTitle: 'Explore six context strategy examples',
+    guidesIntro: 'Each guide explains a built-in scenario, its assumptions and a reproducible simulation. Open the matching template in the calculator to adapt it to your workflow.',
+    faqTitle: 'Questions about the token calculator',
+    faq: [
+      ['Does this run an agent or call an LLM API?', 'No. All calculations run in your browser from editable assumptions. You do not need an API key, and the simulator does not send your prompts to a model.'],
+      ['Is this an exact tokenizer or a billing report?', 'No. You enter estimated content lengths in K tokens (1K = 1,000 tokens). Results are scenario estimates, not exact tokenization, measured latency or actual provider invoices.'],
+      ['Can I compare models and prompt caching?', 'Yes. Plans can inherit a shared model and prices or use independent rates. The expected prefix-cache hit rate applies to matching prefixes identified by the engine; it does not make all historical input free.'],
+      ['Are the built-in prices current provider quotes?', 'Built-in scenarios use saved pricing snapshots or illustrative rates, not prices fetched live. Verify your target model’s current prices and record the source before interpreting the estimate.'],
+    ],
+    enable: 'The strategy guides are available without JavaScript. Enable JavaScript to edit workflows and run the interactive calculator.',
+  },
+  zh: {
+    title: '看清 Agent 上下文的成本',
+    intro: 'MCP Token Lab 是免费的 MCP Token 计算器与 Agent 成本模拟工具。用可重复的流程对比最多八个方案，观察工具 Schema、Skill 内容、工具返回和模型输出如何在多轮会话中累积。',
+    methodTitle: '费用如何估算',
+    method: 'Action 节点向会话追加内容，LLM 节点发送当前上下文并追加模型输出。模拟器按你设置的 USD / 百万 Token 费率分别计算缓存命中输入、未命中输入和输出费用。每轮结束后检查压缩，最后一轮触发的压缩同样计费。',
+    stepsTitle: '从流程出发，一次比较一个策略',
+    steps: ['选择内置模板，或导入自己的 JSON 配置。', '设置轮次、工具数量、内容长度、模型费率与压缩假设。', '统一共享假设，只改变需要比较的策略。', '比较会话总费用、上下文增长、LLM 调用与预估耗时；导出配置以复现实验。'],
+    guidesTitle: '六种上下文策略示例',
+    guidesIntro: '每篇说明都介绍一个内置场景、实验假设及可复现的模拟结果，并能一键在计算器中加载对应模板。',
+    faqTitle: '关于 Token 计算器的常见问题',
+    faq: [
+      ['会执行 Agent 或调用模型 API 吗？', '不会。计算都在浏览器本地完成，基于可编辑的参数假设，无需 API Key，也不会把你的 Prompt 发送给模型。'],
+      ['这是精确分词或真实账单吗？', '不是。内容长度由你以 K Token 估算输入，1K = 1,000 Token。结果是场景预估，不是精确分词、实测延迟或模型供应商账单。'],
+      ['能比较不同模型和 Prompt 缓存吗？', '可以。各方案可继承共享模型与费率，也能独立设置。预期前缀缓存命中率仅作用于引擎识别到的相同前缀，并不代表所有历史输入都免费。'],
+      ['内置费率是模型当前报价吗？', '内置场景使用保存的费率快照或演示假设，不会实时获取价格。分析前请核实目标模型当前费率，并记录价格来源。'],
+    ],
+    enable: '无需 JavaScript 也能阅读策略说明。编辑流程和使用交互式计算器需要启用 JavaScript。',
+  },
+};
+
+export const guides = [
+  {
+    slug: 'progressive-tool-no-compress',
+    en: {
+      title: 'MCP Tool Loading: Full Schema vs Tool Search vs Progressive Loading',
+      description: 'Compare three MCP tool loading strategies across 25 turns without compression: full preload, hosted tool search and progressive schemas.',
+      summary: 'Compare the upfront cost of full schemas with repeated on-demand discovery, without compression obscuring the difference.',
+      paragraphs: [
+        'Loading every MCP tool schema makes the full tool catalog available from the first model request. As the catalog grows, this also increases the initial input carried through later turns. An index or a search entry can reduce that starting context, but discovering and loading schemas introduces extra steps.',
+        'This scenario compares three explicit workflows over 25 turns and 120 tools. The full-loading plan adds all schemas initially. Hosted Tool Search begins with a search entry and loads the configured Top-K schemas on each turn. Progressive loading begins with a tool index and appends schemas according to the average number of tools used.',
+        'Compression is avoided with a turn threshold greater than the session length. If you extend the session, raise that threshold too. Compare the initial context, total input charges and number of LLM requests together: the lowest starting context is not automatically the lowest session cost.',
+      ],
+      question: 'When should I use this comparison?',
+      answer: 'Use it to isolate schema-loading overhead in a short conversation. Set the actual schema sizes, tool usage and discovery steps from your agent before drawing a conclusion.',
+    },
+    zh: {
+      title: 'MCP 工具加载对比：全量 Schema、Tool Search 与渐进加载',
+      description: '在 25 轮、不压缩上下文的场景下，对比 MCP 工具全量预加载、Hosted Tool Search 和渐进式 Schema 的 Token 与预估费用。',
+      summary: '排除压缩干扰，比较全量 Schema 的初始成本与按需发现的重复开销。',
+      paragraphs: [
+        '全量加载 MCP 工具 Schema，能让模型从第一次请求起就获得完整工具目录；工具越多，初始上下文以及后续携带的输入也越大。工具索引或搜索入口可以降低初始体积，但发现和读取 Schema 会引入额外流程。',
+        '这个场景用 120 个工具、25 轮会话比较三条明确流程。全量方案初始追加所有 Schema；Hosted Tool Search 初始只加载搜索入口，每轮检索指定 Top-K 的 Schema；渐进加载先读取工具索引，每轮按平均工具使用量追加 Schema。',
+        '模板用大于总轮次的 TURN 阈值避免压缩。延长会话时也要提高该阈值。分析时同时看初始上下文、会话输入费用及 LLM 请求次数，不能仅凭初始上下文更小就判断总成本更低。',
+      ],
+      question: '什么时候适合使用这个比较？',
+      answer: '适合隔离短会话中的 Schema 加载开销。请先根据实际 Agent 调整 Schema 大小、工具使用数量与发现流程，再解释结果。',
+    },
+  },
+  {
+    slug: 'progressive-tool-100k',
+    en: {
+      title: 'MCP Context Compression at 100K Tokens: Compare Loading Strategies',
+      description: 'Simulate 100 turns with a 100K-token compression threshold and compare full MCP schemas, hosted tool search and progressive loading.',
+      summary: 'Explore how a 100K compression threshold interacts with schema loading across a longer conversation.',
+      paragraphs: [
+        'Long agent conversations repeatedly send accumulated context to a model. Compression can reduce subsequent input, but each summary is another model request with its own input and output cost. The initial schema strategy and the compression policy therefore need to be evaluated together.',
+        'The built-in scenario compares full schemas, Hosted Tool Search and progressive schemas over 100 turns with 120 tools. All three use a 100K-token compression threshold and the same shared rates and workload assumptions. Their loading nodes differ, so compression can happen on different turns even under the same threshold.',
+        'Inspect peak input, compression frequency and session cost. A larger initial tool catalog may bring compression forward; smaller on-demand additions may delay it while adding discovery calls. Compression is checked after each turn and the final turn is included. The summary target is only the summary output length, not a cap on the total context after compression.',
+      ],
+      question: 'How do I compare this with a 200K threshold?',
+      answer: 'Use the 200K companion scenario with the same workload and rates, or duplicate plans and change only their independent compression threshold. Check inheritance switches so the shared value does not override your experiment.',
+    },
+    zh: {
+      title: '100K 上下文压缩阈值：比较 MCP 工具加载策略',
+      description: '模拟 100 轮 Agent 会话，在 100K Token 压缩阈值下比较全量 Schema、Hosted Tool Search 与渐进加载的上下文和费用。',
+      summary: '观察长会话中，100K 压缩阈值与不同工具加载方式如何相互影响。',
+      paragraphs: [
+        '长会话会把不断累积的上下文重复发送给模型。压缩能减少之后的输入，但生成摘要本身也是一次需要计费的模型请求。因此，工具 Schema 加载方式和压缩策略应放在同一流程里评估。',
+        '此场景在 100 轮会话、120 个工具下比较全量 Schema、Hosted Tool Search 与渐进加载。三个方案使用相同的 100K Token 压缩阈值、模型费率与共享工作量。由于加载节点不同，即使阈值一致，也可能在不同轮次触发压缩。',
+        '重点查看峰值输入、压缩频率与会话总费用。更大的初始工具目录可能提前触发压缩，按需加载则可能延后压缩并增加发现调用。引擎在轮末检查压缩，包含最后一轮；摘要目标长度只表示摘要输出，不是压缩后总上下文上限。',
+      ],
+      question: '如何与 200K 阈值比较？',
+      answer: '使用配套的 200K 场景并保持工作量与费率一致，或复制方案后只修改独立压缩阈值。检查继承开关，避免实验值被全局设置覆盖。',
+    },
+  },
+  {
+    slug: 'progressive-tool-200k',
+    en: {
+      title: '100K vs 200K Context Compression: Model the Cost Trade-off',
+      description: 'Explore a 200K-token compression threshold over 100 agent turns, and compare it with the matching 100K MCP tool-loading scenario.',
+      summary: 'Test whether delaying compression trades fewer summaries for more repeated input tokens.',
+      paragraphs: [
+        'Raising a compression threshold keeps more conversation history available before a summary is created. It may reduce compression calls, but it also allows larger model inputs to persist for longer. Neither direction guarantees lower total cost or better task performance.',
+        'This companion to the 100K scenario keeps the same 100 turns, 120 tools and three loading workflows while raising the token threshold to 200K. Compare corresponding plans across the two scenarios so that a loading-strategy change does not get confused with a threshold change.',
+        'Watch both the context peak and accumulated input spending. A turn can cross the threshold before the end-of-turn compression check, so the threshold is not a hard request-size limit. This simulator does not enforce a provider context window or automatically switch price tiers. Choose rates appropriate to your modeled input range and evaluate answer quality separately.',
+      ],
+      question: 'Does a higher threshold always preserve better answers?',
+      answer: 'This tool estimates context and cost, not answer quality. Use real task evaluation to measure whether retaining more history helps your agent, then model the cost of that policy here.',
+    },
+    zh: {
+      title: '100K 与 200K 上下文压缩：模拟费用与上下文取舍',
+      description: '在 100 轮 Agent 会话中模拟 200K Token 压缩阈值，与相同工具加载流程的 100K 场景比较输入累积与摘要开销。',
+      summary: '检验推迟压缩是否以更多重复输入，换来了更少的摘要调用。',
+      paragraphs: [
+        '提高压缩阈值，会让会话在生成摘要前保留更多历史。它可能减少压缩调用，但也会让较大的模型输入持续更久。两个方向都不能直接保证更低总成本或更好的任务效果。',
+        '这个场景与 100K 版本配套，保持相同的 100 轮会话、120 个工具与三种加载流程，仅把 Token 压缩阈值提高到 200K。跨模板比较时，应对照同一种加载策略，避免把加载方式变化误认为阈值变化。',
+        '同时查看上下文峰值与累计输入费用。一轮执行中可能已经超过阈值，轮末才检查压缩，因此阈值不是请求大小的硬限制。模拟器不会强制限制供应商上下文窗口，也不会自动跨价格档位；请选择适合目标输入范围的费率，并另行评估答案质量。',
+      ],
+      question: '更高阈值一定能得到更好的答案吗？',
+      answer: '本工具估算上下文与费用，不评估答案质量。应先用真实任务评估更多历史是否有帮助，再在这里模拟相应策略的成本。',
+    },
+  },
+  {
+    slug: 'tool-search',
+    en: {
+      title: 'MCP Tool Search Costs: Regex vs BM25 vs Semantic Search',
+      description: 'Compare full tool-schema preload with modeled Top-5 regex, BM25 and semantic search workflows, token costs and discovery overhead.',
+      summary: 'Separate the cost of finding tools from the cost of sending their schemas to the model.',
+      paragraphs: [
+        'Tool search can keep a large catalog out of the initial model context. It still needs a query, retrieval work and a selected set of schemas. To estimate the trade-off, represent each of those steps explicitly instead of assuming a smaller catalog is free.',
+        'This scenario compares a full-schema baseline with Regex, BM25 and Semantic Search. Each search plan retrieves five schemas per turn from 120 tools. The model planning output, schema sizes, shared task and prices are held consistent; the search nodes have illustrative method-specific durations.',
+        'The simulator does not run a regex, a BM25 index or an embedding search. These names describe your assumed workflow. Retrieval quality, ranking accuracy, embedding API charges and infrastructure costs are not inferred from the method name. Add the costs your deployment actually incurs, and test whether Top 5 retrieves the tools required by your tasks.',
+      ],
+      question: 'Will this tell me which search algorithm is best?',
+      answer: 'It compares the token and timing assumptions you configure. Measure search recall and tool-selection accuracy separately; equal Top-K values do not imply equal quality.',
+    },
+    zh: {
+      title: 'MCP Tool Search 成本：Regex、BM25 与语义搜索对比',
+      description: '比较全量工具 Schema 与 Top 5 的 Regex、BM25、Semantic Search 流程，分析工具发现开销、Token 用量和预估费用。',
+      summary: '把“找到工具”的开销与“把工具 Schema 发给模型”的开销分开建模。',
+      paragraphs: [
+        '工具搜索可以让大型目录不必一开始就进入模型上下文，但仍需要生成查询、执行检索并返回一组 Schema。估算取舍时，应明确表示这些步骤，而不是把初始目录变小理解为没有额外成本。',
+        '此场景对比全量 Schema 基准与 Regex、BM25、Semantic Search。三个搜索方案都在 120 个工具中每轮返回五个 Schema，并统一查询规划输出、Schema 大小、任务假设与模型价格；搜索节点使用各方法的演示耗时。',
+        '模拟器不会真实执行正则、BM25 索引或向量检索。这些名称只代表你假设的流程。检索质量、排序准确率、Embedding API 费用与基础设施费用不会根据名称自动推断；请补充实际部署中的开销，并验证 Top 5 能否召回任务需要的工具。',
+      ],
+      question: '能据此判断哪种搜索算法最好吗？',
+      answer: '这里比较的是你配置的 Token 与耗时假设。召回率和工具选择准确率需要单独实测，相同 Top-K 不代表相同质量。',
+    },
+  },
+  {
+    slug: 'tool-namespace-hybrid',
+    en: {
+      title: 'MCP Tool Namespaces and Hybrid Loading: Pinned vs On-demand Tools',
+      description: 'Model flat tool loading, 12 namespaces of 10 tools, and a hybrid of five pinned tools plus Top-5 discovery every two turns.',
+      summary: 'Compare loading a flat catalog with group discovery and a frequently-used tool subset.',
+      paragraphs: [
+        'An agent with many tools may not need to inspect every schema on every request. Namespaces can expose a smaller group index, while a hybrid policy can keep common schemas in the initial context and discover less frequent tools when needed.',
+        'The baseline preloads 120 tools. The namespace plan models 12 groups of 10 and discovers one active group every two turns. The hybrid plan pins five tools initially, indexes the remaining catalog and retrieves Top 5 cold-tool schemas every two turns. Related planning and schema nodes share the same interval so their execution stays aligned.',
+        'Interval triggers start on the first turn, so an interval of two means turns 1, 3, 5 and so on. These action nodes append content; they do not evict old schemas, maintain a schema cache or deduplicate discoveries automatically. If your production agent reuses or replaces schemas, change the loading formulas or schedule to reflect that behavior.',
+      ],
+      question: 'How should I choose namespace size or pinned tools?',
+      answer: 'Use observed tool usage to set group size, pinned count and discovery frequency. When changing the catalog size, update dependent variables so group and cold-tool counts remain meaningful.',
+    },
+    zh: {
+      title: 'MCP 工具 Namespace 与混合加载：常用工具常驻、其余按需发现',
+      description: '比较 120 个工具的扁平全量加载、12 组各 10 个工具的 Namespace，以及 5 个常驻工具加 Top 5 按需发现。',
+      summary: '比较扁平目录、按组发现与常用工具常驻的混合策略。',
+      paragraphs: [
+        '拥有大量工具的 Agent，不一定需要每次请求都查看全部 Schema。Namespace 可以先暴露较小的分组索引；混合策略则把常用 Schema 放入初始上下文，再按需发现较少使用的工具。',
+        '基准方案预加载 120 个工具。Namespace 方案按 12 组、每组 10 个工具建模，每两轮发现一个活动分组。混合方案初始常驻五个工具，为其余工具加载索引，并每两轮检索 Top 5 的冷门工具 Schema。关联的规划和 Schema 节点使用相同间隔，保证执行轮次一致。',
+        '间隔触发从首轮开始，因此间隔为二表示第 1、3、5 轮执行。这些 Action 节点只追加内容，不会自动淘汰旧 Schema、管理 Schema 缓存或去重发现结果。如果实际 Agent 会复用或替换 Schema，需要调整加载公式或执行频率来表达这种行为。',
+      ],
+      question: '如何选择分组大小和常驻工具？',
+      answer: '根据真实工具使用记录设置分组大小、常驻数量和发现频率。改变工具总量后，要同步调整相关变量，让分组和冷门工具数量仍有实际含义。',
+    },
+  },
+  {
+    slug: 'tool-result-shaping',
+    en: {
+      title: 'Reduce Agent Context: Tool Result Projection vs Code Aggregation',
+      description: 'Compare raw MCP tool results, field projection and batch code aggregation to model context growth, processing overhead and LLM cost.',
+      summary: 'See how returning fewer useful fields or a batch summary changes repeated input cost.',
+      paragraphs: [
+        'Large tool responses do not only cost tokens when first returned. If they remain in the conversation, later model calls send them again. Result shaping can therefore affect both the immediate context addition and the repeated input charged across later turns.',
+        'The raw baseline appends the configured result size per tool. Field projection models 1.5K tokens per tool, multiplied by the average number of tools used each turn. Code aggregation models one batch-level result using a fixed base plus a per-tool term, together with a different planning output and processing duration.',
+        'A per-tool size and a per-batch size are different quantities: do not multiply the batch base by tool count. The simulator does not execute projection or aggregation code. Use measured output lengths and processing times, and verify that the reduced results still contain the facts the agent needs. External compute costs are outside the LLM token estimate unless modeled separately.',
+      ],
+      question: 'Should every tool response be summarized?',
+      answer: 'No universal result follows from this estimate. Compare task accuracy and information loss alongside the modeled savings, especially for structured data where omitting a field may change the answer.',
+    },
+    zh: {
+      title: '减少 Agent 上下文：工具结果字段投影与代码聚合对比',
+      description: '比较 MCP 原始工具返回、字段精简和批量代码聚合，模拟上下文增长、处理开销与多轮 LLM 预估费用。',
+      summary: '观察减少返回字段或按批汇总，如何改变后续请求的重复输入成本。',
+      paragraphs: [
+        '大型工具返回不只在首次进入上下文时产生影响。如果结果保留在会话中，后续模型请求还会重复携带它们。因此，结果精简会同时改变当轮追加长度和之后多轮的重复输入费用。',
+        '原始结果方案按每个工具的配置长度追加内容。字段投影按每个工具 1.5K Token 建模，再乘每轮平均工具数量。代码聚合则用固定批次基础长度加上每个工具的增量，生成一份批量结果，同时设置不同的规划输出与处理耗时。',
+        '每工具长度和每批次长度是不同量纲，不能把批次基础长度再次乘工具数量。模拟器不会执行投影或聚合代码；请使用实测输出长度与处理时间，并确认精简后仍包含 Agent 需要的事实。除非单独建模，外部计算资源费用不属于这里的 LLM Token 费用。',
+      ],
+      question: '所有工具返回都应该先摘要吗？',
+      answer: '不能从费用估算得出统一结论。应同时比较任务准确率与信息损失，尤其对于缺失某个字段就可能改变答案的结构化数据。',
+    },
+  },
+];

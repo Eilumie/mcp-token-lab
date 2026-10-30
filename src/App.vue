@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { Check, X } from 'lucide-vue-next';
 import { createPlan, planColors, readComparisonConfig, validateComparison } from './comparison.js';
-import { createDefaultConfig } from './templates.js';
+import { createBuiltinTemplates, createDefaultConfig } from './templates.js';
 import defaultTemplates from './config/default-template/index.js';
 import VariablesDialog from './components/VariablesDialog.vue';
 import TemplatesDialog from './components/TemplatesDialog.vue';
@@ -10,7 +10,9 @@ import Home from './components/Home.vue';
 import { downloadFile } from './utils.js';
 import { translateUi } from './i18n.js';
 
-const config = ref(createDefaultConfig(defaultTemplates));
+const requestedScenario = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('template');
+const initialTemplate = createBuiltinTemplates(defaultTemplates).find(template => template.id === 'builtin-' + requestedScenario);
+const config = ref(initialTemplate?.config ?? createDefaultConfig(defaultTemplates));
 const results = ref([]), busy = ref(false), failure = ref(''), toast = ref('');
 const variablesMode = ref(false), templatesMode = ref(false), customTemplates = ref([]), lastConfig = ref(null);
 const requestedTemplate = ref(null);

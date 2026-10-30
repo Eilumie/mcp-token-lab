@@ -97,6 +97,10 @@ The checker uses the application's importer, runs the complete simulation, and r
 
 The Skill includes a [sample template](skills/mcp-token-lab/assets/comparison.example.json) and [six packaged built-in examples](skills/mcp-token-lab/assets/examples/), with scenario selection guidance in [SKILL.md](skills/mcp-token-lab/SKILL.md) and a [format reference](skills/mcp-token-lab/references/import-format.md). To refresh packaged examples after changing `src/config/default-template/`, run `node skills/mcp-token-lab/scripts/sync-builtins.mjs --repo .`; append `--check` to detect drift without writing files. No Skill installation is required for the web app's built-in templates.
 
+## Strategy guides and search visibility
+
+The [English homepage](https://eilumie.github.io/mcp-token-lab/) and [Chinese homepage](https://eilumie.github.io/mcp-token-lab/zh/) include static introductory content. Six bilingual strategy guides explain the built-in scenarios, show reproducible simulation results and link directly to the matching calculator template. See the [publishing and SEO guide](docs/SEO.md) for content locations, build checks and Search Console setup.
+
 ## Quick start
 
 **Requirements:** Node.js **22.12+ recommended** (Node 20.19+ is declared supported) and **pnpm 10.18.3**. No API key, environment file or backend is needed.

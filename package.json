@@ -18,9 +18,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/build-site.mjs",
     "preview": "vite preview",
-    "test": "node --test src/*.test.js skills/mcp-token-lab/scripts/*.test.mjs"
+    "test": "node --test src/*.test.js skills/mcp-token-lab/scripts/*.test.mjs",
+    "check:seo": "node scripts/check-seo.mjs"
   },
   "dependencies": {
     "acorn": "^8.19.0",
@@ -30,6 +31,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/server-renderer": "^3.5.43",
+    "linkedom": "^0.18.14",
     "vite": "^7.1.7"
   }
 }

@@ -1,12 +1,20 @@
 import { ref } from 'vue';
+import { homePath, languageFromPath } from './seo/site.js';
+import { updateHomeMetadata } from './seo/metadata.js';
 
-const saved = typeof localStorage === 'undefined' ? null : localStorage.getItem('token-lab-language');
-export const locale = ref(typeof window === 'undefined' || saved === 'zh' ? 'zh' : 'en');
+// Explicit language URLs take precedence over previous visits and browser settings.
+export const locale = ref(typeof location === 'undefined' ? 'zh' : languageFromPath(location.pathname));
 export function setLocale(value) {
   locale.value = value === 'zh' ? 'zh' : 'en';
-  document.documentElement.lang = locale.value === 'zh' ? 'zh-CN' : 'en';
-  document.title = locale.value === 'zh' ? 'MCP Token Lab — 工作台' : 'MCP Token Lab — Workspace';
-  localStorage.setItem('token-lab-language', locale.value);
+  const path = homePath(locale.value) + location.search + location.hash;
+  if (location.pathname + location.search + location.hash !== path) history.pushState(null, '', path);
+  updateHomeMetadata(locale.value);
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', () => {
+    locale.value = languageFromPath(location.pathname);
+    updateHomeMetadata(locale.value);
+  });
 }
 
 // Keep configuration, model IDs, and user input in their original form. These are

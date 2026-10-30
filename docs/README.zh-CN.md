@@ -91,6 +91,10 @@ node skills/mcp-token-lab/scripts/validate-config.mjs --repo . ./my-scenario.jso
 
 Skill 包含[双方案示例](../skills/mcp-token-lab/assets/comparison.example.json)和[六个内置场景示例](../skills/mcp-token-lab/assets/examples/)，可按 [SKILL.md](../skills/mcp-token-lab/SKILL.md) 的场景指引选用；字段规则见[导入格式说明](../skills/mcp-token-lab/references/import-format.md)。修改 `src/config/default-template/` 后，运行 `node skills/mcp-token-lab/scripts/sync-builtins.mjs --repo .` 更新 Skill 示例，追加 `--check` 可只检查同步状态。使用网页内置模板无需安装 Skill。
 
+## 策略说明与搜索访问
+
+[英文首页](https://eilumie.github.io/mcp-token-lab/)与[中文首页](https://eilumie.github.io/mcp-token-lab/zh/)均提供可直接抓取的介绍正文。六种场景各有中英文说明页，包含实验假设、可复现结果及对应计算器模板入口。内容维护、构建检查和搜索后台配置见[发布与 SEO 说明](SEO.md)。
+
 ## 本地运行
 
 推荐 **Node.js 22.12+**（项目声明支持 Node 20.19+）以及 **pnpm 10.18.3**。

@@ -1,19 +1,19 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue';
-import { Github, LayoutTemplate, Languages, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, Star, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
+import { computed, defineAsyncComponent, nextTick, ref, watch } from 'vue';
+import { LayoutTemplate, Download, SlidersHorizontal, Plus, RotateCcw, Workflow, Star, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-vue-next';
 import { globalFields, thresholdField, resolveBaselineId, resolvePlanDescription, maxPlans } from '../comparison.js';
 import ParameterField from './ParameterField.vue';
 import FieldHint from './FieldHint.vue';
 import GlobalModelField from './GlobalModelField.vue';
-import AnalysisPanel from './AnalysisPanel.vue';
+const AnalysisPanel = defineAsyncComponent(() => import('./AnalysisPanel.vue'));
 import SummaryCards from './SummaryCards.vue';
 import PlanFlowPreview from './PlanFlowPreview.vue';
 import PlanSettingsDialog from './PlanSettingsDialog.vue';
 import GlyphBackground from './GlyphBackground.vue';
 import StrategyIntro from './StrategyIntro.vue';
-import { locale, setLocale } from '../i18n.js';
+import SiteHeader from './SiteHeader.vue';
+import SeoGuide from './SeoGuide.vue';
 import { displayPlanColor } from '../theme.js';
-const brandIcon = `${import.meta.env.BASE_URL}icon/mcp-token-lab-logo.svg`;
 const props = defineProps({ config: Object, results: Array, busy: Boolean, errors: Object, failure: String, canUndo: Boolean });
 const emit = defineEmits(['templates','export','remember','reset','add','baseline','copy','remove','undo','variables']);
 const settingsPlanId = ref(null);
@@ -69,10 +69,7 @@ function updateFlow(id, flow) {
 <template>
   <div class="home-page">
     <GlyphBackground />
-    <header class="app-header">
-      <a class="brand" href="./"><span class="brand-mark header-floating"><img :src="brandIcon" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">MCP Token Lab</b><span class="brand-tagline header-floating">CONTEXT STRATEGY PLAYGROUND</span></strong></a>
-      <nav class="header-actions" aria-label="配置操作"><button type="button" class="language-toggle header-floating" :aria-label="locale==='zh'?'Switch to English':'切换为中文'" @click="setLocale(locale==='zh'?'en':'zh')"><Languages :size="15"/><span>{{ locale==='zh'?'中文':'EN' }}</span></button><a class="header-github header-floating" href="https://github.com/Eilumie/mcp-token-lab" target="_blank" rel="noopener noreferrer" aria-label="在新标签页打开 GitHub 仓库"><Github :size="16" /><span>GitHub</span></a></nav>
-    </header>
+    <SiteHeader />
     <div class="workspace comparison-workspace"><main>
       <StrategyIntro />
       <section id="global-settings" class="global-settings" aria-labelledby="global-settings-title">
@@ -116,6 +113,7 @@ function updateFlow(id, flow) {
       </div>
       <AnalysisPanel v-if="results.length" :results="results"/>
       <PlanSettingsDialog v-if="settingsPlan" :config="config" :plan="settingsPlan" @close="settingsPlanId=null" @save="savePlanSettings" />
+      <SeoGuide />
       <footer><span class="footer-mark">T / L</span><p>初始前缀按期望命中率计费 · 每轮流程结束后检查压缩 · 最后一轮触发的压缩也计费<br/>所有长度以 K Token 计量。预计费用基于当前参数与费率快照，零分母显示「—」。</p><button v-if="canUndo" class="undo-button" @click="emit('undo')"><RotateCcw :size="13"/>撤销修改</button><span>LESS GUESSWORK. MORE CLARITY.</span></footer>
     </main></div>
   </div>

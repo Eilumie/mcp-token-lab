@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { ArrowDown } from 'lucide-vue-next';
 import { locale } from '../i18n.js';
+import { basePath } from '../seo/site.js';
 const steps = computed(() => locale.value === 'zh'
   ? [['选择模板', '或自定义配置'], ['配置规模', '会话与压缩策略'], ['查看费用趋势', 'Token 分布与缓存命中'], ['定制合适的上下文策略', '适配你的使用场景']]
   : [['Choose a template', 'or customize your own'], ['Configure scale', 'sessions and compression'], ['View cost trend', 'token breakdown and cache hits'], ['Customize the right context strategy', 'for your scenario']]);
@@ -16,13 +17,13 @@ function focusSettings(event) {
   <section class="strategy-intro" aria-labelledby="strategy-title">
     <div class="strategy-copy">
       <p class="strategy-kicker"><span aria-hidden="true"></span>MCP CONTEXT STRATEGY LAB</p>
-      <h1 id="strategy-title">{{ locale === 'zh' ? '为你的 Agent，' : 'Your agent.' }}<br/><span>{{ locale === 'zh' ? '选择上下文策略。' : 'Your context strategy.' }}</span></h1>
+      <h1 id="strategy-title">{{ locale === 'zh' ? 'MCP Token 计算器' : 'MCP Token Calculator' }}<br/><span>{{ locale === 'zh' ? '与 Agent 成本模拟。' : '& Agent Cost Simulator.' }}</span></h1>
       <p class="strategy-description">{{ locale === 'zh' ? '改变工具规模、加载与压缩策略，比较多轮上下文、缓存复用、Token 与预估费用。' : 'Vary tool count, loading and compression. Compare context growth, cache reuse, tokens and estimated costs across simulated turns.' }}</p>
       <a class="strategy-cta" href="#global-settings" @click="focusSettings">{{ locale === 'zh' ? '配置并比较' : 'Configure & compare' }}<ArrowDown :size="14"/></a>
       <p class="strategy-boundary">{{ locale === 'zh' ? '基于可配置假设的模拟，不执行 Agent 或调用模型 API。' : 'Simulated from your assumptions. No agents or model APIs run.' }}</p>
     </div>
     <div class="strategy-desktop-chart" :aria-label="locale === 'zh' ? '使用步骤' : 'How it works'">
-      <img class="steps-art" src="/strategy-steps.png" alt="" />
+      <img class="steps-art" :src="basePath + 'strategy-steps.png'" alt="" />
       <div class="steps-labels">
         <div v-for="(step, index) in steps" :key="index" class="step-label">
           <span>{{ String(index + 1).padStart(2, '0') }}</span><strong>{{ step[0] }}</strong><small>{{ step[1] }}</small>
