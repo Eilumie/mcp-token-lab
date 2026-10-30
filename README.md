@@ -95,7 +95,7 @@ node skills/mcp-token-lab/scripts/validate-config.mjs --repo . ./my-scenario.jso
 
 The checker uses the application's importer, runs the complete simulation, and rejects unresolved or invalid description placeholders. Once valid, open the [live app](https://eilumie.github.io/mcp-token-lab/), select **Templates → Import custom template**, choose the JSON, then click **Use template**. Applying a template replaces current settings and plans (with an undo option).
 
-See the [format reference](skills/mcp-token-lab/references/import-format.md) and [sample template](skills/mcp-token-lab/assets/comparison.example.json). No Skill installation is required for the web app's built-in templates.
+The Skill includes a [sample template](skills/mcp-token-lab/assets/comparison.example.json) and [six packaged built-in examples](skills/mcp-token-lab/assets/examples/), with scenario selection guidance in [SKILL.md](skills/mcp-token-lab/SKILL.md) and a [format reference](skills/mcp-token-lab/references/import-format.md). To refresh packaged examples after changing `src/config/default-template/`, run `node skills/mcp-token-lab/scripts/sync-builtins.mjs --repo .`; append `--check` to detect drift without writing files. No Skill installation is required for the web app's built-in templates.
 
 ## Quick start
 

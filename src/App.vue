@@ -8,6 +8,7 @@ import VariablesDialog from './components/VariablesDialog.vue';
 import TemplatesDialog from './components/TemplatesDialog.vue';
 import Home from './components/Home.vue';
 import { downloadFile } from './utils.js';
+import { translateUi } from './i18n.js';
 
 const config = ref(createDefaultConfig(defaultTemplates));
 const results = ref([]), busy = ref(false), failure = ref(''), toast = ref('');
@@ -20,6 +21,12 @@ function notify(text) { toast.value = text; clearTimeout(toastTimer); toastTimer
 function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function remember() { lastConfig.value = clone(config.value); }
 function undo() { if (lastConfig.value) { config.value = lastConfig.value; lastConfig.value = null; notify('已撤销上一次修改'); } }
+function restoreDefaultPlans() {
+  if (!window.confirm(translateUi('恢复默认方案会替换当前全局配置和所有方案，是否继续？'))) return;
+  remember();
+  config.value = createDefaultConfig(defaultTemplates);
+  notify('已恢复默认方案');
+}
 function add(source) {
   if (config.value.plans.length >= 8) return;
   const names = new Set(config.value.plans.map(plan => plan.name));
@@ -66,7 +73,7 @@ onBeforeUnmount(() => { reportWorker?.terminate(); clearTimeout(reportTimer); cl
 <template>
   <Home :config="config" :results="results" :busy="busy" :errors="errors" :failure="failure" :can-undo="!!lastConfig"
     @variables="variablesMode=true" @templates="openTemplates" @export="exportConfig" @remember="remember" @undo="undo"
-    @reset="remember();config=createDefaultConfig(defaultTemplates);notify('已恢复默认方案')"
+    @reset="restoreDefaultPlans"
     @add="add()" @baseline="setBase" @copy="add(config.plans.find(plan=>plan.id===$event))" @remove="remove" />
   <VariablesDialog v-if="variablesMode" :config="config" @close="variablesMode=false" @save="saveVariables" />
   <TemplatesDialog v-if="templatesMode" :custom-templates="customTemplates" :initial-template-id="requestedTemplate" @close="templatesMode=false" @import="customTemplates.push($event)" @apply="applyTemplate" />

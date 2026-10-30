@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,6 +35,23 @@ test('sample template imports and simulates with strict validation', () => {
   assert.equal(r.output.plans, 2);
   assert.deepEqual(r.output.warnings, []);
   assert.ok(r.output.results.every(item => Number.isFinite(item.totalCost)));
+});
+
+test('packaged builtins stay in sync and all pass strict full simulation', () => {
+  const sync = fileURLToPath(new URL('./sync-builtins.mjs', import.meta.url));
+  const child = spawnSync(process.execPath, [sync, '--repo', root, '--check'], { encoding: 'utf8' });
+  assert.equal(child.status, 0, child.stderr);
+  const directory = new URL('../assets/examples/', import.meta.url);
+  const files = readdirSync(directory, { recursive: true }).filter(file => file.endsWith('.json'));
+  assert.ok(files.length > 0);
+  for (const file of files) {
+    const r = validate(fileURLToPath(new URL(file, directory)), ['--simulate', '--strict']);
+    assert.equal(r.status, 0, file + ': ' + JSON.stringify(r.output));
+    assert.equal(r.output.simulated, true);
+    assert.ok(r.output.template.name && r.output.template.description);
+    assert.deepEqual(r.output.warnings, []);
+    assert.ok(r.output.results.every(item => Number.isFinite(item.totalCost)));
+  }
 });
 
 test('plain configuration imports without a template wrapper', t => {

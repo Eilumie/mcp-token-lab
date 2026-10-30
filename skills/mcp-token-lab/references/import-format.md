@@ -1,6 +1,6 @@
 # 页面配置导入契约
 
-默认交付带模板元信息的文件，内部 `config` 是多方案页面配置。完整可导入文件见 [comparison.example.json](../assets/comparison.example.json)。
+本文件定义字段与执行语义；默认参数、示例选用、校验及交付流程见 [SKILL.md](../SKILL.md)。完整结构见 [双方案示例](../assets/comparison.example.json)。
 
 ## 模板外层
 
@@ -12,9 +12,7 @@
 | `description` | 字符串，最多 1,000 字符，说明整体比较目标、适用场景或关键假设；新生成模板填写非空描述。导入器允许省略或为空，页面会显示「暂无模板介绍」 |
 | `config` | 完整的多方案配置，字段见下文 |
 
-结构为 `{ "type": "token-lab-template", "version": 1, "name": "…", "description": "…", "config": { "unit": "K", … } }`，完整 JSON 以示例文件为准。外层模板版本与内部配置不是同一个概念。模板描述与单个方案的说明分别填写在外层 `description` 和 `config.plans[i].description`。
-
-导入入口为「模板 → 导入自定义模板 → 选择 JSON → 使用模板」。普通配置仍可从同一入口导入，此时模板名称取文件名，若顶层存在 `description` 则使用该描述，否则模板介绍为空；只有用户明确要求普通配置时才省略模板外层。修改已有文件时先识别两种格式，不要把模板元信息塞进普通配置。
+内部 `config` 不放 `version`。普通配置可从同一入口导入，模板名称取文件名，介绍取顶层 `description`（缺省为空）；修改前先识别格式，不要把模板元信息塞进普通配置。
 
 ## config 顶层及方案
 
@@ -50,7 +48,7 @@
 
 ## simulation 参数
 
-这些字段全部显式生成，包括当前不使用的另一种压缩阈值。用户未指定且已有配置也未提供时，本 skill 统一使用 100 轮、100 个 Tools、TOKEN 模式的 100K 上下文压缩阈值，完整模板采用相同口径；其余数值为示例，不代表用户实际场景。用户明确指定或比较这些参数时按用户要求。
+这些字段全部显式生成，包括当前不使用的另一种压缩阈值。下列数值仅作格式示例；生成默认值遵循 SKILL.md，用户要求和已有配置优先。
 
 | 字段 | 示例 | 单位 / 约束 |
 | --- | --- | --- |
@@ -83,7 +81,7 @@
 
 内置参数只有 `useGlobal[字段] === true` 才继承全局；缺省或 false 使用方案值。嵌套长度使用平铺路径键 `"initialContext.agentPromptToken"`。flow 始终属于方案，不支持 useGlobal.flow。
 
-耗时开关是例外：方案开关位于 `plans[i].estimateDuration`，不在 simulation 内，也不支持 `useGlobal.estimateDuration`。全局开关位于 globalSimulation，不能当成数值变量或 Token 公式参数。
+耗时开关不放进 simulation 或 useGlobal，使用上表定义的两级开关。
 
 自定义变量全局默认继承，包括与本地同名时也覆盖；用 `useGlobal["variables.retrievalToken"]: false` 保留本地值。全局与本地变量合并后每个生效方案最多 100 项。
 
@@ -148,7 +146,7 @@ pricing.contextWindow 可选，单位为原始 Token；pricing.tier 可选，格
 }
 ```
 
-该片段引用 retrievalToken 时须同时按下文定义变量。initial 仅允许 action，turn 允许 action / llm。步骤只允许以下字段：
+该片段引用 retrievalToken 时须同时按下文定义变量。initial 仅允许 action，turn 允许 action / llm；两个数组都须显式提供，空数组表示不执行该阶段。步骤只允许以下字段：
 
 | 字段 | 规则 |
 | --- | --- |
@@ -161,13 +159,13 @@ pricing.contextWindow 可选，单位为原始 Token；pricing.tier 可选，格
 
 常用归因键可沿用完整模板的英文 text，页面有对应显示名称；自定义名称也可正常显示。
 
-按需 Schema 模板：初始加载 Prompt、Skill 索引、Tool 索引；每轮执行用户消息 → LLM 读取技能计划 → Skill 内容 → LLM 查询 Schema 计划 → 所需 Schema → LLM 调用工具计划 → 工具返回 → LLM 最终回复。
-
-全量模板：初始阶段额外追加 `toolsTotalCount * toolSchemaToken`；每轮删除「查询 Schema 计划」及「所需 Schema」两个节点。其余相同。这比较的是两种具体流程的总成本，不只是 Schema 大小。
+- `action` 只追加上下文；`llm` 发送当前上下文，`token` 是本次模型输出长度，输出自动加入历史。不要把输入填进 `llm.token`，也不要重复追加模型输出。
+- 流程决定实际加载内容，仅修改 `toolsTotalCount` / `skillDetailToken` 等参数不会自动追加内容；不支持旧字段 `toolsMode`。具体策略见 SKILL.md 的场景示例。
+- 缓存和压缩由引擎计算；轮末检查压缩，包括最后一轮，不手工添加压缩调用。`expectedPrefixCacheHitRate: 0.9` 表示 90%，与 `trigger.value: 30` 表示 30% 的量纲不同。
 
 ### 耗时开关与计算口径
 
-开关必须使用 JSON 布尔值 true / false，不能用 `"false"`、0、1 或 null。新文件建议显式写出两个开关；开关省略时默认开启。
+新文件显式写出两个布尔开关，修改已有文件时保留原选择；省略时默认开启。不能用 `"false"`、0、1 或 null。
 
 | 全局 estimateDuration | 方案 estimateDuration | 实际统计与页面行为 |
 | --- | --- | --- |
@@ -226,18 +224,4 @@ llmIndex === 0 ? callToolsPlanToken : agentResult
 - 计划 LLM 未触发不会自动跳过后面的工具结果节点。需要联动时可给相关节点相同 interval，或按 turnIndex 写确定性条件；不要给两个概率节点相同百分比就当成相关事件。
 - `token: 0` 的 LLM 仍会发起请求并计输入费用；要跳过请求应使用 enabled 或 trigger。
 
-## 校验生成结果
-
-从仓库根目录执行，检查页面导入、全部轮次模拟及说明占位符：
-
-```bash
-node skills/mcp-token-lab/scripts/validate-config.mjs --repo . ./my-scenario.json --simulate --strict
-```
-
-省略 `--simulate` 时只验证导入结构与说明，不保证后续轮次的公式安全；省略 `--strict` 时未解析变量、不支持的占位表达式和未配对的双花括号仅显示警告。文件最大支持 4 MB。脚本报告的 `valid: true` 表示已执行的检查通过，不代表真实 Agent 的费用或回答质量。
-
-## 最后检查
-
-确认 JSON 可解析；模板外层类型和版本正确，名称有效且新模板描述非空，内部配置字段完整；所有方案参数完整、ID / 名称唯一、颜色有效、基准存在、价格单位正确、平均数量不超过总数、压缩阈值有效、变量全部定义、模板描述和各方案说明原文均为最多 1,000 字符的字符串、说明引用按本方案实际配置可解析且单位正确、两级耗时开关位置和类型正确、节点耗时为非负有限数，以及各方案继承开关确实保留实验差异。导入先添加自定义模板，点击「使用模板」才替换页面当前整份配置，不是追加方案；需要保留旧实验时先导出。
-
-仅支持当前配置字段结构，不自动补齐缺失的全局字段；globalSimulation 和 globalModelId 须提供。导入流程必须同时包含 initial / turn 数组，Token 仅支持数值或公式字符串，不接受参数名数组。
+仅支持当前配置字段结构，不自动补齐缺失的全局字段；globalSimulation 和 globalModelId 须提供。Token 仅支持数值或公式字符串，不接受参数名数组。

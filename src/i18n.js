@@ -89,6 +89,7 @@ const english = {
   '已更新对比基准': 'Baseline updated', '已删除方案，可撤销': 'Plan deleted. You can undo this.',
   '已导出实验配置': 'Configuration exported', '配置已导入': 'Configuration imported',
   '已恢复默认方案': 'Default plans restored', '导入失败：': 'Import failed: ',
+  '恢复默认方案会替换当前全局配置和所有方案，是否继续？': 'Restoring defaults will replace the current global settings and all plans. Continue?',
   '文件不能超过 4 MB': 'File must be 4 MB or smaller',
   '请输入 0–100%': 'Enter a value from 0 to 100%',
   '请输入整数': 'Enter a whole number',

@@ -89,7 +89,7 @@ node skills/mcp-token-lab/scripts/validate-config.mjs --repo . ./my-scenario.jso
 
 脚本会调用应用真实的配置导入器、模拟全部轮次，并在严格模式下拒绝无效或无法解析的说明占位符。通过后打开[在线应用](https://eilumie.github.io/mcp-token-lab/)，选择 **模板 → 导入自定义模板**，选中 JSON 并点击 **使用模板**。应用模板会替换当前配置与方案（可撤销）。
 
-参见[导入格式说明](../skills/mcp-token-lab/references/import-format.md)和[完整 JSON 示例](../skills/mcp-token-lab/assets/comparison.example.json)。使用网页内置模板无需安装 Skill。
+Skill 包含[双方案示例](../skills/mcp-token-lab/assets/comparison.example.json)和[六个内置场景示例](../skills/mcp-token-lab/assets/examples/)，可按 [SKILL.md](../skills/mcp-token-lab/SKILL.md) 的场景指引选用；字段规则见[导入格式说明](../skills/mcp-token-lab/references/import-format.md)。修改 `src/config/default-template/` 后，运行 `node skills/mcp-token-lab/scripts/sync-builtins.mjs --repo .` 更新 Skill 示例，追加 `--check` 可只检查同步状态。使用网页内置模板无需安装 Skill。
 
 ## 本地运行
 
