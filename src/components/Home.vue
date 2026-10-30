@@ -71,7 +71,7 @@ function updateFlow(id, flow) {
     <GlyphBackground />
     <header class="app-header">
       <a class="brand" href="./"><span class="brand-mark header-floating"><img :src="brandIcon" width="36" height="36" alt="" /></span><strong><b class="brand-title header-floating">MCP Token Lab</b><span class="brand-tagline header-floating">CONTEXT STRATEGY PLAYGROUND</span></strong></a>
-      <nav class="header-actions" aria-label="配置操作"><button type="button" class="language-toggle header-floating" :aria-label="locale==='zh'?'Switch to English':'切换为中文'" @click="setLocale(locale==='zh'?'en':'zh')"><Languages :size="15"/><span>{{ locale==='zh'?'中文':'EN' }}</span></button><a class="header-github header-floating" href="https://github.com/zhangHongEn/token-lab" target="_blank" rel="noopener noreferrer" aria-label="在新标签页打开 GitHub 仓库"><Github :size="16" /><span>GitHub</span></a></nav>
+      <nav class="header-actions" aria-label="配置操作"><button type="button" class="language-toggle header-floating" :aria-label="locale==='zh'?'Switch to English':'切换为中文'" @click="setLocale(locale==='zh'?'en':'zh')"><Languages :size="15"/><span>{{ locale==='zh'?'中文':'EN' }}</span></button><a class="header-github header-floating" href="https://github.com/Eilumie/mcp-token-lab" target="_blank" rel="noopener noreferrer" aria-label="在新标签页打开 GitHub 仓库"><Github :size="16" /><span>GitHub</span></a></nav>
     </header>
     <div class="workspace comparison-workspace"><main>
       <StrategyIntro />
