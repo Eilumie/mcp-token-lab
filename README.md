@@ -6,7 +6,7 @@
 
 An interactive playground for exploring how **MCP tool loading, context growth, prefix caching, and compression** change token usage and estimated LLM costs across multi-turn agent sessions.
 
-[**Live demo**](https://enlacia.github.io/mcp-token-lab/) · [中文文档](docs/README.zh-CN.md)
+[**Live demo**](https://eilumie.github.io/mcp-token-lab/) · [中文文档](docs/README.zh-CN.md)
 
 </div>
 
@@ -93,7 +93,7 @@ explain the assumptions.
 node skills/mcp-token-lab/scripts/validate-config.mjs --repo . ./my-scenario.json --simulate --strict
 ```
 
-The checker uses the application's importer, runs the complete simulation, and rejects unresolved or invalid description placeholders. Once valid, open the [live app](https://enlacia.github.io/mcp-token-lab/), select **Templates → Import custom template**, choose the JSON, then click **Use template**. Applying a template replaces current settings and plans (with an undo option).
+The checker uses the application's importer, runs the complete simulation, and rejects unresolved or invalid description placeholders. Once valid, open the [live app](https://eilumie.github.io/mcp-token-lab/), select **Templates → Import custom template**, choose the JSON, then click **Use template**. Applying a template replaces current settings and plans (with an undo option).
 
 See the [format reference](skills/mcp-token-lab/references/import-format.md) and [sample template](skills/mcp-token-lab/assets/comparison.example.json). No Skill installation is required for the web app's built-in templates.
 
@@ -102,7 +102,7 @@ See the [format reference](skills/mcp-token-lab/references/import-format.md) and
 **Requirements:** Node.js **22.12+ recommended** (Node 20.19+ is declared supported) and **pnpm 10.18.3**. No API key, environment file or backend is needed.
 
 ```bash
-git clone https://github.com/Enlacia/mcp-token-lab.git
+git clone https://github.com/Eilumie/mcp-token-lab.git
 cd mcp-token-lab
 npm install --global pnpm@10.18.3
 pnpm install --frozen-lockfile
@@ -135,7 +135,7 @@ The simulation runs locally in your browser. Current configuration is not persis
 
 ## Contributing
 
-Issues, bug reports, reproducible scenario files and pull requests are welcome. Include the exported configuration, steps to reproduce, and expected versus actual results. Discuss contributions in [GitHub Issues](https://github.com/Enlacia/mcp-token-lab/issues).
+Issues, bug reports, reproducible scenario files and pull requests are welcome. Include the exported configuration, steps to reproduce, and expected versus actual results. Discuss contributions in [GitHub Issues](https://github.com/Eilumie/mcp-token-lab/issues).
 
 ## License
 
@@ -144,6 +144,6 @@ Issues, bug reports, reproducible scenario files and pull requests are welcome. 
 ---
 
 <div align="center">
-  <a href="https://enlacia.github.io/mcp-token-lab/">Explore the simulator</a> ·
-  <a href="https://github.com/Enlacia/mcp-token-lab/issues">Report an issue</a>
+  <a href="https://eilumie.github.io/mcp-token-lab/">Explore the simulator</a> ·
+  <a href="https://github.com/Eilumie/mcp-token-lab/issues">Report an issue</a>
 </div>
