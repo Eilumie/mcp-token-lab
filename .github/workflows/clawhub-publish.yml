@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   clawhub:
-    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@main
+    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@9df44b87850c142bee56db44d86417be0c0f0efd
     with:
       skill_path: skills/mcp-token-lab
       dry_run: ${{ !inputs.publish }}
