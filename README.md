@@ -78,7 +78,13 @@ All six templates are stored as JSON files in [`src/config/default-template/`](s
 
 This repository also includes **[`mcp-token-lab`](skills/mcp-token-lab/SKILL.md)**, an Agent Skill for generating importable comparison JSON with an AI coding assistant. Describe your Agent workflow and the strategies you want to compare—tool-schema loading, caching, compression, model pricing assumptions, or step durations. The Skill runs in your AI assistant; it is **separate from the six built-in templates** in the web app.
 
-**Set up:** Install or register the [`skills/mcp-token-lab/`](skills/mcp-token-lab/) directory with an Agent Skills-compatible assistant according to its instructions. If named Skill invocation is supported, use a prompt such as:
+**Install the Agent Skill:** With Node.js 22.20+ (required by the `skills` CLI), run:
+
+```bash
+npx skills add Eilumie/mcp-token-lab --skill mcp-token-lab
+```
+
+Alternatively, register the [`skills/mcp-token-lab/`](skills/mcp-token-lab/) directory manually with an Agent Skills-compatible assistant. If named Skill invocation is supported, use a prompt such as:
 
 ```text
 Use $mcp-token-lab to generate an importable JSON template comparing
