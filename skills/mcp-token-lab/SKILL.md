@@ -1,6 +1,6 @@
 ---
 name: mcp-token-lab
-description: 为 MCP Token Lab 生成或修改可导入的多方案 JSON 模板，比较 Agent 流程、工具 Schema 加载、缓存、上下文压缩、模型费用或预估耗时。适用于生成方案对比模板、将 Agent 流程转换为配置；不用于真实模型调用或通用 JSON 转换。
+description: Generate or edit importable multi-plan JSON templates for MCP Token Lab to compare AI agent workflows, MCP tool-schema loading, on-demand discovery, prefix caching, context compression, token usage, model costs, and estimated latency. Use for agent scenario modeling and strategy comparisons; not for live model calls or general JSON conversion.
 ---
 
 # MCP Token Lab 方案对比
