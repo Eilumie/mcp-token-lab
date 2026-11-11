@@ -1,0 +1,26 @@
+# Manually preview or publish the MCP Token Lab Agent Skill to ClawHub.
+# Create a repository secret named CLAWHUB_TOKEN for actual publishing.
+# IMPORTANT: ClawHub publishes Skills under MIT-0 (no attribution required).
+# Review that licensing condition before running with publish=true.
+name: Publish Agent Skill to ClawHub
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish to ClawHub instead of previewing"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  clawhub:
+    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@main
+    with:
+      skill_path: skills/mcp-token-lab
+      dry_run: ${{ !inputs.publish }}
+    secrets:
+      clawhub_token: ${{ secrets.CLAWHUB_TOKEN }}
