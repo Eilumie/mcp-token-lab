@@ -75,7 +75,7 @@ test('strict mode catches unresolved, invalid and unpaired placeholders', t => {
   assert.equal(lenient.status, 0);
   assert.ok(lenient.output.warnings.some(item => item.includes('missingVariable')));
   assert.ok(lenient.output.warnings.some(item => item.includes('toolsTotalCount + 1')));
-  assert.ok(lenient.output.warnings.some(item => item.includes('未配对')));
+  assert.ok(lenient.output.warnings.some(item => item.includes('unmatched double braces')));
   const strict = validate(file, ['--strict']);
   assert.notEqual(strict.status, 0);
   assert.equal(strict.output.valid, false);
@@ -88,7 +88,7 @@ test('full simulation detects formula errors after the first turn', t => {
   assert.equal(validate(file, ['--strict']).status, 0);
   const r = validate(file, ['--simulate', '--strict']);
   assert.notEqual(r.status, 0);
-  assert.match(r.output.error, /turnIndex|公式|flow.turn/);
+  assert.match(r.output.error, /turnIndex|formula|flow\.turn|\u516c\u5f0f/i);
 });
 
 test('unrecognized command-line arguments fail', () => {
