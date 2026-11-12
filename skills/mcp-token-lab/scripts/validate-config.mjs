@@ -20,7 +20,7 @@ try {
   if (!repo || !file) throw new Error(usage);
   repo = resolve(repo);
   file = resolve(file);
-  if ((await stat(file)).size > 4_000_000) throw new Error('文件超过页面导入限制（4 MB）');
+  if ((await stat(file)).size > 4_000_000) throw new Error('File exceeds the web app import limit (4 MB)');
 
   // Use the application's parser; do not maintain a competing config schema.
   const src = name => pathToFileURL(resolve(repo, 'src', name)).href;
@@ -50,11 +50,11 @@ try {
   });
   output.warnings = output.planDescriptions.flatMap(plan => [
     ...(plan.unresolvedVariables.length
-      ? ['方案 ' + plan.id + ' 的说明含未解析变量：' + plan.unresolvedVariables.join('、')] : []),
+      ? ['Plan ' + plan.id + ' description contains unresolved variables: ' + plan.unresolvedVariables.join(', ')] : []),
     ...(plan.invalidPlaceholders.length
-      ? ['方案 ' + plan.id + ' 的说明含不支持的占位表达式：' + plan.invalidPlaceholders.join('、')] : []),
+      ? ['Plan ' + plan.id + ' description contains unsupported placeholders: ' + plan.invalidPlaceholders.join(', ')] : []),
     ...(plan.unmatchedBraces
-      ? ['方案 ' + plan.id + ' 的说明存在未配对的双花括号'] : []),
+      ? ['Plan ' + plan.id + ' description contains unmatched double braces'] : []),
   ]);
   if (strict && output.warnings.length) throw new Error(output.warnings.join('\n'));
 
