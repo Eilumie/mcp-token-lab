@@ -1,116 +1,116 @@
-# 页面配置导入契约
+# Web App Configuration Import Contract
 
-本文件定义字段与执行语义；默认参数、示例选用、校验及交付流程见 [SKILL.md](../SKILL.md)。完整结构见 [双方案示例](../assets/comparison.example.json)。
+This reference defines field names and execution semantics. For generation defaults, example selection, validation, and delivery instructions, see [SKILL.md](../SKILL.md). For a complete configuration, see the [two-plan example](../assets/comparison.example.json).
 
-## 模板外层
+## Template wrapper
 
-| 路径 | 生成规则 |
+| Path | Generation rules |
 | --- | --- |
-| `type` | 固定字符串 `"token-lab-template"` |
-| `version` | 固定数字 `1`，是模板格式版本 |
-| `name` | 字符串，去掉两端空白后 1–100 字符，作为模板卡片和详情的名称 |
-| `description` | 字符串，最多 1,000 字符，说明整体比较目标、适用场景或关键假设；新生成模板填写非空描述。导入器允许省略或为空，页面会显示「暂无模板介绍」 |
-| `config` | 完整的多方案配置，字段见下文 |
+| `type` | Fixed string `"token-lab-template"` |
+| `version` | Fixed number `1`; template format version |
+| `name` | String of 1–100 characters after trimming whitespace; shown on the template card and in details |
+| `description` | String of at most 1,000 characters describing the comparison, use case, or assumptions. Supply a nonempty description for new templates. The importer also accepts empty or omitted values; the app then displays a "No template description" placeholder |
+| `config` | Complete multi-plan configuration described below |
 
-内部 `config` 不放 `version`。普通配置可从同一入口导入，模板名称取文件名，介绍取顶层 `description`（缺省为空）；修改前先识别格式，不要把模板元信息塞进普通配置。
+Do not put `version` inside the inner `config` object. Plain configurations can be imported through the same UI: the template name is inferred from the filename, and the introduction uses the top-level `description` if present (otherwise empty). Determine which format an existing file uses before editing it; do not insert template metadata into a plain configuration.
 
-## config 顶层及方案
+## Top-level config and plans
 
-以下路径均相对于模板的 `config`；普通配置中则直接位于文件顶层。
+All paths below are relative to the template's `config` object, or to the file root for plain configurations.
 
-| 路径 | 生成规则 |
+| Path | Generation rules |
 | --- | --- |
-| `unit` | 固定字符串 `"K"`，所有长度均以千 Token 为单位 |
-| `plans` | 最多 8 项；方案对比通常至少 2 项 |
-| `baselineId` | 某个方案的 `id`；空方案数组才使用 `null` |
-| `baselineMode` | `"manual"` 固定指定基准；`"auto"` 运行后选择总费用最高的方案，同价取首个。auto 下仍需有效 baselineId |
-| `globalSimulation` | 共享数值参数，与 simulation 同名；initialContext 是嵌套对象，variables 是自定义变量表。另支持 estimateDuration 和 removedFields；不放 flow 或 model |
-| `globalSimulation.estimateDuration` | 可选布尔值，省略为 true；false 隐藏整列耗时并关闭所有方案的耗时统计 |
-| `globalSimulation.removedFields` | 可选的已删除内置数值参数路径数组，不重复且只能包含内置数值字段；计算改用系统默认值。修改已有配置时保留，不要为新实验随意删除参数 |
-| `globalModelId` | 推荐 `"custom"` 并完整提供 globalModel，避免依赖可能变化的内置模型 ID |
-| `globalModel` | `{ "model": { ... }, "pricing": { ... } }`，供 useGlobal.model 为 true 的方案继承 |
-| `plans[i].id` | 唯一非空字符串，可使用 `"plan-lazy"` 等稳定 ID |
-| `plans[i].name` | 1–60 字符，去掉两端空白后不能重名 |
-| `plans[i].description` | 可选字符串，原文最多 1,000 字符，可为空；说明方案目标、策略、适用场景或关键假设，支持下文的 `{{变量名}}` 引用 |
-| `plans[i].estimateDuration` | 可选布尔值，省略为 true；false 仅关闭本方案耗时，单元格显示「—」，不改变全局列显隐或其他方案 |
-| `plans[i].color` | 只能选下方调色板值 |
-| `plans[i].simulation` | 下表完整参数和 flow，即使继承全局也保留完整本地值 |
-| `plans[i].model` / `.pricing` | 完整模型及价格来源，即使继承全局也保留 |
-| `plans[i].useGlobal` | 可选布尔映射，键为内置参数路径、`"model"` 或 `"variables.变量名"` |
+| `unit` | Fixed string `"K"`; all token lengths are in thousands of tokens |
+| `plans` | At most 8 entries; comparisons typically contain at least 2 |
+| `baselineId` | The `id` of an existing plan; use `null` only when the plans array is empty |
+| `baselineMode` | `"manual"` locks the baseline to the specified plan. `"auto"` selects the plan with the highest total cost after simulation, breaking ties by taking the first; a valid `baselineId` is still required in auto mode |
+| `globalSimulation` | Shared numeric parameters with the same field names as `simulation`. `initialContext` is nested and `variables` contains custom variables. Also supports `estimateDuration` and `removedFields`; do not put `flow` or `model` here |
+| `globalSimulation.estimateDuration` | Optional boolean; defaults to `true`. `false` hides the entire duration column and disables duration calculations for every plan |
+| `globalSimulation.removedFields` | Optional array of deleted built-in numeric parameter paths. Must be unique and contain only built-in numeric fields; the simulator uses system defaults for deleted values. Preserve this field when editing an existing configuration; do not delete parameters arbitrarily in new experiments |
+| `globalModelId` | Prefer `"custom"` and a complete `globalModel` to avoid dependencies on built-in model IDs that may change |
+| `globalModel` | `{ "model": { ... }, "pricing": { ... } }`; inherited by plans with `useGlobal.model` set to `true` |
+| `plans[i].id` | Unique, nonempty string; stable IDs such as `"plan-lazy"` are suitable |
+| `plans[i].name` | 1–60 characters after trimming whitespace; names must be unique |
+| `plans[i].description` | Optional string of at most 1,000 characters before interpolation; may be empty. Explain the strategy, purpose, use case, or key assumptions. Supports `{{variableName}}` references described below |
+| `plans[i].estimateDuration` | Optional boolean; defaults to `true`. `false` disables duration calculation for this plan only and displays "—" in its cell, without hiding the global column or affecting other plans |
+| `plans[i].color` | Must be selected from the palette below |
+| `plans[i].simulation` | Full parameters from the next table plus `flow`; retain complete local values even when inheriting globals |
+| `plans[i].model` / `.pricing` | Full model and pricing source metadata, even when the global model is inherited |
+| `plans[i].useGlobal` | Optional boolean map with built-in parameter paths, `"model"`, or keys such as `"variables.variableName"` |
 
-方案只允许 id、name、description、color、simulation、model、pricing、useGlobal、estimateDuration。说明写入 description，不使用自造字段；计算结果仍不能放进配置。
+Only these plan fields are supported: `id`, `name`, `description`, `color`, `simulation`, `model`, `pricing`, `useGlobal`, and `estimateDuration`. Put plan explanations in `description`, not invented fields. Never include simulation results in an import configuration.
 
-调色板（按顺序选用）：
+Choose colors in sequence from this palette:
 
 ```json
 ["#5869d9", "#d99b61", "#449b87", "#9a76c3", "#5c9ebd", "#c77891", "#9b9b4d", "#768397"]
 ```
 
-## simulation 参数
+## Simulation parameters
 
-这些字段全部显式生成，包括当前不使用的另一种压缩阈值。下列数值仅作格式示例；生成默认值遵循 SKILL.md，用户要求和已有配置优先。
+Explicitly include every field below, even the compression threshold for the mode not currently in use. Example values illustrate the format only. Follow the generation defaults in SKILL.md unless the user or an existing configuration specifies otherwise.
 
-| 字段 | 示例 | 单位 / 约束 |
+| Field | Example | Units and constraints |
 | --- | --- | --- |
-| `initialContext.agentPromptToken` | 4 | K Token；嵌套字段 |
-| `turnTotalCount` | 100 | 用户消息轮次，整数 1–1,000 |
-| `skillsTotalCount` | 30 | 非负安全整数 |
-| `toolsTotalCount` | 100 | 非负安全整数 |
-| `turnAvgSkillsCount` | 0.33 | 非负数，可为小数；不超过 Skills 总数 |
-| `turnAvgToolsCount` | 1.5 | 非负数，可为小数；不超过 Tools 总数 |
-| `expectedPrefixCacheHitRate` | 0.9 | 0–1，仅对引擎识别到的相同前缀生效 |
-| `skillIndexToken` | 0.1 | 单个 Skill 索引，K |
-| `toolsIndexToken` | 0.013 | 单个 Tool 索引，K |
-| `toolSchemaToken` | 0.51 | 单个 Tool Schema，K |
-| `userMessageToken` | 0.1 | 每轮用户消息，K |
-| `skillDetailToken` | 3 | 单个 Skill 内容，K |
-| `toolResultToken` | 3 | 单个工具返回，K |
-| `readSkillPlanToken` | 0.1 | 读取 Skill 计划的模型输出，K |
-| `schemaPlanToken` | 0.1 | 查询 Schema 计划的模型输出，K |
-| `callToolsPlanToken` | 0.3 | 调用工具计划的模型输出，K |
-| `agentResult` | 1 | 最终回复的模型输出，K；字段名没有 Token 后缀 |
-| `compressionThresholdType` | `"TOKEN"` | 默认 TOKEN；也支持用户明确指定的 TURN |
-| `compressionThresholdTurnCount` | 10 | 正安全整数；TURN 模式须大于保留轮次 |
-| `compressionThresholdToken` | 100 | K；默认 100K，TOKEN 模式必须大于 0 |
-| `compressionKeepTurns` | 2 | 非负安全整数 |
-| `compressionTargetToken` | 4 | 摘要输出长度，非负 K；不是压缩后总上下文 |
-| `variables` | `{}` | 自定义变量表，可为空 |
-| `flow` | 见下文 | 显式提供 initial / turn 数组 |
+| `initialContext.agentPromptToken` | 4 | K tokens; nested field |
+| `turnTotalCount` | 100 | User-message turns; integer from 1 to 1,000 |
+| `skillsTotalCount` | 30 | Nonnegative safe integer |
+| `toolsTotalCount` | 100 | Nonnegative safe integer |
+| `turnAvgSkillsCount` | 0.33 | Nonnegative number, fractions allowed; no greater than the total number of Skills |
+| `turnAvgToolsCount` | 1.5 | Nonnegative number, fractions allowed; no greater than the total number of Tools |
+| `expectedPrefixCacheHitRate` | 0.9 | Between 0 and 1; applies only to identical prefixes recognized by the engine |
+| `skillIndexToken` | 0.1 | Per-Skill index size in K tokens |
+| `toolsIndexToken` | 0.013 | Per-Tool index size in K tokens |
+| `toolSchemaToken` | 0.51 | Per-Tool schema size in K tokens |
+| `userMessageToken` | 0.1 | Per-turn user message in K tokens |
+| `skillDetailToken` | 3 | Per-Skill content in K tokens |
+| `toolResultToken` | 3 | Per-tool result in K tokens |
+| `readSkillPlanToken` | 0.1 | Model output for planning Skill reads, in K tokens |
+| `schemaPlanToken` | 0.1 | Model output for planning schema discovery, in K tokens |
+| `callToolsPlanToken` | 0.3 | Model output for planning tool calls, in K tokens |
+| `agentResult` | 1 | Final agent response model output, in K tokens; field name does not end in `Token` |
+| `compressionThresholdType` | `"TOKEN"` | Default is TOKEN; use TURN if explicitly requested |
+| `compressionThresholdTurnCount` | 10 | Positive safe integer; TURN threshold must exceed the number of retained turns |
+| `compressionThresholdToken` | 100 | K tokens; default is 100K; must be greater than zero in TOKEN mode |
+| `compressionKeepTurns` | 2 | Nonnegative safe integer |
+| `compressionTargetToken` | 4 | Compression summary output size in nonnegative K tokens; not the total post-compression context |
+| `variables` | `{}` | Custom-variable map; may be empty |
+| `flow` | See below | Explicit `initial` and `turn` arrays |
 
-所有数值须有限，所有长度须非负。JSON 不允许 NaN / Infinity。
+Every numeric value must be finite, and every token length must be nonnegative. JSON does not allow NaN or Infinity.
 
-内置参数只有 `useGlobal[字段] === true` 才继承全局；缺省或 false 使用方案值。嵌套长度使用平铺路径键 `"initialContext.agentPromptToken"`。flow 始终属于方案，不支持 useGlobal.flow。
+Built-in parameters inherit from globals **only** when `useGlobal[field] === true`; a missing or false flag uses the local plan value. Use flattened keys for nested paths such as `"initialContext.agentPromptToken"`. Flows always belong to their plans; `useGlobal.flow` is unsupported.
 
-耗时开关不放进 simulation 或 useGlobal，使用上表定义的两级开关。
+Duration settings are not part of `simulation` or `useGlobal`. Use the two-level switches defined above.
 
-自定义变量全局默认继承，包括与本地同名时也覆盖；用 `useGlobal["variables.retrievalToken"]: false` 保留本地值。全局与本地变量合并后每个生效方案最多 100 项。
+By default, custom variables inherit global values, even when a local variable has the same name. Set `useGlobal["variables.retrievalToken"]: false` to retain the local value. After merging global and local variables, each effective plan may contain at most 100 custom variables.
 
-## 方案说明中的变量
+## Variables in plan descriptions
 
-`plans[i].description` 支持 `{{变量名}}`，变量名与步骤公式使用同一个配置参数名，但这里只替换数值，不计算表达式。例如：
+`plans[i].description` supports `{{variableName}}` interpolation. Names match configuration parameter names used by step formulas, but descriptions **only substitute numeric values**; they do not evaluate expressions. For example:
 
 ```json
 {
-  "description": "共 {{toolsTotalCount}} 个工具，每轮平均调用 {{turnAvgToolsCount}} 个；Prompt 为 {{initialContext.agentPromptToken}} K。"
+  "description": "Compare {{toolsTotalCount}} tools, averaging {{turnAvgToolsCount}} per turn; the agent prompt is {{initialContext.agentPromptToken}}K tokens."
 }
 ```
 
-该片段放在方案顶层；引用上面完整示例的配置时显示「共 100 个工具，每轮平均调用 1.5 个；Prompt 为 4 K。」。自定义变量直接按名引用，如 `{{retrievalToken}}`，先在 globalSimulation.variables 或方案 simulation.variables 定义它，不写 `{{variables.retrievalToken}}`。
+This snippet belongs at the plan top level. With the values from the full example above, it displays: "Compare 100 tools, averaging 1.5 per turn; the agent prompt is 4K tokens." For custom variables, reference the name directly (for example, `{{retrievalToken}}`), having first defined it under `globalSimulation.variables` or `plans[i].simulation.variables`. Do **not** use `{{variables.retrievalToken}}`.
 
-- 可引用 simulation 表内的数值参数，包括点号路径 `initialContext.agentPromptToken`，以及自定义变量。`{{ toolsTotalCount }}` 两侧空白有效；变量名区分大小写。
-- 使用当前方案的实际生效值，遵守内置参数的 useGlobal 开关和自定义变量的默认全局继承规则。修改全局值、独立覆盖或恢复继承后，方案列表、详情卡片和模板预览同步更新。
-- 数值按配置原值显示，零值有效；Token 长度仍为 K，说明中手工写单位。`{{expectedPrefixCacheHitRate}}` 在值为 0.9 时显示 `0.9`，不能在后面直接加 `%` 当作 90%。可写「命中率 {{expectedPrefixCacheHitRate}}（0–1）」；不支持百分比格式指令。
-- 不支持 `{{toolsTotalCount * toolSchemaToken}}`、Math 函数或格式过滤器，也不读取 turnIndex / llmIndex、模型单价、compressionThresholdType、耗时开关、节点字段或模拟结果。需要展示计算后的常量时，将数值明确存进自定义变量；它不会自动随其他变量重算。
-- 未知变量、没有有效数值的变量及 removedFields 内已删除的内置变量保留占位原文；编辑器提示未知引用，导入不会因此失败。不支持的表达式同样原样显示；新生成说明不要依赖这种行为，应使用可解析的引用。
-- 原文（含花括号和变量名）总长最多 1,000 字符；导入、导出和复制保留原文，不把预览值写回 JSON。该语法仅用于方案说明，模板外层 description 和方案名称不替换变量。
-- 页面可用「插入变量」选择当前方案可用参数，并查看「说明预览」。自定义变量在方案说明中仍被引用时不可删除；先修改引用，独立覆盖方案不受全局变量删除影响。
+- You may reference numeric fields from the simulation table, including dotted paths such as `initialContext.agentPromptToken`, and custom variables. Whitespace is permitted in `{{ toolsTotalCount }}`; names are case-sensitive.
+- Substitution uses the plan's effective values, respecting built-in `useGlobal` flags and the default global-inheritance behavior of custom variables. Updates to global parameters, local overrides, or inherited values propagate to the plan list, detail cards, and template preview.
+- Numeric values render without formatting; zero is valid. Token lengths remain in K, so write units explicitly. `{{expectedPrefixCacheHitRate}}` displays `0.9` for a value of 0.9; do not append `%` and imply 90%. Instead write "cache hit rate {{expectedPrefixCacheHitRate}} (0–1)". Percentage formatting directives are unsupported.
+- Expressions such as `{{toolsTotalCount * toolSchemaToken}}`, Math functions, and format filters are unsupported. Descriptions cannot reference `turnIndex`, `llmIndex`, model prices, `compressionThresholdType`, duration switches, step fields, or simulation results. To display a computed constant, store it explicitly in a custom variable; it will not automatically update when other variables change.
+- Unknown variables, variables without valid numeric values, and built-in fields deleted via `removedFields` remain as uninterpolated placeholders. The editor warns about unknown references, but import itself does not fail. Unsupported expressions likewise remain verbatim. New descriptions must not rely on that behavior; use resolvable references.
+- Raw description length, including braces and variable names, must not exceed 1,000 characters. Import, export, and copy preserve the raw text rather than writing preview values into JSON. Interpolation applies only to plan descriptions, not to the template-level `description` or plan names.
+- The web editor offers "Insert variable" for currently available parameters and "Description preview". A custom variable cannot be deleted while it remains referenced by a plan description. Change the reference first; plan-specific overrides are not affected by deletion of the global variable.
 
-## 模型和来源
+## Models and pricing sources
 
 ```json
 {
   "model": {
-    "name": "演示模型（假设费率）",
+    "name": "Demo Model (Illustrative Pricing)",
     "currency": "$",
     "inputCachedPrice": 0.2,
     "inputNotCachedPrice": 2,
@@ -118,19 +118,19 @@
   },
   "pricing": {
     "id": "custom",
-    "label": "演示假设，非实际报价",
+    "label": "Illustrative assumptions, not verified prices",
     "source": "",
     "date": "",
-    "note": "仅用于演示配置格式；请替换为目标模型的 USD / 百万 Token 单价"
+    "note": "Example format only; replace with the target model's USD prices per million tokens."
   }
 }
 ```
 
-上述为格式示例，不能当成已核对报价。三个价格均为非负 USD / 百万 Token；不支持自动换汇。source 可填写官方价格链接，date 填实际核对日期，未知时留空。修改费率后使用 pricing.id 为 custom，避免混淆为未修改的预设。
+This example shows the format, **not verified pricing**. All three rates are nonnegative USD per million tokens; automatic currency conversion is unsupported. The `source` may contain a link to official pricing and `date` the actual verification date; leave them blank when unknown. When changing rates, set `pricing.id` to `"custom"` so the configuration is not mistaken for an unmodified preset.
 
-pricing.contextWindow 可选，单位为原始 Token；pricing.tier 可选，格式为 `{ "input_tokens_gt": 0, "input_tokens_lte": 128000 }`，也是原始 Token。这些是来源元数据，不会自动选价格档位或限制上下文。跨档位的实验应选用适用费率并说明假设。
+`pricing.contextWindow` is optional and expressed in **raw tokens**, not K tokens. `pricing.tier` is optional, with a shape like `{ "input_tokens_gt": 0, "input_tokens_lte": 128000 }`, also using raw tokens. These are provenance metadata; they do not automatically select a pricing tier or enforce the context window. For experiments crossing pricing tiers, choose suitable rates and document assumptions.
 
-## 流程与公式
+## Execution flow and formulas
 
 ```json
 {
@@ -139,63 +139,63 @@ pricing.contextWindow 可选，单位为原始 Token；pricing.tier 可选，格
   ],
   "turn": [
     { "type": "action", "text": "user_message", "token": "userMessageToken", "durationSeconds": 0 },
-    { "type": "llm", "text": "检索计划", "token": 0.2, "durationSeconds": 1.8 },
-    { "type": "action", "text": "检索结果", "token": "retrievalToken", "durationSeconds": 0.3 },
+    { "type": "llm", "text": "retrieval_plan", "token": 0.2, "durationSeconds": 1.8 },
+    { "type": "action", "text": "retrieval_result", "token": "retrievalToken", "durationSeconds": 0.3 },
     { "type": "llm", "text": "agent_result", "token": "agentResult", "durationSeconds": 1.8 }
   ]
 }
 ```
 
-该片段引用 retrievalToken 时须同时按下文定义变量。initial 仅允许 action，turn 允许 action / llm；两个数组都须显式提供，空数组表示不执行该阶段。步骤只允许以下字段：
+When using `retrievalToken` in this snippet, also define that variable as described below. The `initial` array permits `action` nodes only; `turn` allows `action` or `llm`. Explicitly include both arrays, even when empty (an empty array performs no steps for that phase). Each step supports only:
 
-| 字段 | 规则 |
+| Field | Rules |
 | --- | --- |
-| `type` | `"action"` 或 `"llm"` |
-| `text` | 非空步骤名，同时是费用来源归因键；同名合并统计 |
-| `token` | 非负有限数字（K）或公式字符串；数字字符串如 `"0.5"` 也作为公式解析 |
-| `enabled` | 可选布尔值，缺省为启用 |
-| `trigger` | 可选，仅 turn 允许；省略表示每轮执行 |
-| `durationSeconds` | 可选非负有限数字，单位秒；省略时 action 为 0.3、llm 为 1.8；显式 0 有效。不接受字符串、null 或公式，initial 中也允许保存该字段 |
+| `type` | `"action"` or `"llm"` |
+| `text` | Nonempty step name, also used for cost attribution; same-name steps are aggregated |
+| `token` | Nonnegative finite number in K tokens or a formula string. Numeric strings such as `"0.5"` are also parsed as formulas |
+| `enabled` | Optional boolean; enabled by default |
+| `trigger` | Optional and permitted only in `turn`; omitted means run on every turn |
+| `durationSeconds` | Optional nonnegative finite number in seconds. Defaults are 0.3 for `action` and 1.8 for `llm`; explicit 0 is valid. Strings, `null`, and formulas are invalid. The field may also be stored in `initial` |
 
-常用归因键可沿用完整模板的英文 text，页面有对应显示名称；自定义名称也可正常显示。
+Use the English `text` attribution keys from the complete templates when possible; the web app knows how to display them. Custom names also work.
 
-- `action` 只追加上下文；`llm` 发送当前上下文，`token` 是本次模型输出长度，输出自动加入历史。不要把输入填进 `llm.token`，也不要重复追加模型输出。
-- 流程决定实际加载内容，仅修改 `toolsTotalCount` / `skillDetailToken` 等参数不会自动追加内容；不支持旧字段 `toolsMode`。具体策略见 SKILL.md 的场景示例。
-- 缓存和压缩由引擎计算；轮末检查压缩，包括最后一轮，不手工添加压缩调用。`expectedPrefixCacheHitRate: 0.9` 表示 90%，与 `trigger.value: 30` 表示 30% 的量纲不同。
+- `action` nodes append context only. `llm` nodes send the current context to the model; their `token` value describes **output**, which is automatically appended to the history. Do not put input size in `llm.token` or append the model output again.
+- The execution flow determines what is actually loaded. Changing `toolsTotalCount` or `skillDetailToken` alone does not automatically append any content. The obsolete `toolsMode` field is unsupported. See the scenarios in SKILL.md for strategy examples.
+- The engine handles caching and compression. Check compression at the end of each turn, including the last; do not add a manual compression-call node. `expectedPrefixCacheHitRate: 0.9` denotes 90%, whereas `trigger.value: 30` denotes 30%; these parameters use different scales.
 
-### 耗时开关与计算口径
+### Duration switches and estimation semantics
 
-新文件显式写出两个布尔开关，修改已有文件时保留原选择；省略时默认开启。不能用 `"false"`、0、1 或 null。
+Explicitly include both boolean duration switches for new files and preserve existing values when editing. Missing switches default to enabled. Do not substitute `"false"`, `0`, `1`, or `null` for a boolean.
 
-| 全局 estimateDuration | 方案 estimateDuration | 实际统计与页面行为 |
+| Global `estimateDuration` | Plan `estimateDuration` | Calculation and UI behavior |
 | --- | --- | --- |
-| true / 省略 | true / 省略 | 统计本方案耗时，展示「每轮平均TTFT」 |
-| true / 省略 | false | 本方案耗时显示「—」，保留整列，其他方案不变 |
-| false | 任意有效值 / 省略 | 所有方案关闭耗时统计，整列隐藏；保留各方案的独立开关和节点耗时 |
+| `true` / omitted | `true` / omitted | Estimate this plan's duration and show "Average TTFT per turn" |
+| `true` / omitted | `false` | Show "—" for this plan's duration, keep the column, and leave other plans unchanged |
+| `false` | Any valid value / omitted | Disable duration estimation for every plan and hide the entire column; preserve plan-level switches and step durations |
 
-即使所有方案都设为 false，只要全局仍开启，耗时列仍保留。开关不影响 Token 和费用；关闭统计也不能填写非法节点耗时，导入仍会校验。
+Even if every plan has `estimateDuration: false`, the duration column remains visible when the global switch is enabled. These switches do not change token or cost calculations. Invalid step durations still fail import validation even when duration calculations are disabled.
 
-页面「每轮平均TTFT」实际采用串行累计耗时估算：
+Although the web app labels the metric "Average TTFT per turn", its actual calculation is a **serial sum of estimated durations**:
 
 ```text
-每轮耗时 = 本轮实际执行的 turn 节点 durationSeconds 之和 + 本轮压缩调用数 × 1.8 秒
-每轮平均耗时 = 所有用户轮次的耗时之和 ÷ 用户轮次总数
+Turn duration = sum(durationSeconds of executed turn steps) + (compression calls during this turn × 1.8 seconds)
+Average duration per turn = sum(turn durations) ÷ total user turns
 ```
 
-- 只统计实际启用且触发的 turn 节点；初始上下文的一次性加载不计入，即使设置了耗时。
-- 每个 LLM 节点只计时一次，自动追加的模型输出不会重复计时。
-- 工具 / 上下文节点每执行一次只加一次耗时，不随 Token 数或 turnAvgToolsCount 倍增；若耗时已包含整批工具执行时间，直接填写该批总秒数。
-- 压缩请求固定 1.8 秒，计入触发它的用户轮次，包括最后一轮；不手工增加压缩节点。
-- 该指标不是实际测量的首 Token 延迟，也不自动按模型速度、Token 长度或并行调用推导耗时。使用默认值或估算值时明确说明假设。
-- 模拟报告返回 `averageTurnDurationSeconds` 和 `rounds[i].durationSeconds`；关闭时均为 null，不能当成 0 秒。空流程且不触发压缩时为 0；无用户轮次平均值为 null（页面配置仍要求至少 1 轮）。这些是运行结果，不写回导入 JSON。
+- Count only enabled and triggered `turn` steps. One-time loading of initial context is excluded, even when a duration is supplied.
+- Count each LLM step once; automatically appended model outputs do not add another duration.
+- Count each tool or context step once per execution, regardless of token count or `turnAvgToolsCount`. If its duration already represents an entire batch of tool execution, supply the total batch duration directly.
+- A compression request has a fixed 1.8-second duration and is charged to the triggering user turn, including the last. Do not insert manual compression steps.
+- This metric is **not a measured time-to-first-token latency**. The simulator does not derive elapsed time from model speed, token lengths, or parallel execution. Label default or estimated durations as assumptions.
+- Simulation reports contain `averageTurnDurationSeconds` and `rounds[i].durationSeconds`. When estimation is disabled, both are `null`, not zero. An empty flow without compression yields zero; when there are no user turns the average is `null` (although web configurations require at least one). These are simulation outputs and must not be saved in import JSON.
 
-### 可引用的值
+### Values available to formulas
 
-公式可直接引用上表所有数值字段、自定义变量，以及 turnIndex（用户轮次索引，从 0 开始）和 llmIndex（本轮当前步骤前已执行的模型调用数，从 0 开始）。初始阶段两者均为 0。压缩不计入用户轮次，停用或未触发的 LLM 不增加 llmIndex。
+Formulas may reference any numeric parameter in the simulation table, custom variables, and `turnIndex` (zero-based user-turn index) or `llmIndex` (number of model calls already executed earlier in the current turn, starting at zero). Both indices are zero during initialization. Compression does not count as a user turn; disabled or untriggered LLM steps do not increment `llmIndex`.
 
-不能引用其他节点输出对象、累计上下文、模型单价、其他方案、compressionThresholdType、description、estimateDuration 或 durationSeconds；需要的常量放进自定义变量。参数表达式不递归引用其他公式。
+Formulas cannot access other step-output objects, accumulated context, model pricing, other plans, `compressionThresholdType`, `description`, `estimateDuration`, or `durationSeconds`. Put any required constants in custom variables. Parameter expressions are not recursively resolved through other formulas.
 
-支持 `+ - * / % **`、括号、比较、`! && || ??` 和三元表达式。Math 函数仅支持 min、max、ceil、floor、round、trunc、abs、sqrt、pow、log、log2、log10、exp，常量支持 Math.PI / Math.E。必须写 `Math.min(...)`，不能写裸 `min(...)`。
+Operators include `+ - * / % **`, parentheses, comparisons, `! && || ??`, and ternaries. Supported Math functions: `min`, `max`, `ceil`, `floor`, `round`, `trunc`, `abs`, `sqrt`, `pow`, `log`, `log2`, `log10`, and `exp`. Supported constants: `Math.PI` and `Math.E`. Call functions as `Math.min(...)`, not `min(...)`.
 
 ```text
 toolResultToken * turnAvgToolsCount
@@ -204,24 +204,24 @@ turnIndex === 0 ? toolSchemaToken * turnAvgToolsCount : 0
 llmIndex === 0 ? callToolsPlanToken : agentResult
 ```
 
-每条公式最多 2,000 字符、256 个求值节点、32 层嵌套；不支持赋值、函数定义、随机数、任意对象访问或执行代码。结果在每个实际执行轮次都须为非负有限数；例如 `1 / turnIndex` 首轮就无效。不要只用首轮预览判断后续公式安全。
+A formula is limited to 2,000 characters, 256 evaluation nodes, and 32 nesting levels. Assignments, function definitions, randomness, arbitrary object access, and code execution are unsupported. Its result must be nonnegative and finite on **every executed turn**: for example, `1 / turnIndex` fails on the first turn. Do not assume later turns are safe based on a first-turn preview.
 
-### 自定义变量
+### Custom variables
 
-放在 globalSimulation.variables 或 plans[i].simulation.variables：
+Define them under `globalSimulation.variables` or `plans[i].simulation.variables`:
 
 ```json
-{ "retrievalToken": { "label": "检索返回长度（K）", "value": 2.5 } }
+{ "retrievalToken": { "label": "Retrieved result size (K)", "value": 2.5 } }
 ```
 
-变量名须匹配 `^[A-Za-z_][A-Za-z0-9_]{0,63}$`，不能与内置字段、运行变量、Math、model、flow、variables、JS 关键字、__proto__、constructor 等保留名称冲突。label 为 1–60 字符，value 为非负有限数。变量项只允许 label / value，单位写进 label 或文件外的假设说明。
+Names must match `^[A-Za-z_][A-Za-z0-9_]{0,63}$` and must not conflict with built-in fields, runtime variables, `Math`, `model`, `flow`, `variables`, JavaScript keywords, `__proto__`, `constructor`, or other reserved names. Each `label` is 1–60 characters, and each `value` must be finite and nonnegative. Variable objects only allow `label` and `value`. Indicate units in the label or in assumptions outside the configuration.
 
-### 触发规则
+### Triggers
 
-- `{ "type": "interval", "value": 3 }`：从首轮开始，在第 1、4、7…轮执行；value 为正安全整数。间隔超过会话轮数时仍在首轮执行一次，压缩不重置计数。
-- `{ "type": "probability", "value": 30 }`：每轮 30% 触发；value 为 0–100 有限数。每个节点独立按轮次及节点位置确定抽样，实际比例可能不同于设定值。
-- trigger 只允许 type / value，initial 不接受 trigger。
-- 计划 LLM 未触发不会自动跳过后面的工具结果节点。需要联动时可给相关节点相同 interval，或按 turnIndex 写确定性条件；不要给两个概率节点相同百分比就当成相关事件。
-- `token: 0` 的 LLM 仍会发起请求并计输入费用；要跳过请求应使用 enabled 或 trigger。
+- `{ "type": "interval", "value": 3 }` executes on turns 1, 4, 7, and so on, starting with the first turn. `value` must be a positive safe integer. If the interval exceeds the session length, the first turn still runs once. Compression does not reset this counter.
+- `{ "type": "probability", "value": 30 }` triggers with a 30% probability per turn. `value` must be finite and between 0 and 100. Each step's sample is determined separately by turn and step position; observed frequency can differ from the configured rate.
+- A `trigger` contains only `type` and `value`; `initial` steps cannot have triggers.
+- A planning LLM step that does not trigger does **not** automatically suppress a following tool-result step. For correlated behavior, give related steps the same interval trigger or use a deterministic `turnIndex` expression when appropriate. Two separate probability triggers with the same percentage are **not** correlated events.
+- An LLM step with `token: 0` still sends a model request and incurs input charges. To skip the request, use `enabled` or `trigger`.
 
-仅支持当前配置字段结构，不自动补齐缺失的全局字段；globalSimulation 和 globalModelId 须提供。Token 仅支持数值或公式字符串，不接受参数名数组。
+Only the current configuration schema is supported. The importer does not automatically supply missing global fields; include `globalSimulation` and `globalModelId`. Token specifications support only numbers or formula strings, not arrays of parameter names.
