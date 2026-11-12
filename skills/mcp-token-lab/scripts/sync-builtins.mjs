@@ -18,7 +18,7 @@ try {
   const target = fileURLToPath(new URL('../assets/examples/', import.meta.url));
   const { readTemplate } = await import(pathToFileURL(resolve(repo, 'src/templates.js')).href);
   const files = (await readdir(source, { recursive: true })).filter(file => file.endsWith('.json')).sort();
-  if (!files.length) throw new Error('没有找到内置模板');
+  if (!files.length) throw new Error('No built-in templates found');
   // Read and normalize every source before changing the packaged examples.
   const expected = new Map(await Promise.all(files.map(async file => {
     const data = JSON.parse(await readFile(resolve(source, file), 'utf8'));
@@ -45,7 +45,7 @@ try {
     }
   }
   if (check && (changed.length || stale.length)) {
-    throw new Error('内置示例未同步，请运行同步命令。差异：' + [...changed, ...stale].join(', '));
+    throw new Error('Packaged examples are out of sync. Run the sync command. Differences: ' + [...changed, ...stale].join(', '));
   }
   if (!check) for (const file of stale) await rm(resolve(target, file));
   console.log(JSON.stringify({ checked: check, examples: expected.size, updated: changed.length, removed: stale.length }));
