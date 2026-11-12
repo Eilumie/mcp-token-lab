@@ -1,8 +1,8 @@
 {
   "type": "token-lab-template",
   "version": 1,
-  "name": "按需 Schema 与全量预加载对比",
-  "description": "比较相同模型和工具规模下，按需读取 Tool Schema 与初始全量预加载的 Token、费用和预估耗时。统一使用 100 轮用户消息、100 个工具、100K Token 上下文压缩阈值，每轮平均调用 1.5 个工具；费率和节点耗时均为演示假设，使用前请按实际场景调整。",
+  "name": "On-Demand Schema Discovery vs Full Preloading",
+  "description": "Compare token usage, estimated costs, and durations for on-demand Tool Schema discovery versus full initial preloading with the same model and tool set. Both plans use 100 user turns, 100 tools, a 100K-token context compression threshold, and an average of 1.5 tool calls per turn. Model prices and step durations are illustrative assumptions; adjust them to match your workload.",
   "config": {
     "unit": "K",
     "baselineId": "plan-full",
@@ -39,9 +39,9 @@
     "plans": [
       {
         "id": "plan-lazy",
-        "name": "渐进式Tools Schema",
+        "name": "Progressive Tool Schema Loading",
         "color": "#5869d9",
-        "description": "共 {{turnTotalCount}} 轮、{{toolsTotalCount}} 个工具，Prompt 为 {{initialContext.agentPromptToken}} K。初始加载 Skill 与 Tool 索引，每轮按需查询 Schema，平均调用 {{turnAvgToolsCount}} 个工具；与全量方案使用相同演示费率。节点耗时为演示假设：action 0.3 秒，llm 1.8 秒。",
+        "description": "Across {{turnTotalCount}} turns and {{toolsTotalCount}} tools, the initial agent prompt is {{initialContext.agentPromptToken}}K tokens. Load Skill and Tool indexes initially, then discover schemas on demand, using {{turnAvgToolsCount}} tools per turn on average. Both plans use the same illustrative prices. Assumed step durations: 0.3 seconds per action and 1.8 seconds per LLM call.",
         "estimateDuration": true,
         "simulation": {
           "flow": {
@@ -143,7 +143,7 @@
           "compressionKeepTurns": 2
         },
         "model": {
-          "name": "演示模型（假设费率）",
+          "name": "Demo Model (Illustrative Pricing)",
           "currency": "$",
           "inputCachedPrice": 0.2,
           "inputNotCachedPrice": 2,
@@ -151,10 +151,10 @@
         },
         "pricing": {
           "id": "custom",
-          "label": "演示假设，非实际报价",
+          "label": "Illustrative assumptions, not verified prices",
           "source": "",
           "date": "",
-          "note": "仅用于演示配置格式；请替换为目标模型的 USD / 百万 Token 单价"
+          "note": "Example format only; replace with the target model's USD prices per million tokens."
         },
         "useGlobal": {
           "turnTotalCount": true,
@@ -184,9 +184,9 @@
       },
       {
         "id": "plan-full",
-        "name": "MCP默认全量tools/list",
+        "name": "Full MCP tools/list Preloading",
         "color": "#d99b61",
-        "description": "共 {{turnTotalCount}} 轮，初始预加载 {{toolsTotalCount}} 个工具的全部 Schema，单个 Schema 为 {{toolSchemaToken}} K；每轮省去 Schema 查询计划和返回节点，作为固定对比基准。与按需方案使用相同规模、演示费率和相同步骤耗时假设。",
+        "description": "Across {{turnTotalCount}} turns, preload schemas for all {{toolsTotalCount}} tools initially, with {{toolSchemaToken}}K tokens per schema. Avoid per-turn schema-query planning and retrieval steps; use this as the fixed comparison baseline. Both plans use the same scale, illustrative prices, and corresponding step-duration assumptions.",
         "estimateDuration": true,
         "simulation": {
           "flow": {
@@ -282,7 +282,7 @@
           "compressionKeepTurns": 2
         },
         "model": {
-          "name": "演示模型（假设费率）",
+          "name": "Demo Model (Illustrative Pricing)",
           "currency": "$",
           "inputCachedPrice": 0.2,
           "inputNotCachedPrice": 2,
@@ -290,10 +290,10 @@
         },
         "pricing": {
           "id": "custom",
-          "label": "演示假设，非实际报价",
+          "label": "Illustrative assumptions, not verified prices",
           "source": "",
           "date": "",
-          "note": "仅用于演示配置格式；请替换为目标模型的 USD / 百万 Token 单价"
+          "note": "Example format only; replace with the target model's USD prices per million tokens."
         },
         "useGlobal": {
           "turnTotalCount": true,
@@ -324,7 +324,7 @@
     ],
     "globalModel": {
       "model": {
-        "name": "演示模型（假设费率）",
+        "name": "Demo Model (Illustrative Pricing)",
         "currency": "$",
         "inputCachedPrice": 0.2,
         "inputNotCachedPrice": 2,
@@ -332,10 +332,10 @@
       },
       "pricing": {
         "id": "custom",
-        "label": "演示假设，非实际报价",
+        "label": "Illustrative assumptions, not verified prices",
         "source": "",
         "date": "",
-        "note": "仅用于演示配置格式；请替换为目标模型的 USD / 百万 Token 单价"
+        "note": "Example format only; replace with the target model's USD prices per million tokens."
       }
     }
   }
