@@ -1,0 +1,51 @@
+name: Package MCP Token Lab Skill for Agensi
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "skills/mcp-token-lab/**"
+      - ".github/workflows/package-agensi-skill.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Skill structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f skills/mcp-token-lab/SKILL.md
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path("skills/mcp-token-lab/SKILL.md")
+          text = p.read_text(encoding="utf-8")
+          m = re.match(r"\A---\s*\n(.*?)\n---(?:\s*\n|$)", text, re.S)
+          assert m, "SKILL.md must have YAML frontmatter"
+          header = m.group(1)
+          assert re.search(r"(?m)^name:\s*\S+", header), "Missing name"
+          assert re.search(r"(?m)^description:\s*\S+", header), "Missing description"
+          assert Path("skills/mcp-token-lab/references/import-format.md").is_file()
+          assert Path("skills/mcp-token-lab/assets/comparison.example.json").is_file()
+          print("Skill structure verified.")
+          PY
+      - name: Create upload-ready ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd skills/mcp-token-lab && zip -q -r ../../mcp-token-lab-agensi.zip .)
+          unzip -Z -1 mcp-token-lab-agensi.zip | grep -Fxq 'SKILL.md'
+          test "$(stat -c '%s' mcp-token-lab-agensi.zip)" -lt 50000000
+          unzip -tq mcp-token-lab-agensi.zip
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-token-lab-agensi
+          path: mcp-token-lab-agensi.zip
+          if-no-files-found: error
